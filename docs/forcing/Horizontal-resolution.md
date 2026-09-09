@@ -51,21 +51,21 @@ Changing horizontal resolution therefore changes more than the graphical represe
 
 ### Why 1- and 0.1-degree?
 
-These resolutions deliberately bracket the present 0.25° configuration over a large range. Relative to 0.25°:
+These resolutions deliberately bracket the present 0.25-degree configuration over a large range. Relative to 0.25-degree:
 
 ```text
-1.0°    = 4 × coarser linear grid spacing
-         ≈ 16 × larger nominal grid-cell area
+1.0-degree  = 4 × coarser linear grid spacing
+            ≈ 16 × larger nominal grid-cell area
 
-0.10°   = 2.5 × finer linear grid spacing
-         ≈ 6.25 × smaller nominal grid-cell area
+0.10-degree = 2.5 × finer linear grid spacing
+            ≈ 6.25 × smaller nominal grid-cell area
 ```
 
-The full range from 1° to 0.1° is a factor of ten in nominal linear resolution. This is large enough that genuine resolution dependence should become distinguishable from small numerical differences between otherwise similar model grids. The two experiments also address different scientific questions.
+The full range from 1-degree to 0.1-degree is a factor of ten in nominal linear resolution. This is large enough that genuine resolution dependence should become distinguishable from small numerical differences between otherwise similar model grids. The two experiments also address different scientific questions.
 
-### 1° experiment
+### 1-degree experiment
 
-The 1° configuration asks whether the lateral-drag/rheology system can represent Antarctic fast ice when much of the relevant coastal geometry is necessarily subgrid. At this resolution:
+The 1-degree configuration asks whether the lateral-drag/rheology system can represent Antarctic fast ice when much of the relevant coastal geometry is necessarily subgrid. At this resolution:
 
 - narrow coastal embayments may occupy only part of a grid cell;
 - island chains and grounded-iceberg complexes are increasingly subgrid;
@@ -76,9 +76,9 @@ The 1° configuration asks whether the lateral-drag/rheology system can represen
 
 This is an important limit because it tests whether the form-factor parameterisation behaves as intended when unresolved coastal geometry becomes dominant.
 
-### 0.1° experiment
+### 0.1-degree experiment
 
-The 0.1° configuration asks the complementary question. More coastal geometry becomes explicitly resolved, the fast-ice zone spans more cells, spatial gradients become sharper, and the model can represent substantially more structure in ice velocity, deformation and ocean forcing. The parameterisation must therefore operate in an environment in which some processes previously represented through effective subgrid resistance begin to become resolved. The high-resolution experiment tests whether the 0.25° solution remains valid as CICE approaches a much more explicitly resolved coastal mechanical system.
+The 0.1-degree configuration asks the complementary question. More coastal geometry becomes explicitly resolved, the fast-ice zone spans more cells, spatial gradients become sharper, and the model can represent substantially more structure in ice velocity, deformation and ocean forcing. The parameterisation must therefore operate in an environment in which some processes previously represented through effective subgrid resistance begin to become resolved. The high-resolution experiment tests whether the 0.25-degree solution remains valid as CICE approaches a much more explicitly resolved coastal mechanical system.
 
 ---
 
@@ -86,23 +86,18 @@ The 0.1° configuration asks the complementary question. More coastal geometry b
 
 The first experiment set should address five questions.
 
-### Q1. Is the 0.25° `Cs-high` solution resolution transferable?
+### Q1. Is the 0.25-degree `Cs-high` solution resolution transferable?
 
-With the same physical parameter values, do the 1°, 0.25° and 0.1° configurations produce broadly similar:
+With the same physical parameter values, do the 1-degree, 0.25-degree and 0.1-degree configurations produce broadly similar:
 
 ```text
-circumpolar FIA
-regional FIA
-seasonal FIA cycle
-fast-ice probability
-fast-ice onset
-seasonal maximum
-breakout timing
+circumpolar FIA/FIP
+regional    FIA/FIP
+seasonal    max/min
+timing      breakout/onset
 ```
 
-relative to AF2020?
-
-A positive result would be scientifically important because it would indicate that the parameterisation represents a reasonably scale-robust physical mechanism rather than compensating for a particular model grid.
+relative to AF2020? A positive result would be scientifically important because it would indicate that the parameterisation represents a reasonably scale-robust physical mechanism rather than compensating for a particular model grid.
 
 ### Q2. Are the rheological parameters resolution transferable?
 
@@ -114,21 +109,11 @@ e_yieldcurve = 1.5
 e_plasticpot = 1.5
 ```
 
-`Ktens` introduces tensile strength relative to compressive ice strength, while the elliptical yield-curve parameters control the relationship between the components of the internal stress state.
-
-These are constitutive parameters.
-
-There is therefore no strong reason to retune them *a priori* simply because grid spacing changes.
-
-However, the discretised rheology is not resolution independent. Changing grid spacing changes resolved velocity gradients and strain rates and may alter EVP convergence. The same constitutive parameters can consequently produce a different effective mechanical response.
-
-Testing them unchanged is therefore scientifically more useful than immediately retuning them.
+`Ktens` introduces tensile strength relative to compressive ice strength, while the elliptical yield-curve parameters control the relationship between the components of the internal stress state. These are constitutive parameters. There is therefore no strong reason to retune them *a priori* simply because grid spacing changes. However, the discretised rheology is not resolution independent. Changing grid spacing changes resolved velocity gradients and strain rates and may alter EVP convergence. The same constitutive parameters can consequently produce a different effective mechanical response. Testing them unchanged is therefore scientifically more useful than immediately retuning them.
 
 ### Q3. Is `Cs = 1.0e-3` resolution transferable?
 
-The static lateral-drag coefficient should be treated separately from the form factor.
-
-In the current implementation:
+The static lateral-drag coefficient should be treated separately from the form factor. In the current implementation:
 
 ```text
 Cs  -> strength scale of the static lateral-resistance closure
@@ -147,9 +132,7 @@ while the lateral-drag stress factor includes the local form factor:
 Ku ~ ice_mass × F2
 ```
 
-`Cs` therefore does not directly encode the target-grid coastline geometry.
-
-The clean first hypothesis is consequently:
+`Cs` therefore does not directly encode the target-grid coastline geometry. The first hypothesis that then comes to mind is:
 
 > **If `F2` is generated consistently for each grid, the same `Cs` should first be tested at all three resolutions.**
 
@@ -157,12 +140,10 @@ Whether `Cs = 1.0e-3` actually remains appropriate is then an empirical result r
 
 ### Q4. Does increasing resolution change FIA for the correct reason?
 
-Similar total FIA does not necessarily imply equivalent physics.
-
-For example, excessive lateral drag and excessive internal tensile strength can both produce a similar circumpolar FIA while producing very different:
+Similar total FIA does not necessarily imply equivalent physics. For example, excessive lateral drag and excessive internal tensile strength can both produce a similar circumpolar FIA while producing very different:
 
 ```text
-fast-ice probability maps
+FIP maps
 strain-rate fields
 ice-strength fields
 velocity distributions
@@ -170,15 +151,15 @@ breakout locations
 regional seasonal cycles
 ```
 
-The experiments must therefore diagnose the mechanism producing FIA rather than using FIA alone as the calibration target.
+The experiments should therefore diagnose the mechanism producing FIA rather than using FIA alone as the calibration target.
 
-### Q5. How much of the 0.25° skill arises from unresolved geometry?
+### Q5. How much of the 0.25-degree skill arises from unresolved geometry?
 
-This may ultimately be the most interesting question. If substantially different resolutions reproduce similar AF2020 fast-ice distributions using the same `Cs`, `Ktens` and elliptical yield curve, the result would support the physical portability of the parameterisation. If parameter changes are required, their direction and magnitude can instead reveal how much of the 0.25° solution represents compensation for unresolved coastline, forcing or rheological structure.
+This may ultimately be the most interesting question. If substantially different resolutions reproduce similar AF2020 fast-ice distributions using the same `Cs`, `Ktens` and elliptical yield curve, the result would support the physical portability of the parameterisation. If parameter changes are required, their direction and magnitude can instead reveal how much of the 0.25-degree solution represents compensation for unresolved coastline, forcing or rheological structure.
 
 ---
 
-# Stage R0: build resolution-specific model inputs
+# R0: build resolution-specific model inputs
 
 Before running the resolution experiments, all grid-dependent inputs must be constructed consistently.
 
@@ -187,8 +168,8 @@ Before running the resolution experiments, all grid-dependent inputs must be con
 Independent CICE grids are required for:
 
 ```text
-1.0°
-0.10°
+1.0-degree
+0.10-degree
 ```
 
 including the corresponding:
@@ -203,13 +184,13 @@ C-grid masks
 grid angles
 ```
 
-The target-grid land mask should be generated consistently from the same high-resolution source geometry wherever possible. This is particularly important because changing the resolved coastline while simultaneously changing the form-factor source would make attribution difficult.
+The target-grid land mask should be generated consistently from the same high-resolution source geometry wherever possible. This is particularly important because changing the resolved coastline while simultaneously changing the form-factor source would make attribution difficult. Seek out ACCESS-OM configurations.
 
 ---
 
 ## R0.2 ERA5 atmospheric forcing
 
-ERA5 must be remapped independently to each CICE grid. The forcing preprocessing should retain exactly the same physical variables and temporal sampling used by the 0.25° experiment. For vector variables:
+ERA5 must be remapped independently to each CICE grid. The forcing preprocessing should retain exactly the same physical variables and temporal sampling used by the 0.25-degree experiment. For vector variables:
 
 ```text
 eastward/northward winds
@@ -221,9 +202,9 @@ rotation onto target CICE grid
 
 For scalar and flux variables, the same interpolation or conservative-remapping conventions should be used across resolutions.
 
-### Important interpretation at 0.1°
+### Important interpretation at 0.1-degree
 
-ERA5 does not acquire additional atmospheric information simply because CICE is run at 0.1°. The 0.1° model may resolve finer sea-ice dynamics and coastline geometry, but the atmospheric forcing remains limited by the effective spatial resolution of ERA5. That is not a defect in the experiment. It simply means that improvements between 0.25° and 0.1° should not automatically be interpreted as resulting from better-resolved atmospheric forcing.
+ERA5 does not acquire additional atmospheric information simply because CICE is run at 0.1-degree. The 0.1-degree model may resolve finer sea-ice dynamics and coastline geometry, but the atmospheric forcing remains limited by the effective spatial resolution of ERA5. However, that should not be viewed as a defect in the experiment. It simply means that improvements between 0.25-degree and 0.1-degree should not automatically be interpreted as resulting from better-resolved atmospheric forcing.
 
 ---
 
@@ -234,13 +215,12 @@ ORAS fields should likewise be remapped independently to each target CICE grid. 
 ```text
 uocn
 vocn
-SST
+SST (potential temperature)
 SSS
 mixed-layer depth
-other ocean fields used by the standalone forcing system
 ```
 
-Vector currents should be consistently rotated onto the target CICE grid. The 0.1° experiment is particularly interesting because the ORAS product used here contains substantially finer native spatial information than is retained by the existing 0.25° CICE grid. Consequently, the high-resolution experiment can retain more of the resolved ocean-current and coastal ocean structure. This means that the proposed experiments test the **effective resolution of the complete forced CICE system**, rather than an abstract numerical grid in isolation. If the 0.1° experiment later shows a large response, an optional follow-on experiment could impose a common 0.25° spatial bandwidth on the ORAS forcing before remapping it to 0.1°. That would help separate:
+Vector currents should be consistently rotated onto the target CICE grid. The 0.1-degree experiment is particularly interesting because the ORAS product used here contains substantially finer native spatial information than is retained by the existing 0.25-degree CICE grid. Consequently, the high-resolution experiment can retain more of the resolved ocean-current and coastal ocean structure. This means that the proposed experiments test the **effective resolution of the complete forced CICE system**, rather than an abstract numerical grid in isolation. If the 0.1-degree experiment later shows a large response, an optional follow-on experiment could impose a common 0.25-degree spatial bandwidth on the ORAS forcing before remapping it to 0.1-degree. That would help separate:
 
 ```text
 CICE resolution effect
@@ -256,18 +236,18 @@ but this is not required for the first experiment.
 
 ## R0.4 Form-factor fields
 
-The form-factor NetCDF requires special treatment. The production 1° and 0.1° form-factor products should **not simply be obtained by bilinear interpolation of the existing 0.25° `F2` field**. Instead, the same high-resolution coastline and obstacle geometry used for the 0.25° product should be processed independently onto each target CICE grid.
+The form-factor NetCDF requires special treatment. The production 1-degree and 0.1-degree form-factor products should **not simply be obtained by bilinear interpolation of the existing 0.25-degree `F2` field**. Instead, the same high-resolution coastline and obstacle geometry used for the 0.25-degree product should be processed independently onto each target CICE grid.
 
 Conceptually:
 
 ```text
 high-resolution coastline / grounded-obstacle geometry
                   |
-                  +------> 1.0° F2
+                  +------> 1.0-degree F2
                   |
-                  +------> 0.25° F2
+                  +------> 0.25-degree F2
                   |
-                  +------> 0.10° F2
+                  +------> 0.10-degree F2
 ```
 
 using the same form-factor algorithm in every case. This distinction matters because the form factor represents coastline geometry relative to the dimensions and orientation of the target model cell. Changing target-grid spacing therefore changes the meaning of the aggregated geometry. The resulting files should preserve:
@@ -330,11 +310,11 @@ The first science experiment should contain **no resolution-specific physical tu
 
 | Experiment | Resolution | `Ktens` | `e_yieldcurve` | `e_plasticpot` | `Cs` | Form factor |
 |---|---:|---:|---:|---:|---:|---|
-| reference | 0.25° | 0.2 | 1.5 | 1.5 | `1.0e-3` | native 0.25° F2 |
-| R1-coarse | 1.0° | 0.2 | 1.5 | 1.5 | `1.0e-3` | regenerated 1° F2 |
-| R1-high | 0.10° | 0.2 | 1.5 | 1.5 | `1.0e-3` | regenerated 0.1° F2 |
+| reference | 0.25-degree | 0.2 | 1.5 | 1.5 | `1.0e-3` | native 0.25-degree F2 |
+| R1-coarse | 1.0-degree | 0.2 | 1.5 | 1.5 | `1.0e-3` | regenerated 1-degree F2 |
+| R1-high | 0.10-degree | 0.2 | 1.5 | 1.5 | `1.0e-3` | regenerated 0.1-degree F2 |
 
-All other physical namelist choices should remain those of the 0.25° `Cs-high` reference wherever technically possible. This includes the same:
+All other physical namelist choices should remain those of the 0.25-degree `Cs-high` reference wherever technically possible. This includes the same:
 
 ```text
 ice-strength formulation
@@ -359,7 +339,7 @@ Holding the **physics** fixed does not imply holding every numerical parameter f
 
 ## Model timestep
 
-The current external model timestep should be tested at both new resolutions. The 1° experiment will generally be less restrictive. The 0.1° experiment may require a shorter timestep because finer spatial scales permit:
+The current external model timestep should be tested at both new resolutions. The 1-degree experiment will generally be less restrictive. The 0.1-degree experiment may require a shorter timestep because finer spatial scales permit:
 
 ```text
 larger local velocity gradients
@@ -380,7 +360,7 @@ This requires particular attention. For standard EVP:
 EVP subcycle timestep ~ dt / ndte
 ```
 
-Changing grid spacing while retaining the same `dt` and `ndte` does not guarantee equivalent numerical convergence. The 0.1° simulation should therefore undergo short convergence tests using at least two `ndte` values before the production integration is accepted. The objective is not to find an `ndte` that gives desirable FIA. The objective is to demonstrate that the resulting velocity, deformation and fast-ice solution is not materially controlled by inadequate EVP subcycling. This distinction is essential because otherwise apparent rheological resolution dependence could actually be solver-resolution dependence.
+Changing grid spacing while retaining the same `dt` and `ndte` does not guarantee equivalent numerical convergence. The 0.1-degree simulation should therefore undergo short convergence tests using at least two `ndte` values before the production integration is accepted. The objective is not to find an `ndte` that gives desirable FIA. The objective is to demonstrate that the resulting velocity, deformation and fast-ice solution is not materially controlled by inadequate EVP subcycling. This distinction is essential because otherwise apparent rheological resolution dependence could actually be solver-resolution dependence.
 
 ---
 
@@ -402,7 +382,7 @@ They should only be changed if numerical diagnostics demonstrate that the existi
 
 ## Transport
 
-The same transport scheme should be retained. However, CFL behaviour and any resolution-dependent numerical diffusion should be diagnosed, particularly at 0.1°.
+The same transport scheme should be retained. However, CFL behaviour and any resolution-dependent numerical diffusion should be diagnosed, particularly at 0.1-degree.
 
 ---
 
@@ -426,7 +406,7 @@ are computational rather than scientific and should be optimised independently f
 
 No monotonic relationship between grid resolution and FIA should be assumed. Several competing processes operate simultaneously.
 
-## Expected behaviour at 1°
+## Expected behaviour at 1-degree
 
 Coarser resolution may favour fast ice because:
 
@@ -446,11 +426,11 @@ pinning geometry becomes increasingly subgrid
 coastal stress transmission is poorly resolved
 ```
 
-There is also a substantial sampling issue. At 1°, changing the state of one grid cell from mobile to fast can add or remove a very large physical area from FIA. Consequently, circumpolar FIA may change abruptly even where the underlying velocity difference is modest.
+There is also a substantial sampling issue. At 1-degree, changing the state of one grid cell from mobile to fast can add or remove a very large physical area from FIA. Consequently, circumpolar FIA may change abruptly even where the underlying velocity difference is modest.
 
 ---
 
-## Expected behaviour at 0.1°
+## Expected behaviour at 0.1-degree
 
 Higher resolution may improve fast-ice representation because:
 
@@ -469,10 +449,10 @@ stress gradients are sharper
 deformation becomes more spatially heterogeneous
 localised failure becomes better resolved
 ocean-current gradients are stronger
-small mobile corridors can exist within formerly fast 0.25° cells
+small mobile corridors can exist within formerly fast 0.25-degree cells
 ```
 
-A lower FIA at 0.1° would therefore not automatically imply that the high-resolution experiment is worse. It could indicate that the 0.25° model was artificially locking spatially heterogeneous coastal ice into single large cells. Conversely, increased FIA could indicate that better-resolved geometry permits stronger mechanical anchoring. The spatial diagnostics are therefore as important as total area.
+A lower FIA at 0.1-degree would therefore not automatically imply that the high-resolution experiment is worse. It could indicate that the 0.25-degree model was artificially locking spatially heterogeneous coastal ice into single large cells. Conversely, increased FIA could indicate that better-resolved geometry permits stronger mechanical anchoring. The spatial diagnostics are therefore as important as total area.
 
 ---
 
@@ -493,13 +473,13 @@ timing of breakout
 fast-ice probability
 ```
 
-The existing 0.25° `Cs-high` experiment remains the model reference.
+The existing 0.25-degree `Cs-high` experiment remains the model reference.
 
 ---
 
 ## Resolution-aware AF2020 comparison
 
-AF2020 should not simply be converted into an independent binary observation at each coarse model cell without retaining information about subgrid fast-ice coverage. For each target model grid, it is preferable to calculate the **fraction of the model-cell area classified as fast ice by AF2020**. This is especially important at 1°. A model cell containing 20% observed fast ice should not be observationally equivalent to one containing 100% fast ice simply because both contain some observed landfast ice. Two complementary evaluations are recommended:
+AF2020 should not simply be converted into an independent binary observation at each coarse model cell without retaining information about subgrid fast-ice coverage. For each target model grid, it is preferable to calculate the **fraction of the model-cell area classified as fast ice by AF2020**. This is especially important at 1-degree. A model cell containing 20% observed fast ice should not be observationally equivalent to one containing 100% fast ice simply because both contain some observed landfast ice. Two complementary evaluations are recommended:
 
 ```text
 1. observations conservatively aggregated to each native model grid;
@@ -562,11 +542,11 @@ Therefore:
 
 | Result | Interpretation | Next step |
 |---|---|---|
-| 1°, 0.25° and 0.1° all reproduce similar FIA and FIP | strong evidence that the parameterisation is scale robust | retain common parameters |
+| 1-degree, 0.25-degree and 0.1-degree all reproduce similar FIA and FIP | strong evidence that the parameterisation is scale robust | retain common parameters |
 | FIA similar but FIP substantially different | compensating regional errors | diagnose geometry and stress before tuning |
-| 1° differs strongly but 0.25° and 0.1° agree | coarse-grid representation becomes limiting | investigate 1° F2/geometry; avoid changing rheology first |
-| 0.1° differs strongly but 1° and 0.25° agree | 0.25° parameters may include unresolved-scale compensation, or EVP convergence may differ | test numerical convergence and F2 before retuning |
-| both new resolutions differ systematically in the same direction | likely parameter or preprocessing dependence tied to the 0.25° configuration | inspect common assumptions and form-factor scaling |
+| 1-degree differs strongly but 0.25-degree and 0.1-degree agree | coarse-grid representation becomes limiting | investigate 1-degree F2/geometry; avoid changing rheology first |
+| 0.1-degree differs strongly but 1-degree and 0.25-degree agree | 0.25-degree parameters may include unresolved-scale compensation, or EVP convergence may differ | test numerical convergence and F2 before retuning |
+| both new resolutions differ systematically in the same direction | likely parameter or preprocessing dependence tied to the 0.25-degree configuration | inspect common assumptions and form-factor scaling |
 | changing `ndte` materially changes FIA | numerical convergence problem | resolve before interpreting physical parameters |
 | lateral-drag stress changes strongly while internal-stress diagnostics remain similar | likely `F2`/`Cs` scale dependence | test `Cs` |
 | internal deformation changes strongly away from F2 regions | likely rheology/resolution interaction | investigate `Ktens` and ellipse parameters |
@@ -591,7 +571,7 @@ verify F2 construction
 verify restart behaviour
 ```
 
-A numerically unconverged 0.1° experiment should not be corrected by changing rheology.
+A numerically unconverged 0.1-degree experiment should not be corrected by changing rheology.
 
 ---
 
@@ -670,7 +650,7 @@ too little coastal resistance + overly strong tensile ice
 
 Both can produce the same integrated area while representing different mechanics.
 
-The resolution experiments provide an opportunity to distinguish these mechanisms precisely because coastal geometry and resolved deformation change so substantially between 1° and 0.1°.
+The resolution experiments provide an opportunity to distinguish these mechanisms precisely because coastal geometry and resolved deformation change so substantially between 1-degree and 0.1-degree.
 
 ---
 
@@ -679,8 +659,8 @@ The resolution experiments provide an opportunity to distinguish these mechanism
 ```text
 R0
 |
-|-- build 1° grid
-|-- build 0.1° grid
+|-- build 1-degree grid
+|-- build 0.1-degree grid
 |
 |-- regrid ERA5 independently
 |-- regrid ORAS independently
@@ -690,9 +670,9 @@ R0
 v
 R1
 |
-|-- 1°   : original Cs-high physics
-|-- 0.25°: existing Cs-high reference
-|-- 0.1° : original Cs-high physics
+|-- 1-degree   : original Cs-high physics
+|-- 0.25-degree: existing Cs-high reference
+|-- 0.1-degree : original Cs-high physics
 |
 |-- verify numerical convergence
 |-- compare AF2020 FIA/FIP
@@ -718,9 +698,9 @@ The first resolution experiment is successful if it establishes, rather than ass
 
 The experiment should answer:
 
-1. Can the existing 0.25° `Cs-high` physical configuration generate realistic Antarctic fast ice at 1°?
+1. Can the existing 0.25-degree `Cs-high` physical configuration generate realistic Antarctic fast ice at 1-degree?
 
-2. Can the same configuration generate realistic Antarctic fast ice at 0.1°?
+2. Can the same configuration generate realistic Antarctic fast ice at 0.1-degree?
 
 3. Does `Ktens = 0.2` remain an appropriate tensile-strength ratio across the three resolutions?
 

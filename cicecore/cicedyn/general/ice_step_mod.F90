@@ -881,26 +881,126 @@
 
       end subroutine update_state
 
+! !=======================================================================
+! !
+! ! Run one time step of wave-fracturing the floe size distribution
+! !
+! ! authors: Lettie Roach, NIWA
+! !          Elizabeth C. Hunke, LANL
+
+!       subroutine step_dyn_wave (dt)
+
+!       use ice_arrays_column, only: wave_spectrum, &
+!           d_afsd_wave, wavefreq, dwavefreq
+!       use ice_domain_size, only: ncat, nfsd, nfreq
+!       use ice_state, only: trcrn, aicen, aice, vice
+!       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_column, &
+!           timer_fsd
+
+!       real (kind=dbl_kind), intent(in) :: &
+!          dt      ! time step
+
+!       ! local variables
+
+!       type (block) :: &
+!          this_block      ! block information for current block
+
+!       integer (kind=int_kind) :: &
+!          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
+!          iblk,            & ! block index
+!          i, j               ! horizontal indices
+
+!       character (len=char_len) :: wave_spec_type
+
+!       character(len=*), parameter :: subname = '(step_dyn_wave)'
+
+!       call ice_timer_start(timer_column)
+!       call ice_timer_start(timer_fsd)
+
+!       call icepack_query_parameters(wave_spec_type_out=wave_spec_type)
+!       call icepack_warnings_flush(nu_diag)
+!       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+!          file=__FILE__, line=__LINE__)
+
+!       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+!       do iblk = 1, nblocks
+
+!          this_block = get_block(blocks_ice(iblk),iblk)
+!          ilo = this_block%ilo
+!          ihi = this_block%ihi
+!          jlo = this_block%jlo
+!          jhi = this_block%jhi
+
+!          do j = jlo, jhi
+!          do i = ilo, ihi
+!             d_afsd_wave(i,j,:,iblk) = c0
+!             call icepack_step_wavefracture(wave_spec_type = wave_spec_type,             &
+!                                            dt = dt, nfreq = nfreq,                      &
+!                                            aice        = aice           (i,j,    iblk), &
+!                                            vice        = vice           (i,j,    iblk), &
+!                                            aicen       = aicen          (i,j,:,  iblk), &
+!                                            wave_spectrum = wave_spectrum(i,j,:,  iblk), &
+!                                            wavefreq    = wavefreq       (:),            &
+!                                            dwavefreq   = dwavefreq      (:),            &
+!                                            trcrn       = trcrn          (i,j,:,:,iblk), &
+!                                            d_afsd_wave = d_afsd_wave    (i,j,:,  iblk))
+!          end do ! i
+!          end do ! j
+!       end do    ! iblk
+!       !$OMP END PARALLEL DO
+
+!       call ice_timer_stop(timer_fsd)
+!       call ice_timer_stop(timer_column)
+
+!       end subroutine step_dyn_wave
 !=======================================================================
 !
 ! Run one time step of wave-fracturing the floe size distribution
 !
 ! authors: Lettie Roach, NIWA
 !          Elizabeth C. Hunke, LANL
-
+!
+! DPA 2026:
+!   Pre-screen wave-fracture calls using the same aice and significant
+!   wave-height thresholds applied inside icepack_step_wavefracture.
+!
+!   Cells which cannot enter the expensive wave-fracture calculation
+!   bypass icepack_step_wavefracture, but still receive the FSD cleanup
+!   performed at the beginning of the Icepack routine.
+!
+!   Added global performance diagnostics to quantify the cost and the
+!   number of wave-eligible cells.
+!
       subroutine step_dyn_wave (dt)
 
       use ice_arrays_column, only: wave_spectrum, &
           d_afsd_wave, wavefreq, dwavefreq
+
       use ice_domain_size, only: ncat, nfsd, nfreq
+
       use ice_state, only: trcrn, aicen, aice, vice
+
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_column, &
           timer_fsd
+
+      use ice_constants, only: p01, c4
+
+      use ice_calendar, only: istep, myear, mmonth, mday, msec
+
+      use ice_communicate, only: my_task, master_task
+
+      use ice_domain, only: distrb_info
+
+      use ice_global_reductions, only: global_maxval, global_sum
+
+      use icepack_intfc, only: icepack_cleanup_fsd
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
 
-      ! local variables
+      !-----------------------------------------------------------------
+      ! Local variables
+      !-----------------------------------------------------------------
 
       type (block) :: &
          this_block      ! block information for current block
@@ -908,24 +1008,128 @@
       integer (kind=int_kind) :: &
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          iblk,            & ! block index
-         i, j               ! horizontal indices
+         i, j,            & ! horizontal indices
+         nt_fsd             ! first FSD tracer index
 
-      character (len=char_len) :: wave_spec_type
+      real (kind=dbl_kind) :: &
+         local_sig_ht
 
-      character(len=*), parameter :: subname = '(step_dyn_wave)'
+      character (len=char_len) :: &
+         wave_spec_type
+
+      !-----------------------------------------------------------------
+      ! Performance counters
+      !-----------------------------------------------------------------
+
+      integer (kind=int_kind) :: &
+         n_cells_local,       &
+         n_aice_local,        &
+         n_wave_local,        &
+         n_eligible_local,    &
+         n_skipped_local
+
+      integer (kind=int_kind) :: &
+         n_cells_global,      &
+         n_aice_global,       &
+         n_wave_global,       &
+         n_eligible_global,   &
+         n_skipped_global
+
+      !-----------------------------------------------------------------
+      ! Wall-clock profiling
+      !-----------------------------------------------------------------
+
+      integer(selected_int_kind(18)) :: &
+         clock_start, &
+         clock_stop,  &
+         clock_rate
+
+      real (kind=dbl_kind) :: &
+         elapsed_local, &
+         elapsed_max
+
+      integer (kind=int_kind), save :: &
+         profile_calls = 0_int_kind
+
+      logical (kind=log_kind) :: &
+         profile_detail
+
+      character(len=*), parameter :: &
+         subname = '(step_dyn_wave)'
+
+      !-----------------------------------------------------------------
+      ! Initialise
+      !-----------------------------------------------------------------
 
       call ice_timer_start(timer_column)
       call ice_timer_start(timer_fsd)
 
-      call icepack_query_parameters(wave_spec_type_out=wave_spec_type)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
+      call icepack_query_parameters( &
+           wave_spec_type_out=wave_spec_type)
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      call icepack_query_tracer_indices( &
+           nt_fsd_out=nt_fsd)
+
+      call icepack_warnings_flush(nu_diag)
+
+      if (icepack_warnings_aborted()) then
+         call abort_ice( &
+              error_message=subname, &
+              file=__FILE__, line=__LINE__)
+      endif
+
+      n_cells_local    = 0_int_kind
+      n_aice_local     = 0_int_kind
+      n_wave_local     = 0_int_kind
+      n_eligible_local = 0_int_kind
+      n_skipped_local  = 0_int_kind
+
+      !-----------------------------------------------------------------
+      ! Profile the first two calls after startup/restart and thereafter
+      ! once per model day for dt = 1800 s.
+      !-----------------------------------------------------------------
+
+      profile_calls = profile_calls + 1_int_kind
+
+      profile_detail = &
+           profile_calls <= 2_int_kind .or. &
+           mod(istep,48_int_kind) == 0_int_kind
+
+      call system_clock( &
+           count=clock_start, &
+           count_rate=clock_rate)
+
+      !=================================================================
+      ! Wave-fracture calculation
+      !=================================================================
+      !
+      ! Icepack's expensive fracture calculation requires:
+      !
+      !       aice > 0.01
+      !
+      ! and:
+      !
+      !       Hs = 4 sqrt(sum(E(f) df)) > 0.1 m
+      !
+      ! Perform these inexpensive tests here before entering the full
+      ! Icepack wave-fracture routine.
+      !
+      ! NOTE:
+      ! icepack_step_wavefracture performs icepack_cleanup_fsd before
+      ! applying those tests.  For cells skipped here, call the cleanup
+      ! directly so that the existing FSD housekeeping is retained.
+      !=================================================================
+
+      !$OMP PARALLEL DO &
+      !$OMP PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,local_sig_ht) &
+      !$OMP REDUCTION(+:n_cells_local,n_aice_local,n_wave_local,       &
+      !$OMP             n_eligible_local,n_skipped_local)              &
+      !$OMP SCHEDULE(runtime)
+
       do iblk = 1, nblocks
 
          this_block = get_block(blocks_ice(iblk),iblk)
+
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -933,21 +1137,191 @@
 
          do j = jlo, jhi
          do i = ilo, ihi
+
+            n_cells_local = &
+                 n_cells_local + 1_int_kind
+
+            !-----------------------------------------------------------
+            ! Initialise wave-fracture tendency exactly as before.
+            !-----------------------------------------------------------
+
             d_afsd_wave(i,j,:,iblk) = c0
-            call icepack_step_wavefracture(wave_spec_type = wave_spec_type,             &
-                                           dt = dt, nfreq = nfreq,                      &
-                                           aice        = aice           (i,j,    iblk), &
-                                           vice        = vice           (i,j,    iblk), &
-                                           aicen       = aicen          (i,j,:,  iblk), &
-                                           wave_spectrum = wave_spectrum(i,j,:,  iblk), &
-                                           wavefreq    = wavefreq       (:),            &
-                                           dwavefreq   = dwavefreq      (:),            &
-                                           trcrn       = trcrn          (i,j,:,:,iblk), &
-                                           d_afsd_wave = d_afsd_wave    (i,j,:,  iblk))
-         end do ! i
-         end do ! j
-      end do    ! iblk
+
+            !-----------------------------------------------------------
+            ! Cheap concentration test.
+            !-----------------------------------------------------------
+
+            if (aice(i,j,iblk) > p01) then
+
+               n_aice_local = &
+                    n_aice_local + 1_int_kind
+
+               !--------------------------------------------------------
+               ! Only calculate significant wave height where enough
+               ! ice exists for wave fracture to be considered.
+               !--------------------------------------------------------
+
+               local_sig_ht = c4 * sqrt( &
+                    sum( &
+                         wave_spectrum(i,j,:,iblk) * &
+                         dwavefreq(:)))
+
+               if (local_sig_ht > 0.1_dbl_kind) then
+
+                  n_wave_local = &
+                       n_wave_local + 1_int_kind
+
+                  n_eligible_local = &
+                       n_eligible_local + 1_int_kind
+
+                  !-----------------------------------------------------
+                  ! Original Icepack wave-fracture call.
+                  !-----------------------------------------------------
+
+                  call icepack_step_wavefracture( &
+                       wave_spec_type = wave_spec_type,             &
+                       dt             = dt,                         &
+                       nfreq          = nfreq,                      &
+                       aice           = aice(i,j,iblk),             &
+                       vice           = vice(i,j,iblk),             &
+                       aicen          = aicen(i,j,:,iblk),          &
+                       wave_spectrum  = wave_spectrum(i,j,:,iblk),  &
+                       wavefreq       = wavefreq(:),                 &
+                       dwavefreq      = dwavefreq(:),                &
+                       trcrn          = trcrn(i,j,:,:,iblk),        &
+                       d_afsd_wave    = d_afsd_wave(i,j,:,iblk))
+
+               else
+
+                  !-----------------------------------------------------
+                  ! This cell would fail Icepack's Hs threshold.
+                  !
+                  ! Preserve the FSD cleanup that the original full
+                  ! Icepack call performed before applying that test.
+                  !-----------------------------------------------------
+
+                  call icepack_cleanup_fsd( &
+                       trcrn( &
+                            i,j, &
+                            nt_fsd:nt_fsd+nfsd-1, &
+                            :,iblk))
+
+                  n_skipped_local = &
+                       n_skipped_local + 1_int_kind
+
+               endif
+
+            else
+
+               !--------------------------------------------------------
+               ! This cell would fail Icepack's aice threshold.
+               !
+               ! Preserve the original FSD cleanup.
+               !--------------------------------------------------------
+
+               call icepack_cleanup_fsd( &
+                    trcrn( &
+                         i,j, &
+                         nt_fsd:nt_fsd+nfsd-1, &
+                         :,iblk))
+
+               n_skipped_local = &
+                    n_skipped_local + 1_int_kind
+
+            endif
+
+         enddo ! i
+         enddo ! j
+
+      enddo ! iblk
+
       !$OMP END PARALLEL DO
+
+      !=================================================================
+      ! Timing
+      !=================================================================
+
+      call system_clock(count=clock_stop)
+
+      elapsed_local = &
+           real(clock_stop-clock_start,kind=dbl_kind) / &
+           real(clock_rate,kind=dbl_kind)
+
+      !-----------------------------------------------------------------
+      ! Global profiling.
+      !
+      ! elapsed_max is the important timing quantity: the timestep cannot
+      ! proceed faster than the slowest MPI rank.
+      !-----------------------------------------------------------------
+
+      if (profile_detail) then
+
+         elapsed_max = &
+              global_maxval( &
+                   elapsed_local, &
+                   distrb_info)
+
+         n_cells_global = &
+              global_sum( &
+                   n_cells_local, &
+                   distrb_info)
+
+         n_aice_global = &
+              global_sum( &
+                   n_aice_local, &
+                   distrb_info)
+
+         n_wave_global = &
+              global_sum( &
+                   n_wave_local, &
+                   distrb_info)
+
+         n_eligible_global = &
+              global_sum( &
+                   n_eligible_local, &
+                   distrb_info)
+
+         n_skipped_global = &
+              global_sum( &
+                   n_skipped_local, &
+                   distrb_info)
+
+         if (my_task == master_task) then
+
+            write(nu_diag,*) &
+                 'WAVEFSD PERF istep=',istep, &
+                 ' date=',myear,mmonth,mday, &
+                 ' sec=',msec
+
+            write(nu_diag,*) &
+                 'WAVEFSD PERF max_s=',elapsed_max, &
+                 ' cells=',n_cells_global
+
+            write(nu_diag,*) &
+                 'WAVEFSD PERF aice_gt_001=', &
+                 n_aice_global, &
+                 ' hs_gt_01=', &
+                 n_wave_global
+
+            write(nu_diag,*) &
+                 'WAVEFSD PERF eligible=', &
+                 n_eligible_global, &
+                 ' skipped=', &
+                 n_skipped_global
+
+            flush(nu_diag)
+
+         endif
+
+      endif
+
+      call icepack_warnings_flush(nu_diag)
+
+      if (icepack_warnings_aborted()) then
+         call abort_ice( &
+              error_message=subname, &
+              file=__FILE__, line=__LINE__)
+      endif
 
       call ice_timer_stop(timer_fsd)
       call ice_timer_stop(timer_column)

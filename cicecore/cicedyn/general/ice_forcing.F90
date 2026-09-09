@@ -24,7 +24,6 @@ module ice_forcing
   use ice_boundary     , only: ice_HaloUpdate
   use ice_blocks       , only: nx_block, ny_block
   use ice_domain       , only: halo_info
-  ! use ice_domain_size  , only: ncat, max_blocks, nx_global, ny_global
   use ice_domain_size  , only: ncat, max_blocks, nx_global, ny_global, nfreq
   use ice_communicate  , only: my_task, master_task
   use ice_calendar     , only: istep, istep1, msec, mday, mmonth, myear, yday, daycal, daymo, days_per_year, compute_days_between
@@ -171,26 +170,6 @@ module ice_forcing
        vatm100_data
   ! 4-d (categorical) field values at 2 temporal data points
   real (kind=dbl_kind), dimension(:,:,:,:,:), allocatable, public :: topmelt_data, botmelt_data
-  !-----------------------------------------------------------------------
-  ! WAVE FORCING
-  !
-  ! Hourly WHACS spectral forcing at two temporal records for interpolation.
-  !
-  ! Layout:
-  !   wave_spectrum_data(i,j,frequency,time_slot,block)
-  !
-  ! A dedicated record cache is used rather than oldrecnum because the
-  ! atmospheric and ocean forcing pathways update oldrecnum independently.
-  !-----------------------------------------------------------------------
-  real (kind=dbl_kind), dimension(:,:,:,:,:), allocatable :: &
-       wave_spectrum_data
-  integer (kind=int_kind) :: &
-       wave_cache_year        = -9999, &
-       wave_cache_month       = -9999, &
-       wave_cache_recnum      = -9999, &
-       wave_cache_next_year   = -9999, &
-       wave_cache_next_month  = -9999, &
-       wave_cache_next_recnum = -9999
   ! data formats and types
   character(char_len), public :: &
        atm_data_format,  & ! 'bin'=binary or 'nc'=netcdf
@@ -320,7 +299,6 @@ contains
          ocn_frc_w   (nx_block,ny_block,max_blocks,nfld,wk_per_yr), &
          topmelt_file(ncat), &
          botmelt_file(ncat), &
-         wave_spectrum_data(nx_block,ny_block,nfreq,2,max_blocks), &
          stat=ierr)
     if (ierr/=0) call abort_ice('(alloc_forcing): Out of Memory')
     ! initialize this, not set in box2001 (and some other forcings?)
@@ -332,7 +310,6 @@ contains
     windgust_data = c0
     uatm100_data  = c0
     vatm100_data  = c0
-    wave_spectrum_data = c0
   end subroutine alloc_forcing
 
   !=======================================================================
@@ -6184,7 +6161,7 @@ contains
         cache_nhours = 0
 
    logical (kind=log_kind), parameter :: &
-        wave_io_debug = .true.
+        wave_io_debug = .false.
 
    character(len=*), parameter :: &
         subname = '(wave_spec_data_hourly)'
@@ -6645,22 +6622,28 @@ contains
    ! Frequency-dependent attenuation follows Meylan, Bennetts & Kohout
    ! (2014).
    !
+   ! OPTIMISATION V1
+   ! ---------------
+   ! Preserve the existing in-place, pass-by-pass propagation algorithm while
+   ! avoiding repeated 25-frequency significant-wave-height reductions.
+   !
+   ! The original implementation recomputed Hs for every grid cell and then
+   ! again for as many as four neighbours on every propagation pass.
+   !
+   ! Here:
+   !
+   !   1. Direct WHACS forcing is retained only in open-water ocean cells.
+   !   2. Hs is calculated once for those initial source cells.
+   !   3. A logical wave_present mask is used for target/source tests.
+   !   4. Hs is recalculated only when increment_wave changes a receiving cell.
+   !
+   ! This preserves the existing scan ordering and allows a newly propagated
+   ! cell to act as a source later in the same pass, as in the baseline code.
+   !
    ! PERFORMANCE PROFILING
    ! ---------------------
-   ! Timing is measured locally on each MPI task during propagation and
-   ! reduced only AFTER local propagation has completed.  This preserves
-   ! the existing propagation behaviour, including local early termination.
-   !
-   ! Diagnostics report:
-   !
-   !   - maximum mask time across all MPI tasks
-   !   - maximum total propagation time across all MPI tasks
-   !   - maximum time for each propagation pass across all MPI tasks
-   !   - global number of candidate and updated cells for each pass
-   !   - maximum number of passes executed by any MPI task
-   !
-   ! Detailed global reductions are restricted to the first two model
-   ! timesteps so that profiling itself does not materially affect a run.
+   ! Global timing reductions are made for the first two calls after model
+   ! startup/restart and once per model day (48 timesteps for dt=1800 s).
    !
    use ice_grid, only: &
         HTE, HTN, tlat, tmask
@@ -6689,25 +6672,36 @@ contains
    real(kind=dbl_kind), dimension(nfreq) :: &
         attenuation_rate
 
+   !
+   ! Cached scalar wave state.
+   !
+   ! These arrays are small relative to the spectral field:
+   ! nx_block * ny_block * max_blocks per MPI task.
+   !
+   real(kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: &
+        sig_ht
+
+   logical(kind=log_kind), dimension(nx_block,ny_block,max_blocks) :: &
+        ice_target, &
+        wave_present
+
    logical (kind=log_kind) :: &
         new_cells_updated
 
    real(kind=dbl_kind) :: &
         delta_lat, &
         max_delta_lat, &
-        local_sig_ht, &
-        neighbour_sig_ht, &
         conc_obs
 
    real(kind=dbl_kind) :: &
         t_total_0, &
         t_total_1, &
-        t_mask_0, &
-        t_mask_1, &
+        t_setup_0, &
+        t_setup_1, &
         t_pass_0, &
         t_pass_1, &
-        mask_time_local, &
-        mask_time_max, &
+        setup_time_local, &
+        setup_time_max, &
         total_time_local, &
         total_time_max
 
@@ -6736,6 +6730,9 @@ contains
         updated_local, &
         updated_global
 
+   integer (kind=int_kind), save :: &
+        profile_calls = 0_int_kind
+
    integer, dimension(4) :: &
         di = [0, 0, -1, 1], &
         dj = [1, -1, 0, 0], &
@@ -6748,13 +6745,13 @@ contains
         subname = '(propagate_waves)'
 
    !--------------------------------------------------------------------
-   ! Initialise performance diagnostics.
-   !
-   ! Do detailed reductions only for the first two model timesteps.
-   ! After that there is effectively no profiling overhead beyond the
-   ! local system_clock calls.
+   ! Initialise diagnostics.
    !--------------------------------------------------------------------
-   profile_detail = istep <= 2
+   profile_calls = profile_calls + 1_int_kind
+
+   profile_detail = &
+        profile_calls <= 2_int_kind .or. &
+        mod(istep,48_int_kind) == 0_int_kind
 
    pass_time_local = c0
    pass_time_max   = c0
@@ -6765,6 +6762,10 @@ contains
    updated_global   = 0_int_kind
 
    n_passes_local = 0_int_kind
+
+   sig_ht       = c0
+   ice_target   = .false.
+   wave_present = .false.
 
    t_total_0 = wave_walltime()
 
@@ -6780,20 +6781,24 @@ contains
 
    enddo
 
-   ! Retain Noah Day's propagation depth for this diagnostic baseline.
+   ! Retain Noah Day's propagation depth for this baseline optimisation.
    max_passes = 10
 
    !--------------------------------------------------------------------
-   ! Remove directly imposed WHACS energy from ice-covered cells.
+   ! Prepare propagation state.
    !
-   ! WHACS remains prescribed in open-water ocean cells:
+   ! WHACS remains prescribed only in open-water ocean cells:
    !
    !       tmask = true
    !       aice  < 0.15
    !
    ! Land and ice-covered cells begin propagation with zero wave energy.
+   !
+   ! Critically, Hs is calculated only for initial open-water wave-source
+   ! cells. Ice-covered cells have just been zeroed and therefore have
+   ! Hs = 0 until increment_wave actually modifies them.
    !--------------------------------------------------------------------
-   t_mask_0 = wave_walltime()
+   t_setup_0 = wave_walltime()
 
    do iblk = 1, nblocks
 
@@ -6807,10 +6812,22 @@ contains
       do j = jlo, jhi
          do i = ilo, ihi
 
-            if (.not. tmask(i,j,iblk) .or. &
-                 aice(i,j,iblk) >= 0.15_dbl_kind) then
+            if (.not. tmask(i,j,iblk)) then
 
                spec(i,j,:,iblk) = c0
+
+            elseif (aice(i,j,iblk) >= 0.15_dbl_kind) then
+
+               spec(i,j,:,iblk) = c0
+               ice_target(i,j,iblk) = .true.
+
+            else
+
+               sig_ht(i,j,iblk) = c4 * sqrt( &
+                    sum(spec(i,j,:,iblk) * dwavefreq(:)))
+
+               wave_present(i,j,iblk) = &
+                    sig_ht(i,j,iblk) > p1
 
             endif
 
@@ -6819,15 +6836,16 @@ contains
 
    enddo
 
-   t_mask_1 = wave_walltime()
+   t_setup_1 = wave_walltime()
 
-   mask_time_local = &
-        max(c0,t_mask_1-t_mask_0)
+   setup_time_local = &
+        max(c0,t_setup_1-t_setup_0)
 
    !--------------------------------------------------------------------
    ! Propagate from wave-bearing neighbours into ice-covered cells.
    !
-   ! This section intentionally preserves the existing algorithm.
+   ! The spatial scan and in-place update order intentionally remain the
+   ! same as the baseline implementation.
    !--------------------------------------------------------------------
    do pass = 1, max_passes
 
@@ -6853,23 +6871,17 @@ contains
             do i = ilo, ihi
 
                !--------------------------------------------------------
-               ! Significant wave height in the target cell.
+               ! Candidate target:
                !
-               ! NOTE:
-               ! This 25-frequency reduction is one of the operations we
-               ! suspect may be expensive because it is repeated for every
-               ! cell, every pass, and again for neighbouring cells below.
+               !   - ocean
+               !   - aice >= 0.15
+               !   - current propagated Hs <= 0.1 m
+               !
+               ! ice_target is fixed for this call because aice does not
+               ! change while propagate_waves is executing.
                !--------------------------------------------------------
-               local_sig_ht = c4 * sqrt( &
-                    sum(spec(i,j,:,iblk) * dwavefreq(:)))
-
-               !--------------------------------------------------------
-               ! Candidate ice-covered ocean cell with no meaningful
-               ! propagated wave field.
-               !--------------------------------------------------------
-               if (tmask(i,j,iblk) .and. &
-                   aice(i,j,iblk) >= 0.15_dbl_kind .and. &
-                   local_sig_ht <= p1) then
+               if (ice_target(i,j,iblk) .and. &
+                   .not. wave_present(i,j,iblk)) then
 
                   n_candidate_local = &
                        n_candidate_local + 1_int_kind
@@ -6881,7 +6893,9 @@ contains
                   best_dir = -1
 
                   !-----------------------------------------------------
-                  ! Search four direct neighbours.
+                  ! Search four direct neighbours using the cached
+                  ! wave_present mask rather than recomputing Hs from
+                  ! 25 spectral bins for every neighbour.
                   !-----------------------------------------------------
                   do idx_d = 1, 4
 
@@ -6893,11 +6907,7 @@ contains
                      if (i_n >= ilo .and. i_n <= ihi .and. &
                          j_n >= jlo .and. j_n <= jhi) then
 
-                        neighbour_sig_ht = c4 * sqrt( &
-                             sum(spec(i_n,j_n,:,iblk) * &
-                             dwavefreq(:)))
-
-                        if (neighbour_sig_ht > p1) then
+                        if (wave_present(i_n,j_n,iblk)) then
 
                            delta_lat = abs( &
                                 tlat(i_n,j_n,iblk) - &
@@ -6932,6 +6942,18 @@ contains
                           attenuation_rate, &
                           spec)
 
+                     !--------------------------------------------------
+                     ! Only the receiving cell changed. Recalculate Hs
+                     ! for this cell once and update its source-status
+                     ! immediately so later cells in this same pass see
+                     ! the same in-place behaviour as the baseline.
+                     !--------------------------------------------------
+                     sig_ht(i,j,iblk) = c4 * sqrt( &
+                          sum(spec(i,j,:,iblk) * dwavefreq(:)))
+
+                     wave_present(i,j,iblk) = &
+                          sig_ht(i,j,iblk) > p1
+
                      new_cells_updated = .true.
 
                      n_updated_local = &
@@ -6958,9 +6980,6 @@ contains
            n_updated_local
 
       ! Preserve the present LOCAL early-exit behaviour.
-      !
-      ! Do not perform a collective reduction here: different MPI tasks
-      ! are currently allowed to execute different numbers of passes.
       if (.not. new_cells_updated) exit
 
    enddo
@@ -6973,15 +6992,13 @@ contains
    !--------------------------------------------------------------------
    ! GLOBAL PERFORMANCE DIAGNOSTICS
    !
-   ! These reductions occur only AFTER every MPI task has completed its
-   ! own local propagation loop.  Therefore the diagnostic collectives do
-   ! not alter the propagation algorithm or force tasks to execute the
-   ! same number of propagation passes.
+   ! Collective reductions occur only after each task has completed its
+   ! local propagation loop, so profiling does not force equal pass counts.
    !--------------------------------------------------------------------
    if (profile_detail) then
 
-      mask_time_max = &
-           global_maxval(mask_time_local,distrb_info)
+      setup_time_max = &
+           global_maxval(setup_time_local,distrb_info)
 
       total_time_max = &
            global_maxval(total_time_local,distrb_info)
@@ -7016,8 +7033,8 @@ contains
               ' sec=',msec
 
          write(nu_diag,*) &
-              'WAVEPERF GLOBAL mask_max_s=', &
-              mask_time_max, &
+              'WAVEPERF GLOBAL setup_max_s=', &
+              setup_time_max, &
               ' total_max_s=', &
               total_time_max, &
               ' max_passes=', &

@@ -278,7 +278,15 @@
 
          ! wave fracture of the floe size distribution
          ! note this is called outside of the dynamics subcycling loop
-         if (tr_fsd .and. wave_spec) call step_dyn_wave(dt)
+         ! if (tr_fsd .and. wave_spec) call step_dyn_wave(dt)
+         if (tr_fsd .and. wave_spec) then
+            ! if (mod(istep,6_int_kind) == 0_int_kind) then
+            !    call step_dyn_wave(6.0_dbl_kind*dt)
+            ! endif
+            if (mod(istep,2_int_kind) == 0_int_kind) then
+               call step_dyn_wave(2.0_dbl_kind*dt)
+            endif
+         endif
 
          do k = 1, ndtd
 
