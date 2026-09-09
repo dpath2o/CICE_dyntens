@@ -130,6 +130,53 @@ if (${ICE_SNICARHC} == 'false') then
   setenv ICE_CPPDEFS "${ICE_CPPDEFS} -DNO_SNICARHC"
 endif
 
+#-------------------------------------------------------------------------------
+# MPI-only WHACS rolling-cache source override.
+#
+# The canonical ice_forcing.F90 is deliberately left untouched during this
+# validation stage.  For MPI builds, construct a compile-directory copy that
+# replaces only wave_spec_data_hourly() with the rolling two-record WHACS
+# implementation.  The current directory is first in the Makefile VPATH, so
+# this generated source is the version compiled for frcg-exp01.
+#
+# The line guards pin this override to the validated source at commit
+# 101aa41cfe77f358bec631dd442c22c1b0977eee and fail loudly if that source
+# layout changes before the override is folded into the canonical file.
+#-------------------------------------------------------------------------------
+if (${ICE_COMMDIR} == 'mpi') then
+
+  set WHACS_FORCING_SRC = "${ICE_SANDBOX}/cicecore/cicedyn/general/ice_forcing.F90"
+  set WHACS_FORCING_OVERRIDE = "${ICE_SANDBOX}/configuration/mpi_overrides/wave_spec_data_hourly.F90"
+  set WHACS_FORCING_LOCAL = "${ICE_OBJDIR}/ice_forcing.F90"
+
+  sed -n '6058p' ${WHACS_FORCING_SRC} | grep -q '^ subroutine wave_spec_data_hourly$'
+  if (${status} != 0) then
+    echo "${0}: ERROR: WHACS override start-line guard failed"
+    echo "Expected wave_spec_data_hourly at line 6058 of ${WHACS_FORCING_SRC}"
+    exit -99
+  endif
+
+  sed -n '6560p' ${WHACS_FORCING_SRC} | grep -q '^ end subroutine wave_spec_data_hourly$'
+  if (${status} != 0) then
+    echo "${0}: ERROR: WHACS override end-line guard failed"
+    echo "Expected end of wave_spec_data_hourly at line 6560 of ${WHACS_FORCING_SRC}"
+    exit -99
+  endif
+
+  if !(-e ${WHACS_FORCING_OVERRIDE}) then
+    echo "${0}: ERROR: WHACS override file not found"
+    echo "  ${WHACS_FORCING_OVERRIDE}"
+    exit -99
+  endif
+
+  sed -n '1,6056p' ${WHACS_FORCING_SRC} >! ${WHACS_FORCING_LOCAL}
+  cat ${WHACS_FORCING_OVERRIDE} >> ${WHACS_FORCING_LOCAL}
+  sed -n '6561,$p' ${WHACS_FORCING_SRC} >> ${WHACS_FORCING_LOCAL}
+
+  echo "WHACS MPI rolling-cache override -> ${WHACS_FORCING_LOCAL}"
+
+endif
+
 ### List of source code directories (in order of importance).
 cat >! Filepath << EOF
 ${ICE_SANDBOX}/cicecore/drivers/${ICE_DRVOPT}
@@ -242,4 +289,3 @@ if ( ${ICE_TEST} != ${ICE_SPVAL} ) then
   echo "PASS ${ICE_TESTNAME} build" >> ${ICE_CASEDIR}/test_output
   echo "PEND ${ICE_TESTNAME} run" >> ${ICE_CASEDIR}/test_output
 endif
-
