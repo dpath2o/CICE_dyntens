@@ -1029,27 +1029,87 @@
 !  authors: 2018 Lettie Roach, NIWA/VUW
 !
 !
-      function get_subdt_fsd(afsd_init, d_afsd) &
+      ! function get_subdt_fsd(afsd_init, d_afsd) &
+      !                         result(subdt)
+
+      ! real (kind=dbl_kind), dimension (nfsd), intent(in) :: &
+      !    afsd_init, d_afsd ! floe size distribution tracer
+
+      ! ! output
+      ! real (kind=dbl_kind) :: &
+      !    subdt ! subcycle timestep (s)
+
+      ! ! local variables
+      ! real (kind=dbl_kind), dimension (nfsd) :: &
+      !    check_dt ! to compute subcycle timestep (s)
+
+      ! integer (kind=int_kind) :: k
+
+      ! check_dt(:) = bignum
+      ! do k = 1, nfsd
+      !     if (d_afsd(k) >  puny) check_dt(k) = (1-afsd_init(k))/d_afsd(k)
+      !     if (d_afsd(k) < -puny) check_dt(k) = afsd_init(k)/ABS(d_afsd(k))
+      ! end do
+
+      ! subdt = MINVAL(check_dt)
+
+      ! end function get_subdt_fsd
+
+      function get_subdt_fsd(afsd_init, d_afsd, dt_remaining) &
                               result(subdt)
 
       real (kind=dbl_kind), dimension (nfsd), intent(in) :: &
          afsd_init, d_afsd ! floe size distribution tracer
 
+      real (kind=dbl_kind), intent(in), optional :: &
+         dt_remaining      ! remaining integration interval (s)
+
       ! output
       real (kind=dbl_kind) :: &
-         subdt ! subcycle timestep (s)
+         subdt             ! subcycle timestep (s)
 
       ! local variables
       real (kind=dbl_kind), dimension (nfsd) :: &
-         check_dt ! to compute subcycle timestep (s)
+         check_dt          ! to compute subcycle timestep (s)
+
+      real (kind=dbl_kind) :: &
+         dafsd_tol         ! tendency below which total change is negligible
 
       integer (kind=int_kind) :: k
 
+      !-----------------------------------------------------------------
+      ! Preserve the original Icepack behaviour unless a remaining
+      ! integration interval is supplied.
+      !
+      ! When dt_remaining is supplied, convert the dimensionless FSD
+      ! cleanup tolerance into a tendency tolerance.  A tendency is then
+      ! ignored only if its maximum possible contribution over the
+      ! remaining interval is smaller than puny.
+      !-----------------------------------------------------------------
+
+      dafsd_tol = puny
+
+      if (present(dt_remaining)) then
+         if (dt_remaining > c0) then
+            dafsd_tol = puny / dt_remaining
+         endif
+      endif
+
       check_dt(:) = bignum
+
       do k = 1, nfsd
-          if (d_afsd(k) >  puny) check_dt(k) = (1-afsd_init(k))/d_afsd(k)
-          if (d_afsd(k) < -puny) check_dt(k) = afsd_init(k)/ABS(d_afsd(k))
-      end do
+
+         if (d_afsd(k) > dafsd_tol) then
+            check_dt(k) = &
+                 (c1-afsd_init(k)) / d_afsd(k)
+         endif
+
+         if (d_afsd(k) < -dafsd_tol) then
+            check_dt(k) = &
+                 afsd_init(k) / ABS(d_afsd(k))
+         endif
+
+      enddo
 
       subdt = MINVAL(check_dt)
 

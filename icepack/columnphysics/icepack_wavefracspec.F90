@@ -149,15 +149,15 @@
 
       ! local variables
       ! dpath2o
-      ! real (kind=dbl_kind), dimension (nfsd) :: &
-      !    loss, gain, omega
-      ! integer (kind=int_kind) :: k
       real (kind=dbl_kind), dimension (nfsd) :: &
-           loss, gain, omega
-      real (kind=dbl_kind) :: &
-           residual
-      integer (kind=int_kind) :: &
-           k, kfix
+         loss, gain, omega
+      integer (kind=int_kind) :: k
+      ! real (kind=dbl_kind), dimension (nfsd) :: &
+      !      loss, gain, omega
+      ! real (kind=dbl_kind) :: &
+      !      residual
+      ! integer (kind=int_kind) :: &
+      !      k, kfix
       ! dpath2o
 
       character(len=*),parameter :: subname='(get_dafsd_wave)'
@@ -399,10 +399,11 @@
                      endif
 
                      ! required timestep
-                     subdt = get_subdt_fsd(afsd_tmp, d_afsd_tmp)
-
-                     ! integrate only the remaining interval
+                     ! subdt = get_subdt_fsd(afsd_tmp, d_afsd_tmp)
+                     subdt = get_subdt_fsd(afsd_tmp, d_afsd_tmp, dt_remaining = dt-elapsed_t)
                      subdt = MIN(subdt,dt-elapsed_t)
+                     ! integrate only the remaining interval
+                     ! subdt = MIN(subdt,dt-elapsed_t)
 
                      !--------------------------------------------------
                      ! Protect against NaN/Inf, zero/negative timestep,
@@ -555,7 +556,7 @@
             enddo    ! n
         endif ! fracture hist > 0
 
-      endif          ! aice > p01
+      endif         ! aice > p01
       endif         ! all small floes
 
       end subroutine icepack_step_wavefracture
