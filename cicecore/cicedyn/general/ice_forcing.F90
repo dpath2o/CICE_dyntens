@@ -6057,42 +6057,23 @@ contains
  !=======================================================================
  subroutine wave_spec_data_hourly
    !
-   ! Read and cache one complete month of hourly WHACS/CAWCR wave spectra.
+   ! Rolling two-record WHACS forcing cache.
    !
-   ! At the first call for each forcing month, all hourly efreq records are
-   ! read from the monthly NetCDF file and scattered to the local CICE
-   ! decomposition.  The local blocks are retained in memory for the
-   ! remainder of the month.
+   ! Only the two hourly spectra required for temporal interpolation are
+   ! retained:
    !
-   ! No WHACS NetCDF I/O is therefore required during normal model
-   ! timestepping within the month.
+   !     slot 1 : current forcing hour
+   !     slot 2 : following forcing hour
    !
-   ! The cache contains:
+   ! At an hourly rollover, slot 2 becomes slot 1 and exactly one new
+   ! WHACS record is read.
    !
-   !     1 ... nhours       : current month's hourly records
-   !     nhours + 1         : 00:00 record of following month
+   ! This removes the previous complete-month cache and the burst of
+   ! 672--744 global spectral reads at each month transition.
    !
-   ! This permits continuous interpolation across the final hour of each
-   ! month without requiring an additional read during timestepping.
-   !
-   ! The original WHACS efreq data are float32.  The monthly cache is
-   ! therefore stored using real_kind to avoid doubling memory without
-   ! adding useful precision.  Conversion to dbl_kind occurs when filling
-   ! wave_spectrum.
-   !
-   ! Expected source variable:
-   !
-   !     efreq(time,nfreq,nj,ni)
-   !
-   ! Through the Fortran NetCDF interface ice_read_nc_xyf sees:
-   !
-   !     efreq(ni,nj,nfreq,time)
-   !
-   ! so no runtime transpose, spatial interpolation, or spectral remapping
-   ! is required.
-   !
-   use ice_read_write, only: &
-        ice_read_nc_xyf
+
+   use ice_whacs_io, only: &
+        ice_read_nc_xyf_whacs
 
    use ice_arrays_column, only: &
         wave_spectrum
@@ -6101,14 +6082,15 @@ contains
         nblocks
 
    integer (kind=int_kind) :: &
-        fid, &
-        curr_year, curr_month, &
-        next_year, next_month, &
-        recnum, &
+        curr_year, &
+        curr_month, &
+        curr_rec, &
+        next_year, &
+        next_month, &
+        next_rec, &
         nhours, &
         hour_index, &
         modadj, &
-        irec, &
         iblk
 
    real (kind=dbl_kind) :: &
@@ -6116,67 +6098,60 @@ contains
         sec1hr, &
         frac
 
-   real (kind=dbl_kind) :: &
-        t_total_0, &
-        t_total_1, &
-        t_load_0, &
-        t_load_1, &
-        t_read_0, &
-        t_read_1, &
-        t_interp_0, &
-        t_interp_1
-
    character(char_len_long) :: &
         curr_file, &
         next_file
 
    logical (kind=log_kind) :: &
-        load_month
+        current_cached, &
+        current_in_slot2, &
+        next_cached, &
+        did_read
 
-   !
-   ! Monthly distributed WHACS cache.
+   !--------------------------------------------------------------------
+   ! Two local float32 forcing records.
    !
    ! Dimensions:
    !
-   !   i, j, frequency, hourly_record, local_block
-   !
-   ! SAVE allows the cache to persist between calls without requiring
-   ! additional module-level state.
-   !
+   !   i,j,frequency,time_slot,block
+   !--------------------------------------------------------------------
    real (kind=real_kind), dimension(:,:,:,:,:), &
         allocatable, save :: &
-        wave_month_cache
-
-   !
-   ! ice_read_nc_xyf requires max_blocks in its distributed output array.
-   ! This small temporary is used only while reading/scattering each record.
-   !
-   real (kind=dbl_kind), dimension(:,:,:,:), &
-        allocatable, save :: &
-        wave_read_buffer
+        wave_pair_cache
 
    integer (kind=int_kind), save :: &
-        cache_year   = -9999, &
-        cache_month  = -9999, &
-        cache_nhours = 0
+        cache_year_1  = -9999, &
+        cache_month_1 = -9999, &
+        cache_rec_1   = -9999, &
+        cache_year_2  = -9999, &
+        cache_month_2 = -9999, &
+        cache_rec_2   = -9999
+
+   integer (kind=int_kind), save :: &
+        wave_records_read = 0_int_kind
 
    logical (kind=log_kind), parameter :: &
-        wave_io_debug = .false.
+        wave_io_debug = .true.
 
    character(len=*), parameter :: &
         subname = '(wave_spec_data_hourly)'
 
    !--------------------------------------------------------------------
-   ! Overall timing.
+   ! Allocate exactly two local forcing records.
    !--------------------------------------------------------------------
-   t_total_0 = wave_walltime()
+   if (.not. allocated(wave_pair_cache)) then
 
-   t_load_0   = c0
-   t_load_1   = c0
-   t_read_0   = c0
-   t_read_1   = c0
-   t_interp_0 = c0
-   t_interp_1 = c0
+      allocate( &
+           wave_pair_cache( &
+                nx_block, &
+                ny_block, &
+                nfreq, &
+                2, &
+                max_blocks))
+
+      wave_pair_cache = real(c0,kind=real_kind)
+
+   endif
 
    !--------------------------------------------------------------------
    ! Obtain CICE day length.
@@ -6202,7 +6177,8 @@ contains
 
    else
 
-      modadj = abs((min(0,myear-fyear_init)/ycycle+1)*ycycle)
+      modadj = abs( &
+           (min(0,myear-fyear_init)/ycycle+1)*ycycle)
 
       curr_year = fyear_init + &
            mod(myear-fyear_init+modadj,ycycle)
@@ -6212,300 +6188,156 @@ contains
    curr_month = mmonth
 
    !--------------------------------------------------------------------
-   ! Number of hourly records in current month.
+   ! Current forcing-hour record.
    !--------------------------------------------------------------------
    nhours = 24 * daymo(curr_month)
 
+   hour_index = int( &
+        real(msec,kind=dbl_kind) / sec1hr)
+
+   hour_index = &
+        max(0_int_kind, &
+        min(23_int_kind,hour_index))
+
+   curr_rec = &
+        24 * (mday - 1) + &
+        hour_index + 1
+
+   curr_rec = &
+        max(1_int_kind, &
+        min(nhours,curr_rec))
+
    !--------------------------------------------------------------------
-   ! Determine following month/year.
+   ! Following forcing-hour record.
    !--------------------------------------------------------------------
-   next_year  = curr_year
-   next_month = curr_month + 1
+   if (curr_rec < nhours) then
 
-   if (next_month > 12) then
+      next_year  = curr_year
+      next_month = curr_month
+      next_rec   = curr_rec + 1
 
-      next_month = 1
-      next_year  = curr_year + 1
+   else
 
-      if (ycycle > 0 .and. next_year > fyear_final) then
-         next_year = fyear_init
+      next_year  = curr_year
+      next_month = curr_month + 1
+      next_rec   = 1
+
+      if (next_month > 12) then
+
+         next_month = 1
+         next_year  = curr_year + 1
+
+         if (ycycle > 0 .and. &
+             next_year > fyear_final) then
+
+            next_year = fyear_init
+
+         endif
+
       endif
 
    endif
 
    call whacs_monthly_wave_file( &
-        curr_year, curr_month, curr_file)
+        curr_year, &
+        curr_month, &
+        curr_file)
 
    call whacs_monthly_wave_file( &
-        next_year, next_month, next_file)
+        next_year, &
+        next_month, &
+        next_file)
 
    !--------------------------------------------------------------------
-   ! Determine whether a new monthly cache must be loaded.
+   ! Is the desired current record already in slot 1?
    !--------------------------------------------------------------------
-   load_month = &
-        .not. allocated(wave_month_cache) .or. &
-        cache_year  /= curr_year .or. &
-        cache_month /= curr_month
-
-   !====================================================================
-   ! LOAD COMPLETE MONTH
-   !====================================================================
-   if (load_month) then
-
-      t_load_0 = wave_walltime()
-
-      !-----------------------------------------------------------------
-      ! Allocate/reallocate compact local monthly cache.
-      !
-      ! Only nblocks actually owned by this MPI task are retained.
-      ! This avoids allocating max_blocks worth of monthly storage on
-      ! every task.
-      !-----------------------------------------------------------------
-      if (allocated(wave_month_cache)) then
-         deallocate(wave_month_cache)
-      endif
-
-      allocate( &
-           wave_month_cache( &
-                nx_block, &
-                ny_block, &
-                nfreq, &
-                nhours+1, &
-                max(1_int_kind,nblocks)))
-
-      wave_month_cache = real(c0,kind=real_kind)
-
-      !-----------------------------------------------------------------
-      ! Allocate reusable distributed read buffer.
-      !-----------------------------------------------------------------
-      if (.not. allocated(wave_read_buffer)) then
-
-         allocate( &
-              wave_read_buffer( &
-                   nx_block, &
-                   ny_block, &
-                   nfreq, &
-                   max_blocks))
-
-      endif
-
-      wave_read_buffer = c0
-
-      if (my_task == master_task) then
-
-         write(nu_diag,*) &
-              subname//' loading complete WHACS month'
-
-         write(nu_diag,*) &
-              subname//' current file = ', &
-              trim(curr_file)
-
-         write(nu_diag,*) &
-              subname//' year/month   = ', &
-              curr_year, curr_month
-
-         write(nu_diag,*) &
-              subname//' hourly records = ', &
-              nhours
-
-         write(nu_diag,*) &
-              subname//' nfreq          = ', &
-              nfreq
-
-         call flush(nu_diag)
-
-      endif
-
-      !-----------------------------------------------------------------
-      ! Open current month's file ONCE.
-      !-----------------------------------------------------------------
-      call ice_open_nc(trim(curr_file),fid)
-
-      !-----------------------------------------------------------------
-      ! Read every hourly record in current month.
-      !
-      ! Each record is:
-      !
-      !       NetCDF global hyperslab
-      !             ↓
-      !       ice_read_nc_xyf
-      !             ↓
-      !       scatter_global
-      !             ↓
-      !       local wave_read_buffer
-      !             ↓
-      !       compact local monthly cache
-      !
-      !-----------------------------------------------------------------
-      do irec = 1, nhours
-
-         t_read_0 = wave_walltime()
-
-         call ice_read_nc_xyf( &
-              fid, &
-              irec, &
-              'efreq', &
-              wave_read_buffer(:,:,:,:), &
-              debug_forcing, &
-              field_loc=field_loc_center, &
-              field_type=field_type_scalar)
-
-         t_read_1 = wave_walltime()
-
-         !--------------------------------------------------------------
-         ! Retain only blocks actually owned by this MPI task.
-         !
-         ! Source data are float32, so converting the distributed read
-         ! buffer to real_kind does not discard meaningful source
-         ! precision.
-         !--------------------------------------------------------------
-         if (nblocks > 0) then
-
-            do iblk = 1, nblocks
-
-               wave_month_cache(:,:,:,irec,iblk) = &
-                    real( &
-                         wave_read_buffer(:,:,:,iblk), &
-                         kind=real_kind)
-
-            enddo
-
-         endif
-
-         !--------------------------------------------------------------
-         ! Lightweight loading progress on master task.
-         ! Print only every 24 records (one forcing day), plus endpoints.
-         !--------------------------------------------------------------
-         if (wave_io_debug .and. my_task == master_task) then
-
-            if (irec == 1 .or. &
-                mod(irec,24) == 0 .or. &
-                irec == nhours) then
-
-               write(nu_diag,*) &
-                    'WAVEIO MONTH LOAD record=',irec, &
-                    '/',nhours, &
-                    ' last_read_s=', &
-                    max(c0,t_read_1-t_read_0)
-
-               call flush(nu_diag)
-
-            endif
-
-         endif
-
-      enddo
-
-      !-----------------------------------------------------------------
-      ! Close current month's file after entire month has been cached.
-      !-----------------------------------------------------------------
-      call ice_close_nc(fid)
-
-      !-----------------------------------------------------------------
-      ! Read the first record of the following month.
-      !
-      ! Store this in nhours+1 so that interpolation during the final
-      ! hour of the current month remains entirely memory-resident.
-      !-----------------------------------------------------------------
-      wave_read_buffer = c0
-
-      call ice_open_nc(trim(next_file),fid)
-
-      t_read_0 = wave_walltime()
-
-      call ice_read_nc_xyf( &
-           fid, &
-           1, &
-           'efreq', &
-           wave_read_buffer(:,:,:,:), &
-           debug_forcing, &
-           field_loc=field_loc_center, &
-           field_type=field_type_scalar)
-
-      t_read_1 = wave_walltime()
-
-      call ice_close_nc(fid)
-
-      if (nblocks > 0) then
-
-         do iblk = 1, nblocks
-
-            wave_month_cache(:,:,:,nhours+1,iblk) = &
-                 real( &
-                      wave_read_buffer(:,:,:,iblk), &
-                      kind=real_kind)
-
-         enddo
-
-      endif
-
-      !-----------------------------------------------------------------
-      ! Update monthly cache identity.
-      !-----------------------------------------------------------------
-      cache_year   = curr_year
-      cache_month  = curr_month
-      cache_nhours = nhours
-
-      t_load_1 = wave_walltime()
-
-      if (my_task == master_task) then
-
-         write(nu_diag,*) &
-              subname//' next-month first record = ', &
-              trim(next_file)
-
-         write(nu_diag,*) &
-              'WAVEIO MONTH READY year=', &
-              cache_year, &
-              ' month=', &
-              cache_month, &
-              ' records=', &
-              cache_nhours+1, &
-              ' load_s=', &
-              max(c0,t_load_1-t_load_0)
-
-         call flush(nu_diag)
-
-      endif
-
-   endif ! load_month
-
-   !====================================================================
-   ! SELECT CURRENT HOURLY RECORD FROM MEMORY
-   !====================================================================
+   current_cached = &
+        cache_year_1  == curr_year  .and. &
+        cache_month_1 == curr_month .and. &
+        cache_rec_1   == curr_rec
 
    !--------------------------------------------------------------------
-   ! Current forcing-hour index.
+   ! Normal hourly rollover:
    !
-   !   day 1 00:00 -> record 1
-   !   day 1 01:00 -> record 2
-   !   ...
+   ! previous slot 2 becomes the desired slot 1.
    !--------------------------------------------------------------------
-   hour_index = int( &
-        real(msec,kind=dbl_kind) / sec1hr)
+   current_in_slot2 = &
+        cache_year_2  == curr_year  .and. &
+        cache_month_2 == curr_month .and. &
+        cache_rec_2   == curr_rec
 
-   recnum = &
-        24 * (mday - 1) + &
-        hour_index + 1
+   did_read = .false.
 
-   recnum = &
-        max(1_int_kind, &
-        min(cache_nhours,recnum))
+   if (.not. current_cached) then
+
+      if (current_in_slot2) then
+
+         wave_pair_cache(:,:,:,1,:) = &
+              wave_pair_cache(:,:,:,2,:)
+
+         cache_year_1  = cache_year_2
+         cache_month_1 = cache_month_2
+         cache_rec_1   = cache_rec_2
+
+      else
+
+         call ice_read_nc_xyf_whacs( &
+              trim(curr_file), &
+              curr_rec, &
+              wave_pair_cache(:,:,:,1,:))
+
+         cache_year_1  = curr_year
+         cache_month_1 = curr_month
+         cache_rec_1   = curr_rec
+
+         wave_records_read = &
+              wave_records_read + 1_int_kind
+
+         did_read = .true.
+
+      endif
+
+   endif
+
+   !--------------------------------------------------------------------
+   ! Ensure slot 2 is the following hourly record.
+   !--------------------------------------------------------------------
+   next_cached = &
+        cache_year_2  == next_year  .and. &
+        cache_month_2 == next_month .and. &
+        cache_rec_2   == next_rec
+
+   if (.not. next_cached) then
+
+      call ice_read_nc_xyf_whacs( &
+           trim(next_file), &
+           next_rec, &
+           wave_pair_cache(:,:,:,2,:))
+
+      cache_year_2  = next_year
+      cache_month_2 = next_month
+      cache_rec_2   = next_rec
+
+      wave_records_read = &
+           wave_records_read + 1_int_kind
+
+      did_read = .true.
+
+   endif
 
    !--------------------------------------------------------------------
    ! Fraction through current forcing hour.
    !--------------------------------------------------------------------
    frac = ( &
         real(msec,kind=dbl_kind) - &
-        real(hour_index,kind=dbl_kind)*sec1hr) / sec1hr
+        real(hour_index,kind=dbl_kind)*sec1hr) / &
+        sec1hr
 
    frac = max(c0,min(c1,frac))
 
-   !====================================================================
-   ! INTERPOLATE ENTIRELY FROM MEMORY
-   !====================================================================
-   t_interp_0 = wave_walltime()
-
+   !--------------------------------------------------------------------
+   ! Interpolate the two resident hourly spectra.
+   !--------------------------------------------------------------------
    wave_spectrum = c0
 
    if (nblocks > 0) then
@@ -6515,11 +6347,11 @@ contains
          wave_spectrum(:,:,:,iblk) = &
               (c1-frac) * &
               real( &
-                   wave_month_cache(:,:,:,recnum,iblk), &
+                   wave_pair_cache(:,:,:,1,iblk), &
                    kind=dbl_kind) + &
               frac * &
               real( &
-                   wave_month_cache(:,:,:,recnum+1,iblk), &
+                   wave_pair_cache(:,:,:,2,iblk), &
                    kind=dbl_kind)
 
       enddo
@@ -6530,30 +6362,30 @@ contains
       wave_spectrum = c0
    end where
 
-   t_interp_1 = wave_walltime()
-
-   t_total_1 = wave_walltime()
-
    !--------------------------------------------------------------------
-   ! Ordinary timestep diagnostics.
-   !
-   ! No NetCDF access should occur here unless load_month = true.
+   ! Sparse rolling-cache diagnostics.
    !--------------------------------------------------------------------
-   if (wave_io_debug .and. my_task == master_task) then
+   if (wave_io_debug .and. &
+       my_task == master_task .and. &
+       did_read) then
 
-      write(nu_diag,*) &
-           'WAVEIO STEP istep=',istep, &
-           ' date=',myear,mmonth,mday, &
-           ' sec=',msec, &
-           ' rec=',recnum, &
-           ' frac=',frac, &
-           ' loaded_month=',load_month, &
-           ' interp_s=', &
-           max(c0,t_interp_1-t_interp_0), &
-           ' total_s=', &
-           max(c0,t_total_1-t_total_0)
+      if (wave_records_read <= 6_int_kind .or. &
+          mod(wave_records_read,24_int_kind) == 0_int_kind) then
 
-      call flush(nu_diag)
+         write(nu_diag,*) &
+              'WAVEIO ROLLING date=', &
+              myear,mmonth,mday, &
+              ' sec=',msec, &
+              ' curr=', &
+              cache_year_1,cache_month_1,cache_rec_1, &
+              ' next=', &
+              cache_year_2,cache_month_2,cache_rec_2, &
+              ' frac=',frac, &
+              ' records_read=',wave_records_read
+
+         call flush(nu_diag)
+
+      endif
 
    endif
 

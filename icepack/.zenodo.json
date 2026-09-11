@@ -1,0 +1,121 @@
+{
+    "license": "BSD-3-Clause",
+    "copyright": "Copyright 1998-2025 Triad National Security, LLC",
+    "description": "View detailed release notes at https://github.com/CICE-Consortium/Icepack/releases", 
+    "language": "eng", 
+    "title": "CICE-Consortium/Icepack: Icepack 1.5.2", 
+    "keywords": [
+        "sea ice model",
+        "Icepack"
+    ], 
+    "version": "1.5.2", 
+    "upload_type": "software", 
+    "communities": [
+        {
+            "identifier": "cice-consortium"
+        }
+    ], 
+    "publication_date": "2025-08-15", 
+    "creators": [
+        {
+            "affiliation": "Los Alamos National Laboratory", 
+            "name": "Elizabeth Hunke"
+        }, 
+        {
+            "affiliation": "Naval Research Laboratory Stennis Space Center", 
+            "name": "Richard Allard"
+        }, 
+        {
+            "affiliation": "National Center for Atmospheric Research", 
+            "name": "David A. Bailey"
+        }, 
+        {
+            "affiliation": "Environment and Climate Change Canada", 
+            "name": "Philippe Blain"
+        }, 
+        {
+            "affiliation": "National Center for Atmospheric Research", 
+            "name": "David Clemens-Sewall"
+        }, 
+        {
+            "affiliation": "National Oceanic and Atmospheric Administration", 
+            "name": "Anthony Craig"
+        }, 
+        {
+            "affiliation": "Environment and Climate Change Canada", 
+            "name": "Frederic Dupont"
+        }, 
+        {
+            "affiliation": "National Center for Atmospheric Research", 
+            "name": "Alice DuVivier"
+        }, 
+        {
+            "affiliation": "National Oceanic and Atmospheric Administration", 
+            "name": "Robert Grumbine"
+        }, 
+        {
+            "affiliation": "Naval Research Laboratory Stennis Space Center", 
+            "name": "David Hebert"
+        }, 
+        {
+            "affiliation": "National Center for Atmospheric Research", 
+            "name": "Marika Holland"
+        }, 
+        {
+            "affiliation": "Los Alamos National Laboratory", 
+            "name": "Nicole Jeffery"
+        }, 
+        {
+            "affiliation": "Environment and Climate Change Canada", 
+            "name": "Jean-Francois Lemieux"
+        }, 
+        {
+            "affiliation": "Institute of Oceanology, Polish Academy of Sciences", 
+            "name": "Robert Osinski"
+        }, 
+        {
+            "affiliation": "Danish Meteorological Institute", 
+            "name": "Till Rasmussen"
+        }, 
+        {
+            "affiliation": "Danish Meteorological Institute", 
+            "name": "Mads Ribergaard"
+        }, 
+        {
+            "affiliation": "Alfred-Wegener-Institut Helmholz-Zentrum fur Polar- und Meersforschung", 
+            "name": "Lettie Roach"
+        }, 
+        {
+            "affiliation": "Los Alamos National Laboratory", 
+            "name": "Andrew Roberts"
+        }, 
+        {
+            "affiliation": "Australian Earth-System Simulator", 
+            "name": "Anton Steketee"
+        }, 
+        {
+            "affiliation": "Los Alamos National Laboratory", 
+            "name": "Matthew Turner"
+        }, 
+        {
+            "affiliation": "Geophysical Fluid Dynamics Laboratory", 
+            "name": "Michael Winton"
+        },
+        {
+            "affiliation": "National Aeronautics and Space Administration", 
+            "name": "Bin Zhao"
+        }
+    ], 
+    "access_right": "open", 
+    "repository_url": "https://github.com/CICE-Consortium/Icepack", 
+    "related_identifiers": [
+        {
+            "identifier": "https://github.com/CICE-Consortium/Icepack/tree/Icepack1.0.0", 
+            "relation": "isSupplementTo"
+        }, 
+        {
+            "identifier": "10.5281/zenodo.1213462", 
+            "relation": "isNewVersionOf"
+        }
+    ]
+}

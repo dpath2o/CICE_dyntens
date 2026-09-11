@@ -98,7 +98,7 @@
          call ice_timer_start(timer_couple)  ! atm/ocn coupling
 
 ! for now, wave_spectrum is constant in time
-!         if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
+         if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
          call get_forcing_atmo     ! atmospheric forcing from data
          call get_forcing_ocn(dt)  ! ocean forcing from data
 
@@ -280,9 +280,6 @@
          ! note this is called outside of the dynamics subcycling loop
          ! if (tr_fsd .and. wave_spec) call step_dyn_wave(dt)
          if (tr_fsd .and. wave_spec) then
-            ! if (mod(istep,6_int_kind) == 0_int_kind) then
-            !    call step_dyn_wave(6.0_dbl_kind*dt)
-            ! endif
             if (mod(istep,2_int_kind) == 0_int_kind) then
                call step_dyn_wave(2.0_dbl_kind*dt)
             endif

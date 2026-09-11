@@ -1190,6 +1190,32 @@
                        dwavefreq      = dwavefreq(:),                &
                        trcrn          = trcrn(i,j,:,:,iblk),        &
                        d_afsd_wave    = d_afsd_wave(i,j,:,iblk))
+                  ! dpath2o
+                  if (icepack_warnings_aborted()) then
+
+                     write(nu_diag,*) &
+                          'WAVEFSD FAILURE task=',my_task, &
+                          ' gblock=',blocks_ice(iblk), &
+                          ' iglob=',this_block%i_glob(i), &
+                          ' jglob=',this_block%j_glob(j)
+
+                     write(nu_diag,*) &
+                          'WAVEFSD FAILURE aice=', &
+                          aice(i,j,iblk), &
+                          ' vice=',vice(i,j,iblk), &
+                          ' Hs=',local_sig_ht
+
+                     call icepack_warnings_flush(nu_diag)
+
+                     call flush(nu_diag)
+
+                     call abort_ice( &
+                          error_message= &
+                          'step_dyn_wave: Icepack wave fracture failed', &
+                          file=__FILE__, line=__LINE__)
+
+                  endif
+                  ! dpath2o
 
                else
 
