@@ -1,12 +1,12 @@
 #!/bin/csh -f
 
 setenv ICE_CASENAME  frcg-exp03
-setenv ICE_SANDBOX  /home/581/da1339/AFIM/src/CICE_free-slip-forcing-sensitivity
+setenv ICE_SANDBOX  /g/data/gv90/da1339/src/CICE_forcing
 setenv ICE_MACHINE  gadi1
 setenv ICE_ENVNAME  intel
 setenv ICE_MACHCOMP  gadi1_intel
-setenv ICE_SCRIPTS  /home/581/da1339/AFIM/src/CICE_free-slip-forcing-sensitivity/configuration/scripts
-setenv ICE_CASEDIR  /home/581/da1339/AFIM/src/CICE_free-slip-forcing-sensitivity/frcg-exp03
+setenv ICE_SCRIPTS  /g/data/gv90/da1339/src/CICE_forcing/configuration/scripts
+setenv ICE_CASEDIR  /g/data/gv90/da1339/src/CICE_forcing/frcg-exp03
 setenv ICE_RUNDIR  /g/data/gv90/da1339/cice-dirs/runs/frcg-exp03
 setenv ICE_OBJDIR     ${ICE_RUNDIR}/compile
 setenv ICE_RSTDIR     ${ICE_RUNDIR}/restart
