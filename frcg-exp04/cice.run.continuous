@@ -1,10 +1,10 @@
 #!/bin/csh -f
-#PBS -N frcg-exp02
+#PBS -N frcg-exp04
 #PBS -P au88
 #PBS -q normalbw
 #PBS -l walltime=10:00:00
 #PBS -l ncpus=1232
-#PBS -l mem=400GB
+#PBS -l mem=700GB
 #PBS -l storage=gdata/gv90+gdata/xp65
 #PBS -l wd
 #PBS -j oe

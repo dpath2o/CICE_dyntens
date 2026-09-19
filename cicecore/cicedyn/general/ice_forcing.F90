@@ -5775,74 +5775,6 @@ contains
  end subroutine uniform_data_ocn
 
  !=======================================================================
-!  subroutine get_wave_spec
-   
-!    use ice_read_write, only: ice_read_nc_xyf
-!    use ice_arrays_column, only: wave_spectrum, &
-!         dwavefreq, wavefreq
-!    use ice_constants, only: c0
-!    use ice_domain_size, only: nfreq
-!    use ice_timers, only: ice_timer_start, ice_timer_stop, timer_fsd
-
-!    ! local variables
-!    integer (kind=int_kind) :: &
-!         fid                    ! file id for netCDF routines
-
-!    real(kind=dbl_kind), dimension(nfreq) :: &
-!         wave_spectrum_profile  ! wave spectrum
-
-!    character(char_len) :: wave_spec_type
-!    logical (kind=log_kind) :: wave_spec
-!    character(len=*), parameter :: subname = '(get_wave_spec)'
-
-!    if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
-
-!    call ice_timer_start(timer_fsd)
-
-!    call icepack_query_parameters(wave_spec_out=wave_spec, &
-!         wave_spec_type_out=wave_spec_type)
-!    call icepack_warnings_flush(nu_diag)
-!    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-!         file=__FILE__, line=__LINE__)
-
-!    ! if no wave data is provided, wave_spectrum is zero everywhere
-!    wave_spectrum(:,:,:,:) = c0
-!    wave_spec_dir = ocn_data_dir
-!    debug_forcing = .false.
-
-!    ! wave spectrum and frequencies
-!    if (wave_spec) then
-!       ! get hardwired frequency bin info and a dummy wave spectrum profile
-!       ! the latter is used if wave_spec_type == profile
-!       call icepack_init_wave(nfreq,                 &
-!            wave_spectrum_profile, &
-!            wavefreq, dwavefreq)
-
-!       ! read more realistic data from a file
-!       if ((trim(wave_spec_type) == 'constant').OR.(trim(wave_spec_type) == 'random')) then
-!          if (trim(wave_spec_file(1:4)) == 'unkn') then
-!             call abort_ice (subname//'ERROR: wave_spec_file '//trim(wave_spec_file), &
-!                  file=__FILE__, line=__LINE__)
-!          else
-! #ifdef USE_NETCDF
-!             call ice_open_nc(wave_spec_file,fid)
-!             call ice_read_nc_xyf (fid, 1, 'efreq', wave_spectrum(:,:,:,:), debug_forcing, &
-!                  field_loc_center, field_type_scalar)
-!             call ice_close_nc(fid)
-! #else
-!             write (nu_diag,*) "wave spectrum file not available, requires cpp USE_NETCDF"
-!             write (nu_diag,*) "wave spectrum file not available, using default profile"
-!             call abort_ice (subname//'ERROR: wave_spec_file '//trim(wave_spec_file), &
-!                  file=__FILE__, line=__LINE__)
-! #endif
-!          endif
-!       endif
-!    endif
-
-!    call ice_timer_stop(timer_fsd)
-
-!  end subroutine get_wave_spec
- !=======================================================================
  real(kind=dbl_kind) function wave_walltime()
    !
    ! Lightweight wall-clock timer for wave forcing diagnostics.
@@ -5912,6 +5844,8 @@ contains
         wave_spec, &
         apply_wave_propagation
 
+   ! Lightweight performance monitoring for spectral forcing.  Output is
+   ! restricted below to startup and daily checkpoints for production runs.
    logical (kind=log_kind), parameter :: &
         wave_perf_debug = .true.
 
@@ -6038,7 +5972,8 @@ contains
 
    t_total_1 = wave_walltime()
 
-   if (wave_perf_debug .and. my_task == master_task) then
+   if (wave_perf_debug .and. my_task == master_task .and. &
+       (istep <= 2_int_kind .or. mod(istep,48_int_kind) == 0_int_kind)) then
 
       write(nu_diag,*) &
            'WAVEPERF GET istep=',istep, &
@@ -6444,7 +6379,6 @@ contains
 
  end subroutine whacs_monthly_wave_file
 
- !=======================================================================
  !=======================================================================
  subroutine propagate_waves(spec)
    !
@@ -6985,8 +6919,6 @@ contains
         b * dum_freq**4
 
  end function fn_Attn_MBK
-
- !=======================================================================
 
  !=======================================================================
  subroutine init_snowtable

@@ -133,11 +133,9 @@ Mon Sep  7 06:14:06 AEST 2026 /local/spool/pbs/mom_priv/jobs/178293978.gadi-pbs.
 Mon Sep  7 06:14:06 AEST 2026 /local/spool/pbs/mom_priv/jobs/178293978.gadi-pbs.SC: CICE run completed successfully
 Sun Sep 13 15:52:25 AEST 2026 ./cice.build:frcg-exp02 build completed cice.bldlog.260913-155108
 Sun Sep 13 15:57:13 AEST 2026 ./cice.submit: free-slip job submitted
-Sun Sep 13 23:56:39 AEST 2026 /local/spool/pbs/mom_priv/jobs/178886291.gadi-pbs.SC: CICE output file is /home/581/da1339/AFIM/src/CICE_free-slip-forcing-sensitivity/frcg-exp02/logs/cice.runlog.260913-155830
-Sun Sep 13 23:56:42 AEST 2026 /local/spool/pbs/mom_priv/jobs/178886291.gadi-pbs.SC: CICE output file is /home/581/da1339/AFIM/src/CICE_free-slip-forcing-sensitivity/frcg-exp02/logs/ice_diag.d
-Sun Sep 13 23:56:42 AEST 2026 /local/spool/pbs/mom_priv/jobs/178886291.gadi-pbs.SC: CICE run completed successfully
-Mon Sep 14 11:32:22 AEST 2026 ./cice.submit: free-slip job submitted
-Mon Sep 14 14:48:00 AEST 2026 /local/spool/pbs/mom_priv/jobs/178924224.gadi-pbs.SC: CICE output file is /home/581/da1339/AFIM/src/CICE_free-slip-forcing-sensitivity/frcg-exp02/logs/cice.runlog.260914-113504
-Mon Sep 14 14:48:00 AEST 2026 /local/spool/pbs/mom_priv/jobs/178924224.gadi-pbs.SC: CICE output file is /home/581/da1339/AFIM/src/CICE_free-slip-forcing-sensitivity/frcg-exp02/logs/ice_diag.d
-Mon Sep 14 14:48:00 AEST 2026 /local/spool/pbs/mom_priv/jobs/178924224.gadi-pbs.SC: CICE run did NOT complete
-Mon Sep 14 18:28:47 AEST 2026 ./cice.submit: free-slip job submitted
+Sun Sep 13 23:45:03 AEST 2026 ./cice.build:frcg-exp04 build completed cice.bldlog.260913-234338
+Mon Sep 14 00:00:08 AEST 2026 ./cice.submit: free-slip job submitted
+Mon Sep 14 00:10:00 AEST 2026 ./cice.submit: free-slip job submitted
+Mon Sep 14 07:19:48 AEST 2026 /local/spool/pbs/mom_priv/jobs/178898275.gadi-pbs.SC: CICE output file is /home/581/da1339/AFIM/src/CICE_free-slip-forcing-sensitivity/frcg-exp04/logs/cice.runlog.260914-001052
+Mon Sep 14 07:19:48 AEST 2026 /local/spool/pbs/mom_priv/jobs/178898275.gadi-pbs.SC: CICE output file is /home/581/da1339/AFIM/src/CICE_free-slip-forcing-sensitivity/frcg-exp04/logs/ice_diag.d
+Mon Sep 14 07:19:48 AEST 2026 /local/spool/pbs/mom_priv/jobs/178898275.gadi-pbs.SC: CICE run completed successfully

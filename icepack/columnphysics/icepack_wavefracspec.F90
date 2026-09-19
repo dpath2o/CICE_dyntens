@@ -14,7 +14,16 @@
 !    Journal of Geophysical Research: Oceans, 123(6), 4322–4337.
 !    doi:10.1029/2017JC013692
 !
-!  now with some modifications to allow direct input of ocean surface wave spectrum.
+!  Extended here to accept externally supplied ocean surface-wave spectra.
+!
+!  2026 spectral-forcing robustness changes (D. Atwater):
+!    - retain the conservative gain-minus-loss FSD tendency without
+!      component-wise truncation;
+!    - use a wave-specific donor-limited adaptive substep, exploiting the
+!      conservative redistribution structure of the fracture operator;
+!    - canonicalise the FSD after each substep by removing sub-puny
+!      round-off and renormalising; and
+!    - retain detailed diagnostics only on numerical failure.
 !
 !  We calculate the fractures that would occur if waves enter a fully ice-covered
 !  region defined in one dimension in the direction of propagation, and then apply
@@ -24,21 +33,19 @@
 !  value new floes are formed with diameters equal to the distance between the extrema.
 !
 !  authors: 2016-8 Lettie Roach, NIWA/VUW
+!           2026, Dan Atwater, UTAS/IMAS/AAPP
 !
 !
       module icepack_wavefracspec
 
-      ! dpath2o
+      ! IEEE guard for adaptive wave-fracture substeps.
       use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
-      !
       use icepack_kinds
       use icepack_parameters, only: p01, p5, c0, c1, c2, c3, c4, c10
       use icepack_parameters, only: bignum, puny, gravit, pi
       use icepack_tracers, only: nt_fsd, ncat, nfsd
-      ! dpath2o
-      ! use icepack_warnings, only: warnstr, icepack_warnings_add,  icepack_warnings_aborted
-      use icepack_warnings, only: warnstr, icepack_warnings_add,  icepack_warnings_aborted, icepack_warnings_setabort
-      !
+      use icepack_warnings, only: warnstr, icepack_warnings_add, &
+           icepack_warnings_aborted, icepack_warnings_setabort
       use icepack_fsd
 
       implicit none
@@ -148,17 +155,9 @@
          d_afsd
 
       ! local variables
-      ! dpath2o
       real (kind=dbl_kind), dimension (nfsd) :: &
          loss, gain, omega
       integer (kind=int_kind) :: k
-      ! real (kind=dbl_kind), dimension (nfsd) :: &
-      !      loss, gain, omega
-      ! real (kind=dbl_kind) :: &
-      !      residual
-      ! integer (kind=int_kind) :: &
-      !      k, kfix
-      ! dpath2o
 
       character(len=*),parameter :: subname='(get_dafsd_wave)'
 
@@ -173,28 +172,31 @@
          gain(k) = SUM(omega*frac(:,k))
       end do
 
+      ! Wave fracture redistributes, rather than creates or removes,
+      ! FSD area.  Retain the complete gain-minus-loss tendency so that
+      ! positive and negative components cancel to floating-point precision.
+      ! Independently zeroing small components here breaks that cancellation
+      ! and can make the adaptive timestep inconsistent with the FSD state.
       d_afsd(:) = gain(:) - loss(:)
+
       if (ABS(SUM(d_afsd(:))) > puny) then
          write(warnstr,*) subname, 'area not conserved, waves'
          call icepack_warnings_add(warnstr)
       endif
-      ! dpath2o
-      ! The gain/loss formulation should conserve FSD area to
-      ! floating-point precision.  Do not independently truncate
-      ! individual tendency components here: doing so destroys the
-      ! cancellation between gain and loss terms.
-      ! WHERE (ABS(d_afsd).lt.puny) d_afsd = c0
-      ! dpath2o
 
       end  function get_dafsd_wave
 
 !=======================================================================
 !autodocument_start icepack_step_wavefracture
 !
-!  Given fracture histogram computed from local wave spectrum, evolve
-!  the floe size distribution
+!  Given a fracture histogram computed from the local wave spectrum, evolve
+!  the floe size distribution.  The 2026 spectral-forcing implementation
+!  retains the original fracture physics but uses a conservative donor-limited
+!  adaptive integration so externally forced spectra remain numerically robust
+!  over long standalone CICE integrations.
 !
 !  authors: 2018 Lettie Roach, NIWA/VUW
+!           2026 modifications: Daniel Atwater
 !
       subroutine icepack_step_wavefracture(wave_spec_type,   &
                   dt,            nfreq,                      &
@@ -258,10 +260,9 @@
       real (kind=dbl_kind) :: &
            local_sig_ht
 
-      ! dpath2o
+      ! Safety guard against a non-advancing adaptive integration.
       integer (kind=int_kind), parameter :: &
            max_wave_subcycles = 1000_int_kind
-      !
 
       character(len=*),parameter :: &
          subname='(icepack_step_wavefracture)'
@@ -278,28 +279,14 @@
 
       local_sig_ht = c4*SQRT(SUM(wave_spectrum(:)*dwavefreq(:)))
       ! do not try to fracture for minimal ice concentration or zero wave spectrum
-!      if ((aice > p01).and.(MAXVAL(wave_spectrum(:)) > puny)) then
       if ((aice > p01).and.(local_sig_ht>0.1_dbl_kind)) then
 
          hbar = vice / aice
-
-         write(*,*) 'WAVEFRAC ENTER', &
-              ' aice=',aice, &
-              ' vice=',vice, &
-              ' hbar=',hbar, &
-              ' Hs=',local_sig_ht, &
-              ' specmax=',MAXVAL(wave_spectrum)
-         call flush(6)
 
          ! calculate fracture histogram
          call wave_frac(nfreq, wave_spec_type, &
                         wavefreq, dwavefreq, &
                         hbar, wave_spectrum, fracture_hist)
-
-         write(*,*) 'WAVEFRAC RETURN', &
-              ' histmax=',MAXVAL(fracture_hist), &
-              ' histsum=',SUM(fracture_hist)
-         call flush(6)
 
          if (icepack_warnings_aborted(subname)) return
 
@@ -328,50 +315,6 @@
                      if (SUM(frac(k,:)) > c0) frac(k,:) = frac(k,:)/SUM(frac(k,:))
                   end do
 
-                  ! ! adaptive sub-timestep
-                  ! elapsed_t = c0
-                  ! cons_error = c0
-                  ! nsubt = 0
-                  ! DO WHILE (elapsed_t < dt)
-                  !    nsubt = nsubt + 1
-
-                  !    ! if all floes in smallest category already, exit
-                  !    if (afsd_tmp(1).ge.c1-puny) EXIT
-
-                  !    ! calculate d_afsd using current afstd
-                  !    d_afsd_tmp = get_dafsd_wave(afsd_tmp, fracture_hist, frac)
-
-                  !    ! check in case wave fracture struggles to converge
-                  !    ! if (nsubt>100) then ! dpath2o
-                  !    if (nsubt == 101) then
-                  !       write(warnstr,*) subname, &
-                  !         'warning: step_wavefracture struggling to converge'
-                  !       call icepack_warnings_add(warnstr)
-                  !    endif
-
-                  !    ! required timestep
-                  !    subdt = get_subdt_fsd(afsd_tmp, d_afsd_tmp)
-                  !    ! subdt = MIN(subdt, dt) ! dpath2o
-                  !    subdt = MIN(subdt, dt-elapsed_t)
-
-                  !    ! update afsd
-                  !    afsd_tmp = afsd_tmp + subdt * d_afsd_tmp(:)
-
-                  !    ! check conservation and negatives
-                  !    if (MINVAL(afsd_tmp) < -puny) then
-                  !       write(warnstr,*) subname, 'wb, <0 loop'
-                  !       call icepack_warnings_add(warnstr)
-                  !    endif
-                  !    if (MAXVAL(afsd_tmp) > c1+puny) then
-                  !       write(warnstr,*) subname, 'wb, >1 loop'
-                  !       call icepack_warnings_add(warnstr)
-                  !    endif
-
-                  !    ! update time
-                  !    elapsed_t = elapsed_t + subdt
-
-                  ! END DO ! elapsed_t < dt
-                  ! adaptive sub-timestep
                   elapsed_t = c0
                   cons_error = c0
                   nsubt = 0
@@ -397,14 +340,44 @@
                         call icepack_warnings_add(warnstr)
 
                      endif
+                     !--------------------------------------------------
+                     ! Wave-specific adaptive timestep.
+                     !
+                     ! The fracture tendency is a conservative transfer
+                     ! between FSD bins: sum(d_afsd_tmp) = 0.  Therefore
+                     ! positivity of every donor bin is sufficient to keep
+                     ! the complete FSD on the unit simplex.  Limiting on
+                     ! positive tendencies as well is redundant and can
+                     ! produce a zero timestep when a bin rounds to one.
+                     !
+                     ! Use every negative tendency, irrespective of its
+                     ! magnitude, because even a small rate can exhaust a
+                     ! correspondingly small donor bin.
+                     !--------------------------------------------------
 
-                     ! required timestep
-                     ! subdt = get_subdt_fsd(afsd_tmp, d_afsd_tmp)
-                     subdt = get_subdt_fsd(afsd_tmp, d_afsd_tmp, dt_remaining = dt-elapsed_t)
-                     subdt = MIN(subdt,dt-elapsed_t)
-                     ! integrate only the remaining interval
-                     ! subdt = MIN(subdt,dt-elapsed_t)
+                     subdt = dt - elapsed_t
 
+                     do k = 1, nfsd
+
+                        if (d_afsd_tmp(k) < c0) then
+
+                           if (afsd_tmp(k) <= c0) then
+
+                              ! A zero donor cannot have a negative
+                              ! tendency for a valid conservative
+                              ! fracture operator.
+                              subdt = c0
+                              exit
+
+                           endif
+
+                           subdt = MIN( &
+                                subdt, &
+                                afsd_tmp(k) / ABS(d_afsd_tmp(k)))
+
+                        endif
+
+                     enddo
                      !--------------------------------------------------
                      ! Protect against NaN/Inf, zero/negative timestep,
                      ! or a timestep too small to advance elapsed_t.
@@ -498,22 +471,74 @@
                      afsd_tmp = &
                           afsd_tmp + subdt*d_afsd_tmp(:)
 
-                     ! check conservation and negatives
+                     !--------------------------------------------------
+                     ! Validate the conservative Euler update before
+                     ! removing numerical round-off.
+                     !--------------------------------------------------
+
                      if (MINVAL(afsd_tmp) < -puny) then
 
                         write(warnstr,*) subname, &
-                             'wb, <0 loop'
+                             ' FSD materially negative after update:', &
+                             MINVAL(afsd_tmp)
 
                         call icepack_warnings_add(warnstr)
+                        call icepack_warnings_setabort(.true.)
+                        return
 
                      endif
 
                      if (MAXVAL(afsd_tmp) > c1+puny) then
 
                         write(warnstr,*) subname, &
-                             'wb, >1 loop'
+                             ' FSD materially greater than one after update:', &
+                             MAXVAL(afsd_tmp)
 
                         call icepack_warnings_add(warnstr)
+                        call icepack_warnings_setabort(.true.)
+                        return
+
+                     endif
+
+                     cons_error = SUM(afsd_tmp) - c1
+
+                     if (ABS(cons_error) > puny) then
+
+                        write(warnstr,*) subname, &
+                             ' FSD area not conserved during fracture:', &
+                             cons_error
+
+                        call icepack_warnings_add(warnstr)
+                        call icepack_warnings_setabort(.true.)
+                        return
+
+                     endif
+
+                     !--------------------------------------------------
+                     ! Canonicalise the numerical FSD before forming the
+                     ! next tendency.  This mirrors icepack_cleanup_fsdn:
+                     ! remove sub-puny round-off and restore unit area.
+                     ! Keeping the state on this canonical unit simplex
+                     ! prevents numerical crumbs from acting as donors in
+                     ! the following fracture subcycle.
+                     !--------------------------------------------------
+
+                     WHERE (afsd_tmp < puny)
+                        afsd_tmp = c0
+                     END WHERE
+
+                     if (SUM(afsd_tmp) > puny) then
+
+                        afsd_tmp = afsd_tmp / SUM(afsd_tmp)
+
+                     else
+
+                        write(warnstr,*) subname, &
+                             ' FSD vanished during wave fracture'
+
+                        call icepack_warnings_add(warnstr)
+                        call icepack_warnings_setabort(.true.)
+                        return
 
                      endif
 
@@ -522,30 +547,9 @@
 
                   END DO
 
-                  ! In some cases---particularly for strong fracturing---the equation
-                  ! for wave fracture does not quite conserve area.
-                  ! With the dummy wave forcing, this happens < 2% of the time (in
-                  ! 1997) and is always less than 10^-7.
-                  ! Simply renormalizing may cause the first floe size
-                  ! category to reduce, which is not physically allowed
-                  ! to happen. So we adjust here
-                  cons_error = SUM(afsd_tmp) - c1
-
-                  ! area loss: add to first category
-                  if (cons_error.lt.c0) then
-                      afsd_tmp(1) = afsd_tmp(1) - cons_error
-                  else
-                  ! area gain: take it from the largest possible category
-                  do k = nfsd, 1, -1
-                     if (afsd_tmp(k).gt.cons_error) then
-                        afsd_tmp(k) = afsd_tmp(k) - cons_error
-                        EXIT
-                     end if
-                  end do
-                  end if
-
-                  ! update trcrn
-                  trcrn(nt_fsd:nt_fsd+nfsd-1,n) = afsd_tmp/SUM(afsd_tmp)
+                  ! afsd_tmp is already canonical and normalised; retain the
+                  ! standard Icepack cleanup on assignment to the tracer array.
+                  trcrn(nt_fsd:nt_fsd+nfsd-1,n) = afsd_tmp
                   call icepack_cleanup_fsd (trcrn(nt_fsd:nt_fsd+nfsd-1,:) )
                   if (icepack_warnings_aborted(subname)) return
 

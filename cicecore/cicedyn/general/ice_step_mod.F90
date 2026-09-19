@@ -881,78 +881,6 @@
 
       end subroutine update_state
 
-! !=======================================================================
-! !
-! ! Run one time step of wave-fracturing the floe size distribution
-! !
-! ! authors: Lettie Roach, NIWA
-! !          Elizabeth C. Hunke, LANL
-
-!       subroutine step_dyn_wave (dt)
-
-!       use ice_arrays_column, only: wave_spectrum, &
-!           d_afsd_wave, wavefreq, dwavefreq
-!       use ice_domain_size, only: ncat, nfsd, nfreq
-!       use ice_state, only: trcrn, aicen, aice, vice
-!       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_column, &
-!           timer_fsd
-
-!       real (kind=dbl_kind), intent(in) :: &
-!          dt      ! time step
-
-!       ! local variables
-
-!       type (block) :: &
-!          this_block      ! block information for current block
-
-!       integer (kind=int_kind) :: &
-!          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
-!          iblk,            & ! block index
-!          i, j               ! horizontal indices
-
-!       character (len=char_len) :: wave_spec_type
-
-!       character(len=*), parameter :: subname = '(step_dyn_wave)'
-
-!       call ice_timer_start(timer_column)
-!       call ice_timer_start(timer_fsd)
-
-!       call icepack_query_parameters(wave_spec_type_out=wave_spec_type)
-!       call icepack_warnings_flush(nu_diag)
-!       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-!          file=__FILE__, line=__LINE__)
-
-!       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
-!       do iblk = 1, nblocks
-
-!          this_block = get_block(blocks_ice(iblk),iblk)
-!          ilo = this_block%ilo
-!          ihi = this_block%ihi
-!          jlo = this_block%jlo
-!          jhi = this_block%jhi
-
-!          do j = jlo, jhi
-!          do i = ilo, ihi
-!             d_afsd_wave(i,j,:,iblk) = c0
-!             call icepack_step_wavefracture(wave_spec_type = wave_spec_type,             &
-!                                            dt = dt, nfreq = nfreq,                      &
-!                                            aice        = aice           (i,j,    iblk), &
-!                                            vice        = vice           (i,j,    iblk), &
-!                                            aicen       = aicen          (i,j,:,  iblk), &
-!                                            wave_spectrum = wave_spectrum(i,j,:,  iblk), &
-!                                            wavefreq    = wavefreq       (:),            &
-!                                            dwavefreq   = dwavefreq      (:),            &
-!                                            trcrn       = trcrn          (i,j,:,:,iblk), &
-!                                            d_afsd_wave = d_afsd_wave    (i,j,:,  iblk))
-!          end do ! i
-!          end do ! j
-!       end do    ! iblk
-!       !$OMP END PARALLEL DO
-
-!       call ice_timer_stop(timer_fsd)
-!       call ice_timer_stop(timer_column)
-
-!       end subroutine step_dyn_wave
 !=======================================================================
 !
 ! Run one time step of wave-fracturing the floe size distribution
@@ -960,16 +888,12 @@
 ! authors: Lettie Roach, NIWA
 !          Elizabeth C. Hunke, LANL
 !
-! DPA 2026:
-!   Pre-screen wave-fracture calls using the same aice and significant
-!   wave-height thresholds applied inside icepack_step_wavefracture.
-!
-!   Cells which cannot enter the expensive wave-fracture calculation
-!   bypass icepack_step_wavefracture, but still receive the FSD cleanup
-!   performed at the beginning of the Icepack routine.
-!
-!   Added global performance diagnostics to quantify the cost and the
-!   number of wave-eligible cells.
+!  2026 spectral-forcing optimisation (D. Atwater):
+!    Pre-screen cells with the same aice and significant-wave-height
+!    thresholds used by Icepack before entering the expensive fracture
+!    calculation.  Skipped cells still receive the standard FSD cleanup,
+!    preserving the original Icepack housekeeping semantics.  Sparse global
+!    timing/cell-count diagnostics are retained for long-run monitoring.
 !
       subroutine step_dyn_wave (dt)
 
@@ -1175,7 +1099,9 @@
                        n_eligible_local + 1_int_kind
 
                   !-----------------------------------------------------
-                  ! Original Icepack wave-fracture call.
+                  ! Enter Icepack only for cells capable of fracturing.
+                  ! Numerical integration of the FSD remains local to
+                  ! icepack_step_wavefracture.
                   !-----------------------------------------------------
 
                   call icepack_step_wavefracture( &
@@ -1190,7 +1116,7 @@
                        dwavefreq      = dwavefreq(:),                &
                        trcrn          = trcrn(i,j,:,:,iblk),        &
                        d_afsd_wave    = d_afsd_wave(i,j,:,iblk))
-                  ! dpath2o
+                  ! Preserve cell location/state on any Icepack failure.
                   if (icepack_warnings_aborted()) then
 
                      write(nu_diag,*) &
@@ -1215,7 +1141,6 @@
                           file=__FILE__, line=__LINE__)
 
                   endif
-                  ! dpath2o
 
                else
 
@@ -1317,23 +1242,13 @@
             write(nu_diag,*) &
                  'WAVEFSD PERF istep=',istep, &
                  ' date=',myear,mmonth,mday, &
-                 ' sec=',msec
-
-            write(nu_diag,*) &
-                 'WAVEFSD PERF max_s=',elapsed_max, &
-                 ' cells=',n_cells_global
-
-            write(nu_diag,*) &
-                 'WAVEFSD PERF aice_gt_001=', &
-                 n_aice_global, &
-                 ' hs_gt_01=', &
-                 n_wave_global
-
-            write(nu_diag,*) &
-                 'WAVEFSD PERF eligible=', &
-                 n_eligible_global, &
-                 ' skipped=', &
-                 n_skipped_global
+                 ' sec=',msec, &
+                 ' max_s=',elapsed_max, &
+                 ' cells=',n_cells_global, &
+                 ' aice_gt_001=',n_aice_global, &
+                 ' hs_gt_01=',n_wave_global, &
+                 ' eligible=',n_eligible_global, &
+                 ' skipped=',n_skipped_global
 
             flush(nu_diag)
 

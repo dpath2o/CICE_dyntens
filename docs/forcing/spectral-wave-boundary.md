@@ -1,196 +1,350 @@
 # Spectral wave forcing at the sea-ice boundary
 
-## Purpose
+## Status
 
-This project will introduce wave forcing at the Antarctic sea-ice boundary using CAWCR wave spectral data, with design priority given to Noah Day's published boundary-edge spectral workflow. The aim is to test whether ocean swell and wave-induced breakup influence Antarctic fast-ice persistence, retreat timing, and seasonal maximum FIA.
+This document describes the implemented CAWCR/WHACS spectral-wave forcing pathway in `CICE_free-slip-forcing-sensitivity`; it supersedes the earlier conceptual markdown doc.
 
-This is a conceptual design document. The existing `CICE_free-slip-waves` repository should be treated as a useful scaffold, not as the final implementation design.
+The implementation now:
 
-## Scientific rationale
+- reads hourly non-directional CAWCR/WHACS wave spectra on the native 25-frequency Icepack grid;
+- linearly interpolates adjacent hourly spectra to the CICE model time;
+- retains only two forcing records per MPI task in a rolling `float32` cache;
+- propagates open-water spectral energy into the modeled ice cover using the existing Noah Day / Meylan et al. attenuation approach;
+- passes propagated local spectra to Icepack's floe-size-distribution (FSD) wave-fracture machinery;
+- pre-screens cells before the expensive Icepack fracture calculation; and
+- uses a wave-specific conservative adaptive subcycling scheme that is robust for long standalone integrations.
 
-Fast ice can be mechanically stable under local wind and ocean-current forcing but still vulnerable to remotely generated swell. A daily or synoptic wave field acting at the sea-ice boundary may influence:
+The final numerical fix is deliberately local to wave fracture. `icepack_fsd.F90` was edited for testing but has now been returned to its original process-agnostic (i.e. coupled or standalone) behaviour.
 
-- marginal ice-zone breakup;
-- floe-size distribution and effective ice strength;
-- loss of coastal attachment during high-swell events;
-- transition from persistent fast ice to mobile pack ice;
-- regional retreat timing, especially in swell-exposed but geometrically sheltered sectors.
+## Scientific purpose
 
-This pathway is distinct from tides. Tides are a sub-daily current/stress perturbation. Waves are a boundary-propagating spectral energy and breakup pathway.
+The wave experiment tests whether remotely generated swell and wave-induced floe breakup influence Antarctic fast-ice persistence, retreat timing, and seasonal maximum fast-ice area (FIA).
 
-## Existing crude scaffold in `CICE_free-slip-waves`
+This pathway is distinct from tides:
 
-The previous wave branch already contains useful hooks:
+- **tides** provide a sub-daily current/stress perturbation;
+- **waves** provide spectral energy that enters from open water, attenuates into the ice cover, and can fracture the FSD.
+
+The implementation does not directly delete fast ice or alter an online fast-ice mask. Wave effects enter through the modeled FSD and subsequent CICE/Icepack physics; fast-ice classification remains diagnostic/offline.
+
+## Implemented forcing contract
+
+The current WHACS preprocessing supplies monthly files of the form
+
+```text
+CAWCR_efreq_for_CICE6_YYYYMM.nc
+```
+
+containing hourly non-directional spectral energy density `efreq` on the CICE T grid and the exact 25-frequency discretisation used by Icepack.
+
+The CICE-facing spectral quantity is
+
+```text
+E(f)  [m2 s]
+```
+
+with significant wave height diagnosed as
+
+$$
+H_s = 4\sqrt{\sum_f E(f)\,\Delta f}.
+$$
+
+The wave-fracture pre-screen currently requires
+
+```text
+aice > 0.01
+Hs   > 0.1 m
+```
+
+before entering the expensive Icepack fracture calculation.
+
+## Runtime pathway
+
+The active pathway is:
+
+```text
+CAWCR/WHACS monthly NetCDF
+        |
+        v
+ice_forcing.F90
+  wave_spec_data_hourly
+        |
+        |-- rolling two-record cache
+        |-- hourly interpolation
+        v
+  propagate_waves
+        |
+        |-- open-water source cells: aice < 0.15
+        |-- Meylan et al. attenuation
+        |-- up to 10 propagation passes
+        v
+wave_spectrum(i,j,f)
+        |
+        v
+ice_step_mod.F90
+  step_dyn_wave
+        |
+        |-- cheap aice/Hs pre-screen
+        v
+icepack_wavefracspec.F90
+  icepack_step_wavefracture
+        |
+        v
+FSD redistribution / fracture
+```
+
+### Fracture cadence
+
+For the present standalone configuration the base CICE timestep is 1800 s. Wave fracture is called every second model step:
 
 ```fortran
-F_WAVE
-wave_spec_dir
-wave_spec_file
-wave_file_template
-wave_data(nx_block,ny_block,nfreq,2,max_blocks)
-get_wave_spec
-icepack_init_wave
+if (tr_fsd .and. wave_spec) then
+   if (mod(istep,2_int_kind) == 0_int_kind) then
+      call step_dyn_wave(2.0_dbl_kind*dt)
+   endif
+endif
 ```
 
-This indicates a reasonable first attempt: read wave spectral information in `ice_forcing.F90` and pass it toward Icepack wave machinery.
+Thus each Icepack fracture call integrates over a 3600 s wave-fracture interval, while the spectral forcing itself continues to be updated/interpolated on the model timestep.
 
-However, the next version should not simply force wave spectra everywhere on the grid. It should use a sea-ice-boundary or marginal-ice-zone forcing concept, with spectral energy imposed at the ice edge and attenuated or diagnosed into the ice-covered region.
+## Original failure: memory and I/O scaling
 
-## Design priority
+The first major failure appeared to be a memory problem in the WHACS reader.
 
-Follow the published CAWCR/Noah Day boundary-edge spectral approach as the primary scientific design. The previous crude CICE branch should provide:
+The initial implementation cached a complete month of hourly spectral forcing. At 25 frequencies on the 1440 x 1080 CICE grid, that design was unnecessarily expensive in both memory and I/O. At a month transition it also implied a burst of roughly 672--744 global spectral-record reads.
 
-- variable names and Fortran allocation patterns;
-- proof that a wave reader can be inserted into `ice_forcing.F90`;
-- a starting point for `wave_data` buffers;
-- a warning about not over-simplifying spectral forcing into a single bulk wave scalar.
+### Fix: rolling two-record cache
 
-Before code implementation, verify the exact Zenodo record metadata and variable names for `https://zenodo.org/records/11081611`.
-
-## Offline preprocessing contract
-
-Preprocess CAWCR wave spectra in `shuga` into CICE-ready monthly files.
-
-Suggested file pattern:
+`wave_spec_data_hourly` was rewritten to retain only the two records needed for temporal interpolation:
 
 ```text
-${wave_spec_dir}/cawcr_wave_for_cice6_YYYY_MM.nc
+slot 1 : current forcing hour
+slot 2 : following forcing hour
 ```
 
-Suggested dimensions:
+At an hourly rollover, slot 2 becomes slot 1 and one new record is read. The resident cache is stored as `real_kind` (`float32`) and converted to `dbl_kind` only when forming the active interpolated spectrum.
 
-```text
-time
-frequency
-direction
-nj
-ni
-```
+This removed the complete-month cache and stabilized memory at approximately 0.5 GB per MPI rank in the tested 1232-rank configuration.
 
-Suggested variables:
+Importantly, once the memory problem was removed, subsequent failures showed that the reader was no longer the limiting issue: the model consistently reached Icepack wave fracture and failed inside FSD adaptive integration.
 
-| Variable | Meaning | Units | Use |
-|---|---|---:|---|
-| `efth` | directional wave energy spectrum | m2 s rad-1 or source documented | primary spectral input |
-| `frequency` | wave frequency bins | Hz | spectral coordinate |
-| `direction` | wave direction bins | deg or rad, convention documented | spectral coordinate |
-| `hs` | significant wave height | m | diagnostic / bulk fallback |
-| `tp` | peak period | s | diagnostic / bulk fallback |
-| `tm` | mean period | s | diagnostic |
-| `mwd` | mean wave direction | deg | diagnostic |
-| `wave_edge_mask` | active ice-edge forcing cells | 0/1 | boundary forcing mask |
-| `aice_edge_source` | ice-edge concentration used to define boundary | 0-1 | reproducibility |
-| `dist_to_edge` | distance into ice from edge | m | attenuation/breakup diagnostic |
+## Numerical failure in Icepack wave fracture
 
-The exact field names should be adjusted to the CAWCR/Zenodo source product, but the CICE-facing file should be stable and documented.
+### Why the problem appeared
 
-## Ice-edge definition
-
-The wave-boundary implementation needs a reproducible sea-ice edge. Candidate definitions:
-
-```text
-open ocean:       aice < 0.15
-ice covered:      aice >= 0.15
-active edge cell: ice-covered cell adjacent to open ocean
-MIZ band:         ice-covered cells within N grid cells or D km of active edge
-```
-
-The first implementation should compute the edge offline from daily CICE or observational ice concentration, then write `wave_edge_mask` into the forcing file. A later implementation may compute the active edge online in CICE.
-
-## Stage W0: diagnostic wave reader
-
-### Goal
-
-Read wave spectral files and verify the data path without changing CICE dynamics or thermodynamics.
-
-Fortran requirements:
+Icepack wave fracture computes a conservative redistribution of FSD area between floe-size bins. In simplified form,
 
 ```fortran
-logical :: use_wave_spectral_forcing
-character(char_len_long) :: wave_spec_dir
-character(char_len_long) :: wave_file_template
-real(kind=dbl_kind), allocatable :: wave_data(:,:,:,:,:)
+omega(k) = afsd(k) * sum(fracture_hist(1:k-1))
+loss     = omega
+gain(k)  = sum(omega * frac(:,k))
+d_afsd   = gain - loss
 ```
 
-Diagnostic-only output:
+so the intended operator satisfies
+
+$$
+\sum_k \frac{dF_k}{dt} = 0.
+$$
+
+Two numerical assumptions in the stock path became problematic under the externally forced spectra and long 3600 s fracture interval.
+
+### 1. Component-wise tendency truncation
+
+The original wave routine zeroed individual tendency components smaller than `puny`:
+
+```fortran
+WHERE (ABS(d_afsd).lt.puny) d_afsd = c0
+```
+
+Although each component was small, the positive and negative components were paired through the conservative gain/loss calculation. Truncating them independently could therefore destroy exact cancellation and make the returned tendency inconsistent with the FSD state.
+
+The final implementation retains the raw conservative quantity:
+
+```fortran
+d_afsd(:) = gain(:) - loss(:)
+```
+
+and checks only the total conservation residual.
+
+### 2. Generic FSD timestep limiter
+
+The process-agnostic Icepack limiter constrains both negative and positive FSD tendencies. For wave fracture, this produced two related zero-timestep pathologies during debugging:
+
+- a tiny donor bin with a negative tendency could be ignored by a tendency tolerance and subsequently cross below zero; and
+- after floating-point round-off, a bin could be exactly `F=1` while another bin retained a positive numerical crumb. A tiny positive gain into the full bin then gave
 
 ```text
-Hs, Tp, MWD
-spectral energy integrated over frequency/direction
-wave_edge_mask
+(1 - F) / dFdt = 0 / positive = 0
 ```
 
-## Stage W1: boundary-edge bulk diagnostic
+and the adaptive integration aborted with `subdt=0`.
 
-Before activating a spectral breakup model, compute bulk diagnostics at the ice edge:
+These were numerical boundary-state problems, not evidence of invalid WHACS spectra.
+
+## Final wave-fracture integration fix
+
+The robust solution exploits the structure of the wave-fracture operator rather than altering the generic Icepack FSD timestep routine.
+
+### Conservative donor-limited timestep
+
+Because wave fracture is a conservative redistribution and the normalized FSD lies on
+
+$$
+F_k \ge 0, \qquad \sum_k F_k = 1,
+$$
+
+it is sufficient to prevent donor bins from becoming negative. If every component remains non-negative and the total remains one, no component can exceed one.
+
+The wave routine therefore begins each subcycle with the remaining integration interval and limits only on negative tendencies:
+
+```fortran
+subdt = dt - elapsed_t
+
+do k = 1, nfsd
+   if (d_afsd_tmp(k) < c0) then
+      if (afsd_tmp(k) <= c0) then
+         subdt = c0
+         exit
+      endif
+
+      subdt = min( &
+           subdt, &
+           afsd_tmp(k) / abs(d_afsd_tmp(k)))
+   endif
+enddo
+```
+
+Every negative donor tendency participates, irrespective of its absolute magnitude.
+
+A zero or negative timestep from this scheme is treated as a genuine inconsistency and retains detailed failure diagnostics.
+
+### Per-subcycle FSD canonicalisation
+
+After every Euler update, the wave routine first checks that any bound/conservation error is smaller than `puny`. It then removes sub-`puny` numerical crumbs and renormalises:
+
+```fortran
+where (afsd_tmp < puny)
+   afsd_tmp = c0
+end where
+
+afsd_tmp = afsd_tmp / sum(afsd_tmp)
+```
+
+This mirrors the semantics of `icepack_cleanup_fsdn`, but is applied *inside* the adaptive fracture loop so the next tendency is always formed from a canonical, non-negative, unit-sum FSD.
+
+This combination addresses both previously observed zero-substep mechanisms without changing the underlying wave-fracture physics.
+
+## Scope of source-code changes
+
+### `ice_forcing.F90`
+
+Implemented:
+
+- monthly `YYYYMM` WHACS file resolution;
+- rolling two-record hourly cache;
+- temporal interpolation to CICE model time;
+- non-negative spectrum protection;
+- wave propagation into current modeled ice cover;
+- sparse reader and performance diagnostics.
+
+The high-frequency `WAVEPERF GET` message is now restricted to startup and daily checkpoints for production integrations.
+
+### `ice_step_mod.F90`
+
+`step_dyn_wave` now pre-screens cells using the same basic thresholds needed by Icepack:
 
 ```text
-Hs_edge
-Tp_edge
-wave_power_edge
-wave_energy_flux_normal_to_edge
+aice > 0.01
+Hs   > 0.1 m
 ```
 
-These diagnostics allow comparison of wave events with fast-ice mobility, retreat, and breakup without yet modifying the model state.
+This avoids invoking the expensive fracture calculation over the large majority of grid cells that cannot fracture. Cells skipped by the pre-screen still receive the standard Icepack FSD cleanup so the optimisation does not bypass tracer housekeeping.
 
-## Stage W2: spectral attenuation / breakup tendency
+Failure diagnostics retain the MPI task, global grid indices, `aice`, `vice`, and local `Hs`.
 
-The first active implementation should be conservative. Candidate outputs:
+### `icepack_wavefracspec.F90`
+
+Implemented:
+
+- direct externally supplied spectral forcing;
+- raw conservative `gain - loss` FSD tendency;
+- donor-limited adaptive timestep for wave fracture;
+- finite/non-advancing timestep guard;
+- hard maximum wave-subcycle guard;
+- per-subcycle FSD bound and conservation checks;
+- per-subcycle sub-`puny` cleanup and renormalisation;
+- detailed diagnostics only on numerical failure.
+
+The temporary per-cell
 
 ```text
-wave_breakup_tendency
-wave_attenuation_length
-wave_energy_into_ice
-wave_fracture_mask
+WAVEFRAC ENTER
+WAVEFRAC RETURN
 ```
 
-Possible model action, off by default:
+messages used during debugging have been removed because they generated untenable production log volumes.
 
-```text
-reduce effective floe size
-increase mobility / reduce local ice strength proxy
-alter a wave-fracture diagnostic used by Icepack if available
-```
+### `icepack_fsd.F90`
 
-Do not directly delete fast ice or alter `FI_mask` inside CICE. Fast-ice classification should remain diagnostic/offline in `shuga` unless a later paper explicitly requires online coupling.
+No final wave-specific changes are required. The generic `get_subdt_fsd` implementation has been restored to its original form.
 
-## Stage W3: active wave-ice coupling
+This is intentional: the donor-limited timestep is valid because of the conservative structure of the **wave-fracture** operator and should not silently change timestep behaviour for thermodynamic growth, welding, or other FSD processes.
 
-Only after W0-W2 are verified should the branch modify model physics. Possible coupling choices:
+## Diagnostics retained for production runs
 
-1. pass spectra into existing Icepack wave-fracture machinery;
-2. modify floe-size distribution if the active CICE/Icepack build supports it;
-3. apply a wave-induced weakening or mobility tendency in marginal ice only;
-4. add a breakup diagnostic that is later used by the classifier rather than by CICE dynamics.
+The production logging policy is deliberately sparse:
 
-## Required diagnostics
+- `WAVEIO ROLLING`: first few record reads and approximately daily thereafter;
+- `WAVEPERF GET`: startup and daily timing checkpoints;
+- `WAVEPERF GLOBAL`: startup/daily propagation timing, including pass information;
+- `WAVEFSD PERF`: startup/daily global fracture cost and eligible-cell counts;
+- full FSD state diagnostics: **failure only**.
 
-```text
-wave_edge_mask area
-Hs/Tp/MWD at active edge
-spectral energy by sector
-wave energy entering ice-covered cells
-number/area of cells exceeding breakup threshold
-co-occurrence with high ice speed or tide-current speed
-co-occurrence with loss of binary-days FI_mask
-```
+This keeps enough information to identify I/O, propagation, or fracture-performance regressions without producing multi-gigabyte logs over multi-year experiments.
 
-## Relationship to tides and boundary-layer forcing
+## Validation
 
-Waves should be implemented after the current-only tide diagnostics are stable. The first wave analysis should explicitly separate:
+The final configuration passed the failure point that had repeatedly terminated earlier experiments at the first wave-fracture call (`istep=2`) and subsequently completed at least three model days successfully with the same forcing/cadence.
 
-```text
-tide-driven sub-daily mobility
-wind-driven mobility / gust events
-wave-driven edge breakup or retreat
-```
+During that successful run:
 
-This is important because all three mechanisms can produce increased ice speed or reduced persistence, but they represent different physics and different implementation pathways.
+- hourly WHACS interpolation continued normally;
+- the rolling two-record cache remained stable;
+- wave propagation completed through the configured pass depth;
+- approximately O(10^4) cells per fracture call passed the `aice`/`Hs` pre-screen in the initial test period; and
+- the donor-limited FSD integration did not reproduce the previous `subdt=0` failures.
 
-## Success criteria
+Longer integrations remain the appropriate validation for scientific stability, but the observed failure mechanism is now removed rather than masked by a larger numerical tolerance.
 
-- The CAWCR/Zenodo spectral data can be preprocessed into monthly CICE-grid files.
-- CICE can read wave spectra or derived bulk fields without changing the control solution.
-- The wave-edge mask is reproducible and sector-aware.
-- Active coupling remains off until diagnostics show the forcing path is physically sane.
-- The implementation follows the published boundary-edge spectral concept rather than the earlier crude whole-grid forcing scaffold.
+## Interpretation for publication
+
+The wave-fracture modifications should be described as a **numerical integration robustness change**, not a new fracture parameterisation.
+
+The physical fracture tendency remains the Icepack gain/loss redistribution generated from the local wave spectrum and fracture histogram. The changes ensure that:
+
+1. conservative gain/loss cancellation is preserved;
+2. adaptive substeps respect donor positivity;
+3. round-off does not create artificial FSD donor categories; and
+4. the changes remain confined to the wave-fracture pathway.
+
+This distinction is important when comparing the wave experiment with the no-wave control: the scientific perturbation is the propagated CAWCR/WHACS wave spectrum, while the integration changes allow that existing Icepack fracture physics to be applied robustly at the standalone CICE timestep/cadence used here.
+
+## Remaining scientific choices
+
+The following should remain explicit experiment/configuration choices rather than being conflated with the numerical fixes above:
+
+- open-water source threshold (`aice < 0.15`) used for propagation;
+- fracture pre-screen (`aice > 0.01`, `Hs > 0.1 m`);
+- Meylan et al. attenuation formulation;
+- maximum propagation depth (`max_passes = 10`);
+- hourly fracture cadence (3600 s in the present configuration); and
+- use of non-directional rather than directional spectra.
+
+These should be evaluated scientifically against sensitivity experiments and observational evidence; they are not required to resolve the memory or adaptive-FSD failures documented here.
+
+## Key references
+
+- Horvat, C., & Tziperman, E. (2015). A prognostic model of the sea-ice floe size and thickness distribution. *The Cryosphere*, 9, 2119–2134. https://doi.org/10.5194/tc-9-2119-2015
+- Roach, L. A., Horvat, C., Dean, S. M., & Bitz, C. M. (2018). An emergent sea ice floe size distribution in a global coupled ocean-sea ice model. *Journal of Geophysical Research: Oceans*, 123, 4322–4337. https://doi.org/10.1029/2017JC013692
+- Meylan et al. (2014), attenuation formulation used by the existing wave-propagation pathway.
