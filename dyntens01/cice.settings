@@ -1,13 +1,13 @@
 #!/bin/csh -f
 
-setenv ICE_CASENAME  frcg-exp01
-setenv ICE_SANDBOX  /g/data/gv90/da1339/src/CICE_forcing
+setenv ICE_CASENAME  dyntens01
+setenv ICE_SANDBOX  /g/data/gv90/da1339/src/CICE_dyntens
 setenv ICE_MACHINE  gadi1
 setenv ICE_ENVNAME  intel
 setenv ICE_MACHCOMP  gadi1_intel
-setenv ICE_SCRIPTS  /g/data/gv90/da1339/src/CICE_forcing/configuration/scripts
-setenv ICE_CASEDIR  /g/data/gv90/da1339/src/CICE_forcing/frcg-exp01
-setenv ICE_RUNDIR  /g/data/gv90/da1339/cice-dirs/runs/frcg-exp01
+setenv ICE_SCRIPTS  /g/data/gv90/da1339/src/CICE_dyntens/configuration/scripts
+setenv ICE_CASEDIR  /g/data/gv90/da1339/src/CICE_dyntens/dyntens01
+setenv ICE_RUNDIR  /g/data/gv90/da1339/cice-dirs/runs/dyntens01
 setenv ICE_OBJDIR     ${ICE_RUNDIR}/compile
 setenv ICE_RSTDIR     ${ICE_RUNDIR}/restart
 setenv ICE_HSTDIR     ${ICE_RUNDIR}/history
