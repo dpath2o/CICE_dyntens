@@ -5,8 +5,7 @@
 # these are stored in gh-pages orphan branch
 doc/build
 
-# fortran config
-ice_in
+# Track case namelists (ice_in) as reproducible experiment configuration.
 
 # Ignore testsuite file/directories
 testsuite*

@@ -7,8 +7,8 @@
     sec_init             = 0
     istep0               = 0
     dt                   = 1800.0
-    npt_unit             = 'm'
-    npt                  = 1
+    npt_unit             = 'd'
+    npt                  = 2
     ndtd                 = 1
     runtype              = 'initial'
     ice_ic               = 'none'
@@ -27,10 +27,10 @@
     restart_dir          = './restart/'
     restart_file         = 'iced'
     pointer_file         = './ice.restart_file'
-    dumpfreq             = 'm','x','x','x','x'
+    dumpfreq             = 'd','x','x','x','x'
     dumpfreq_n           =  1 , 1 , 1 , 1 , 1
     dumpfreq_base        = 'init','init','init','init','init'
-    dump_last            = .false.
+    dump_last            = .true.
     bfbflag              = 'off'
     diagfreq             = 24
     diag_type            = 'file'
@@ -42,7 +42,7 @@
     debug_model_iblk     = -1
     debug_model_task     = -1
     debug_forcing        = .true.
-    print_global         = .false.
+    print_global         = .true.
     print_points         = .false.
     timer_stats          = .false.
     memory_stats         = .false.
@@ -58,7 +58,7 @@
     hist_suffix          = 'x','x','x','x','x'
     history_dir          = './history/'
     history_file         = 'iceh'
-    history_precision    = 4
+    history_precision    = 8
     history_format       = 'default'
     history_rearranger   = 'default'
     history_iotasks      = -99
@@ -67,7 +67,7 @@
     history_deflate      = 0
     history_chunksize    = 0, 0
     hist_time_axis       = 'end'
-    write_ic             = .false.
+    write_ic             = .true.
     incond_dir           = './history/'
     incond_file          = 'iceh_ic'
     version_name         = 'CICE_6.6.2'
@@ -138,7 +138,7 @@
     tr_aero      = .false.
     restart_aero = .false.
     tr_fsd       = .true.
-    restart_fsd  = .true.
+    restart_fsd  = .false.
 /
 
 &thermo_nml
@@ -507,20 +507,20 @@
 /
 
 &icefields_nml
-    f_tlon         = .false.
-    f_tlat         = .false.
+    f_tlon         = .true.
+    f_tlat         = .true.
     f_ulon         = .false.
     f_ulat         = .false.
     f_nlon         = .false.
     f_nlat         = .false.
     f_elon         = .false.
     f_elat         = .false.
-    f_tmask        = .false.
+    f_tmask        = .true.
     f_umask        = .false.
     f_nmask        = .false.
     f_emask        = .false.
     f_blkmask      = .false.
-    f_tarea        = .false.
+    f_tarea        = .true.
     f_uarea        = .false.
     f_narea        = .false.
     f_earea        = .false.
@@ -536,21 +536,21 @@
     f_HTE          = .false.
     f_ANGLE        = .false.
     f_ANGLET       = .false.
-    f_NCAT         = .false.
+    f_NCAT         = .true.
     f_VGRDi        = .false.
     f_VGRDs        = .false.
     f_VGRDb        = .false.
     f_VGRDa        = .false.
     f_bounds       = .false.
-    f_aice         = 'dh'
-    f_hi           = 'dh'
+    f_aice         = 'd'
+    f_hi           = 'd'
     f_hs           = 'x'
     f_Tsfc         = 'x'
     f_sice         = 'x'
-    f_uvel         = 'dh'
-    f_vvel         = 'dh'
-    f_uatm         = 'dh'
-    f_vatm         = 'dh'
+    f_uvel         = 'd'
+    f_vvel         = 'd'
+    f_uatm         = 'd'
+    f_vatm         = 'd'
     f_fswdn        = 'x'
     f_flwdn        = 'x'
     f_snowfrac     = 'x'
@@ -612,33 +612,33 @@
     f_fsurf_ai     = 'x'
     f_fcondtop_ai  = 'x'
     f_fmeltt_ai    = 'x'
-    f_strairx      = 'dh'
-    f_strairy      = 'dh'
-    f_strtltx      = 'dh'
-    f_strtlty      = 'dh'
-    f_strcorx      = 'dh'
-    f_strcory      = 'dh'
-    f_strocnx      = 'dh'
-    f_strocny      = 'dh'
-    f_strintx      = 'dh'
-    f_strinty      = 'dh'
+    f_strairx      = 'd'
+    f_strairy      = 'd'
+    f_strtltx      = 'd'
+    f_strtlty      = 'd'
+    f_strcorx      = 'd'
+    f_strcory      = 'd'
+    f_strocnx      = 'd'
+    f_strocny      = 'd'
+    f_strintx      = 'd'
+    f_strinty      = 'd'
     f_taubx        = 'x'
     f_tauby        = 'x'
-    f_KuxN         = 'dh'
-    f_KuyN         = 'dh'
-    f_KuxE         = 'dh'
-    f_KuyE         = 'dh'
-    f_Kux          = 'dh'
-    f_Kuy          = 'dh'
+    f_KuxN         = 'd'
+    f_KuyN         = 'd'
+    f_KuxE         = 'd'
+    f_KuyE         = 'd'
+    f_Kux          = 'd'
+    f_Kuy          = 'd'
     f_F2N          = 'd'
     f_F2E          = 'd'
-    f_strength     = 'dh'
-    f_divu         = 'dh'
-    f_shear        = 'dh'
+    f_strength     = 'd'
+    f_divu         = 'd'
+    f_shear        = 'd'
     f_vort         = 'd'
-    f_sig1         = 'dh'
-    f_sig2         = 'dh'
-    f_sigP         = 'dh'
+    f_sig1         = 'd'
+    f_sig2         = 'd'
+    f_sigP         = 'd'
     f_dvidtt       = 'd'
     f_dvidtd       = 'd'
     f_daidtt       = 'd'
@@ -653,7 +653,7 @@
     f_icepresent   = 'x'
     f_iage         = 'x'
     f_FY           = 'x'
-    f_aicen        = 'x'
+    f_aicen        = 'd'
     f_vicen        = 'x'
     f_vsnon        = 'x'
     f_snowfracn    = 'x'
@@ -783,16 +783,16 @@
 /
 
 &icefields_fsd_nml
-    f_fsdrad       = 'x'
-    f_fsdperim     = 'x'
-    f_afsd         = 'x'
-    f_afsdn        = 'x'
+    f_fsdrad       = 'd'
+    f_fsdperim     = 'd'
+    f_afsd         = 'd'
+    f_afsdn        = 'd'
     f_dafsd_newi   = 'x'
     f_dafsd_latg   = 'x'
     f_dafsd_latm   = 'x'
-    f_dafsd_wave   = 'x'
+    f_dafsd_wave   = 'd'
     f_dafsd_weld   = 'x'
-    f_wave_sig_ht  = 'x'
+    f_wave_sig_ht  = 'd'
     f_aice_ww      = 'x'
     f_diam_ww      = 'x'
     f_hice_ww      = 'x'

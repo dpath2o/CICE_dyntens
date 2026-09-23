@@ -1,0 +1,104 @@
+#!/bin/bash
+#PBS -N dyntens01-baseline
+#PBS -P gv90
+#PBS -q normalbw
+#PBS -l walltime=02:00:00
+#PBS -l ncpus=1232
+#PBS -l mem=1200GB
+#PBS -l jobfs=5GB
+#PBS -l storage=gdata/gv90+gdata/xp65
+#PBS -l wd
+#PBS -j oe
+#PBS -W umask=022
+
+# Single bounded baseline; never submits another job.
+set -eo pipefail
+case_dir="${PBS_O_WORKDIR:?Submit from dyntens01}"
+cd -P "$case_dir"
+case_dir="$(pwd -P)"
+test -f ice_in
+test -f cice.settings
+repo_dir="$(git rev-parse --show-toplevel)"
+test "$case_dir" = "$repo_dir/dyntens01"
+
+# Use the same case environment as the successful build.
+if [ "${DYNTENS_BASELINE_ENV_READY:-0}" != 1 ]; then
+    export DYNTENS_BASELINE_ENV_READY=1
+    exec csh -f -c 'source ./cice.settings; if ($status != 0) exit 2; source ./env.${ICE_MACHCOMP}; if ($status != 0) exit 2; exec bash ./cice.baseline.run'
+fi
+# Define the Bash module function after inheriting the C-shell module environment.
+source "${MODULESHOME:?}/init/bash"
+set -u
+test "${ICE_NTASKS}" = "${PBS_NCPUS}"
+test -x "${ICE_RUNDIR}/cice"
+test "${ICE_NTHRDS}" = 1
+
+# Refuse an accidental long or restart-driven run with this launcher.
+python3 - <<'PY'
+import pathlib, re
+text = pathlib.Path("ice_in").read_text()
+def value(name):
+    hits = re.findall(r"^\s*" + re.escape(name) + r"\s*=\s*([^!\n]+)", text, re.M | re.I)
+    if len(hits) != 1:
+        raise SystemExit(f"Expected one {name} assignment")
+    return hits[0].strip().strip("\u0027\u0022").lower()
+expected = dict(npt_unit="d", npt="2", runtype="initial", ice_ic="none",
+                year_init="1995", month_init="1", day_init="1",
+                nprocs="1232", grid_ice="c", tr_fsd=".true.", nfsd="12")
+for name, want in expected.items():
+    if value(name) != want:
+        raise SystemExit(f"Baseline requires {name}={want}; got {value(name)}")
+for name in ("grid_file", "kmt_file", "F2_file", "atm_data_dir", "ocn_data_dir"):
+    hits = re.findall(r"^\s*" + re.escape(name) + r"\s*=\s*([^!\n]+)", text, re.M)
+    path = hits[0].strip().strip("\u0027\u0022")
+    if not pathlib.Path(path).exists():
+        raise SystemExit(f"Missing {name}: {path}")
+PY
+
+baseline_parent="${ICE_RUNDIR}/baselines"
+mkdir -p "$baseline_parent"
+baseline_run="$(mktemp -d "${baseline_parent}/control.XXXXXXXX")"
+echo "BASELINE_RUN=$baseline_run"
+cp "${ICE_RUNDIR}/cice" "$baseline_run/cice"
+cp ice_in cice.settings "env.${ICE_MACHCOMP}" "Macros.${ICE_MACHCOMP}" "$baseline_run/"
+mkdir "$baseline_run/history" "$baseline_run/restart"
+git rev-parse HEAD > "$baseline_run/source_commit.txt"
+git status --short > "$baseline_run/source_status.txt"
+git diff HEAD -- > "$baseline_run/source_changes.patch"
+git ls-files --others --exclude-standard > "$baseline_run/untracked_files.txt"
+cp cice.baseline.run "$baseline_run/"
+module list > "$baseline_run/modules.txt" 2>&1
+mpif90 --version > "$baseline_run/compiler.txt" 2>&1
+mpirun --version > "$baseline_run/mpi.txt" 2>&1
+if command -v nc-config >/dev/null; then
+    nc-config --all > "$baseline_run/netcdf.txt"
+fi
+cd "$baseline_run"
+sha256sum cice ice_in cice.settings "env.${ICE_MACHCOMP}" "Macros.${ICE_MACHCOMP}" > SHA256SUMS
+export OMP_NUM_THREADS="${ICE_NTHRDS}"
+export OMP_SCHEDULE="${ICE_OMPSCHED}"
+
+# Preserve MPI failure status.
+set +e
+mpirun -np "${ICE_NTASKS}" ./cice > cice.runlog 2>&1
+run_status=$?
+set -e
+printf '%s\n' "$run_status" > mpi_exit_status.txt
+if [ "$run_status" -ne 0 ]; then
+    echo "Baseline failed: MPI exit $run_status; inspect $baseline_run"
+    exit "$run_status"
+fi
+if ! grep -q 'COMPLETED SUCCESSFULLY' ice_diag.d cice.runlog; then
+    echo "Baseline lacks completion marker; inspect $baseline_run"
+    exit 1
+fi
+if ! find history -type f -name '*.nc' -print -quit | grep -q .; then
+    echo "Baseline lacks NetCDF history; inspect $baseline_run"
+    exit 1
+fi
+if ! find restart -type f -name '*.nc' -print -quit | grep -q .; then
+    echo "Baseline lacks NetCDF restart; inspect $baseline_run"
+    exit 1
+fi
+echo "Execution completed: $baseline_run"
+echo "Still required: inspect finite fields, FSD normalisation, dates and restart reproducibility."

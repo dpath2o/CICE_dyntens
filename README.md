@@ -148,4 +148,4 @@ A change in fast-ice extent alone does not establish improved physics. Assess wh
 
 Preserve source history and record the exact inherited baseline before changing model code. Keep experiment-specific forcing, restarts, executables and output separate from source control. Every experiment should identify its source commit and complete configuration.
 
-Stage 0 has started: see the [dyntens01 control audit](docs/development/stage0-dyntens01.md) for source findings, build evidence and remaining checks. Compilation is recorded, but the actual case namelist and short-run verification are still needed before establishing the control. A minimal, optional local tensile-coefficient implementation follows that baseline.
+Stage 0 has started: see the [dyntens01 control audit](docs/development/stage0-dyntens01.md) for source findings, build evidence and remaining checks. Compilation and the actual case namelist are recorded. A [two-day baseline run](docs/development/baseline-run.md) is prepared; execution and restart verification remain pending. A minimal, optional local tensile-coefficient implementation follows that baseline.

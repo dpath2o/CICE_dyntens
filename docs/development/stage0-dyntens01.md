@@ -5,6 +5,10 @@ Case: `dyntens01`. Audit date: 2026-09-23.
 
 **Status: source inspection complete for the initial integration targets; runnable control verification remains open.** No model physics or case settings were changed by this audit.
 
+## Update: active namelist received
+
+The configuration gap below was resolved by commit `56e5dcda4dfeb606320ea770054b213b0c5342fd`. The active namelist specifies the 1440×1080 C-grid and 1232 ranks, not the box-template settings. A two-day execution check is now prepared; see [baseline run instructions](baseline-run.md). The earlier missing-file findings are retained below as the dated audit record. Runtime validation remains pending.
+
 ## Build evidence and provenance
 
 The user reports a successful Gadi compilation. [README.case](https://github.com/dpath2o/CICE_dyntens/blob/35f83468e141d0b199e3ebcadfaf1d5f1e41e563/dyntens01/README.case) records:
@@ -83,7 +87,7 @@ The first diagnostic cohesion evaluation should use category-area-weighted FSD a
 
 - [x] Record uploaded source SHA and case build-completion entry.
 - [x] Inspect initial tensile and wave/FSD integration targets.
-- [ ] Commit the actual `dyntens01/ice_in` and reconcile it with launcher/decomposition settings.
+- [x] Commit the actual `dyntens01/ice_in` and identify its C-grid/1232-rank decomposition; use the dedicated baseline launcher.
 - [ ] Record binary checksum, compiler command/module versions and build log.
 - [ ] Resolve and record restart identity, forcing paths, grid/mask files and active physics.
 - [ ] Complete a short bounded control run with successful initialisation, finite diagnostics, history output and a usable restart.
