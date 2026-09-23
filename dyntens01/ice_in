@@ -1,8 +1,8 @@
 &setup_nml
     days_per_year        = 365
     use_leap_years       = .true.
-    year_init            = 1995
-    month_init           = 1
+    year_init            = 2000
+    month_init           = 9
     day_init             = 1
     sec_init             = 0
     istep0               = 0
@@ -11,9 +11,9 @@
     npt                  = 2
     ndtd                 = 1
     runtype              = 'initial'
-    ice_ic               = 'none'
+    ice_ic               = './input_restart/iced.2000-09-01-00000.nc'
     restart_ext          = .false.
-    use_restart_time     = .false.
+    use_restart_time     = .true.
     restart_format       = 'default'
     restart_rearranger   = 'default'
     restart_iotasks      = -99
@@ -138,7 +138,7 @@
     tr_aero      = .false.
     restart_aero = .false.
     tr_fsd       = .true.
-    restart_fsd  = .false.
+    restart_fsd  = .true.
 /
 
 &thermo_nml
