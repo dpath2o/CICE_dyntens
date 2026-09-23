@@ -32,13 +32,13 @@ where:
 
 | Quantity | Meaning |
 |---|---|
-| \(P\) | Baseline ice-strength scale supplied to the rheology |
-| \(k_{T,0}\) | Prescribed reference tensile-strength coefficient, corresponding to the existing `Ktens` parameter |
-| \(g\) | Dimensionless cohesion factor, bounded by \(g_{\min}\leq g\leq1\) |
-| \(g_{\min}\) | Lower bound, with \(0\leq g_{\min}\leq1\) |
-| \(T_{\mathrm{eff}}\) | Effective tensile-strength scale |
+| $P$ | Baseline ice-strength scale supplied to the rheology |
+| $k_{T,0}$ | Prescribed reference tensile-strength coefficient, corresponding to the existing `Ktens` parameter |
+| $g$ | Dimensionless cohesion factor, bounded by $g_{\min}\leq g\leq1$ |
+| $g_{\min}$ | Lower bound, with $0\leq g_{\min}\leq1$ |
+| $T_{\mathrm{eff}}$ | Effective tensile-strength scale |
 
-The reference state has \(g=1\). Fragmentation can reduce \(g\) towards its lower bound. The development must preserve the existing yield-curve convention and apply the effective coefficient consistently wherever tensile strength enters the active solver.
+The reference state has $g=1$. Fragmentation can reduce $g$ towards its lower bound. The development must preserve the existing yield-curve convention and apply the effective coefficient consistently wherever tensile strength enters the active solver.
 
 ### First FSD-based candidate: large-floe area fraction
 
@@ -57,11 +57,11 @@ F_L =
      {\displaystyle\sum_n a_n}.
 $$
 
-Here \(a_n\) is the grid-cell ice-area fraction in thickness category \(n\), \(f_{k,n}\) is the fraction of that category's ice area in floe bin \(k\), and \(D_*\) is the selected large-floe diameter threshold. For valid ice-covered categories, \(\sum_k f_{k,n}=1\). This definition gives \(0\leq F_L\leq1\) and avoids treating open water as fragmented ice.
+Here $a_n$ is the grid-cell ice-area fraction in thickness category $n$, $f_{k,n}$ is the fraction of that category's ice area in floe bin $k$, and $D_*$ is the selected large-floe diameter threshold. For valid ice-covered categories, $\sum_k f_{k,n}=1$. This definition gives $0\leq F_L\leq1$ and avoids treating open water as fragmented ice.
 
 Before implementation, verify tracer normalisation, category weighting, bin integration and radius-versus-diameter conventions in the inherited Icepack code. A centre-based bin threshold is a first approximation; sensitivity to the threshold and FSD resolution must be documented.
 
-This is a candidate closure. Neither \(D_*\), \(g_{\min}\), nor revised reference rheology parameters are fixed by this README. An effective-diameter formulation may also be evaluated, but area- and number-weighted means must be distinguished explicitly.
+This is a candidate closure. Neither $D_*$, $g_{\min}$, nor revised reference rheology parameters are fixed by this README. An effective-diameter formulation may also be evaluated, but area- and number-weighted means must be distinguished explicitly.
 
 ## Scope and scientific control
 
@@ -73,16 +73,16 @@ This is a candidate closure. Neither \(D_*\), \(g_{\min}\), nor revised referenc
 - Reuse and verify the inherited wave-fracture/FSD machinery before extending it.
 - Defer wave-radiation stress, two-way coupling to a wave model, and additional damage/healing laws. These introduce separate physical questions.
 
-Changing \(k_{T,0}\), ellipse ratio or compressive-strength parameters belongs in a subsequent, separately attributed sensitivity study.
+Changing $k_{T,0}$, ellipse ratio or compressive-strength parameters belongs in a subsequent, separately attributed sensitivity study.
 
 ## Development stages
 
 | Stage | Work | Required evidence before proceeding |
 |---|---|---|
 | 0. Establish the control | Record source commit, compiler, grid, namelist, forcing, restart and active physics; audit wave/FSD interfaces | Reproducible short baseline run |
-| 1. Introduce the local coefficient | Add an optional cohesion field and thread `Ktens_eff` through the active rheology; initially prescribe \(g\) | Disabled mode reproduces the original path; \(g=1\) recovers baseline behaviour |
-| 2. Prescribed floe diameter | Use a controlled diameter input and a documented bounded mapping to \(g\) | Monotonic response, correct limits and finite stresses across the tested range |
-| 3. Diagnose evolving FSD | Calculate ice-area-weighted FSD metrics and \(g\), without feeding them back into momentum | Verified weighting, masks, bounds and temporal ordering |
+| 1. Introduce the local coefficient | Add an optional cohesion field and thread `Ktens_eff` through the active rheology; initially prescribe $g$ | Disabled mode reproduces the original path; $g=1$ recovers baseline behaviour |
+| 2. Prescribed floe diameter | Use a controlled diameter input and a documented bounded mapping to $g$ | Monotonic response, correct limits and finite stresses across the tested range |
+| 3. Diagnose evolving FSD | Calculate ice-area-weighted FSD metrics and $g$, without feeding them back into momentum | Verified weighting, masks, bounds and temporal ordering |
 | 4. Activate FSD feedback | Supply the diagnosed coefficient to the momentum solver | Stable short runs; consistent stress terms; successful restart and decomposition checks |
 | 5. Evaluate fast-ice response | Run controlled seasonal experiments and selected sensitivities | Attributable changes in breakup, persistence and dynamics, with numerical checks satisfied |
 
@@ -120,8 +120,8 @@ Proposed configuration controls are an enable flag, a closure choice, the refere
 First verify the mechanics of the implementation:
 
 - Dynamic mode disabled: reproduce the inherited control, targeting bit-for-bit agreement for the same executable environment.
-- Dynamic mode enabled with \(g=1\): recover the constant-coefficient solution within a documented tolerance.
-- Prescribed intermediate \(g\): agree with a constant-`Ktens` control using the corresponding reduced coefficient.
+- Dynamic mode enabled with $g=1$: recover the constant-coefficient solution within a documented tolerance.
+- Prescribed intermediate $g$: agree with a constant-`Ktens` control using the corresponding reduced coefficient.
 - Synthetic FSDs: test all-small, all-large and mixed distributions, including multiple thickness categories and ice-free cells.
 - Repeat a short case across a restart and more than one MPI decomposition; check bounds, finite stresses and continuity.
 
@@ -130,12 +130,12 @@ Then isolate the physical feedback:
 | Experiment | Purpose |
 |---|---|
 | Constant tensile coefficient with the selected wave/FSD setup | Mechanical reference |
-| Evolving FSD and diagnosed \(g\), feedback disabled | Observe the proposed cohesion field without changing momentum |
+| Evolving FSD and diagnosed $g$, feedback disabled | Observe the proposed cohesion field without changing momentum |
 | Same setup with feedback enabled | Isolate the effect of FSD-dependent cohesion |
 | Matched wave-fracture sensitivity | Separate wave-driven FSD changes from other FSD processes |
 | Selected closure and rheology sensitivities | Assess robustness after the main mechanism is established |
 
-Record \(g\), \(k_{T,\mathrm{eff}}\), the selected FSD metric and relevant wave/fracture diagnostics alongside concentration, thickness, velocity, deformation and strength diagnostics. Evaluate fast-ice area, persistence, formation and breakup timing using common classification settings and periods.
+Record $g$, $k_{T,\mathrm{eff}}$, the selected FSD metric and relevant wave/fracture diagnostics alongside concentration, thickness, velocity, deformation and strength diagnostics. Evaluate fast-ice area, persistence, formation and breakup timing using common classification settings and periods.
 
 A change in fast-ice extent alone does not establish improved physics. Assess whether the spatial and temporal response is consistent with fragmentation and whether any improvement is robust to the chosen closure.
 
