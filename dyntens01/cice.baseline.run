@@ -33,7 +33,7 @@ test "${ICE_NTASKS}" = "${PBS_NCPUS}"
 test -x "${ICE_RUNDIR}/cice"
 test "${ICE_NTHRDS}" = 1
 
-# Refuse an accidental long or restart-driven run with this launcher.
+# Require the selected two-day September restart baseline.
 python3 - <<'PY'
 import pathlib, re
 text = pathlib.Path("ice_in").read_text()
@@ -42,8 +42,10 @@ def value(name):
     if len(hits) != 1:
         raise SystemExit(f"Expected one {name} assignment")
     return hits[0].strip().strip("\u0027\u0022").lower()
-expected = dict(npt_unit="d", npt="2", runtype="initial", ice_ic="none",
-                year_init="1995", month_init="1", day_init="1",
+expected = dict(npt_unit="d", npt="2", runtype="initial",
+                ice_ic="./input_restart/iced.2000-09-01-00000.nc",
+                restart_fsd=".true.", use_restart_time=".true.",
+                year_init="2000", month_init="9", day_init="1",
                 nprocs="1232", grid_ice="c", tr_fsd=".true.", nfsd="12")
 for name, want in expected.items():
     if value(name) != want:
@@ -62,6 +64,35 @@ echo "BASELINE_RUN=$baseline_run"
 cp "${ICE_RUNDIR}/cice" "$baseline_run/cice"
 cp ice_in cice.settings "env.${ICE_MACHCOMP}" "Macros.${ICE_MACHCOMP}" "$baseline_run/"
 mkdir "$baseline_run/history" "$baseline_run/restart"
+
+# Snapshot the parent restart independently of all new output.
+restart_source="${ICE_RUNDIR}/restart/iced.2000-09-01-00000.nc"
+test -r "$restart_source"
+mkdir "$baseline_run/input_restart"
+cp "$restart_source" "$baseline_run/input_restart/"
+chmod a-w "$baseline_run/input_restart/iced.2000-09-01-00000.nc"
+printf '%s\n' "Parent experiment: waves-floe300" "Copied from: $restart_source" > "$baseline_run/restart_provenance.txt"
+ncdump -h "$baseline_run/input_restart/iced.2000-09-01-00000.nc" > "$baseline_run/input_restart/header.txt"
+python3 - "$baseline_run/input_restart/header.txt" <<'PY_RESTART'
+import pathlib, re, sys
+header = pathlib.Path(sys.argv[1]).read_text()
+missing = [f"fsd{k:03d}" for k in range(1, 13)
+           if not re.search(r"\bfsd" + f"{k:03d}" + r"\s*\(", header)]
+if missing:
+    raise SystemExit("Restart lacks FSD state: " + ", ".join(missing)
+                     + ". Do not disable restart_fsd to bypass this check.")
+def attr(*names):
+    for name in names:
+        match = re.search(r":" + name + r"\s*=\s*(-?\d+)", header)
+        if match:
+            return int(match.group(1))
+    raise SystemExit("Missing restart attribute: " + "/".join(names))
+actual = (attr("myear", "nyr"), attr("mmonth", "month"), attr("mday"), attr("msec", "sec"))
+if actual != (2000, 9, 1, 0):
+    raise SystemExit(f"Unexpected restart date: {actual}")
+print("Restart header: 2000-09-01, all 12 FSD variables present; istep1 =", attr("istep1"))
+PY_RESTART
+
 git rev-parse HEAD > "$baseline_run/source_commit.txt"
 git status --short > "$baseline_run/source_status.txt"
 git diff HEAD -- > "$baseline_run/source_changes.patch"
@@ -75,6 +106,7 @@ if command -v nc-config >/dev/null; then
 fi
 cd "$baseline_run"
 sha256sum cice ice_in cice.settings "env.${ICE_MACHCOMP}" "Macros.${ICE_MACHCOMP}" > SHA256SUMS
+sha256sum input_restart/iced.2000-09-01-00000.nc >> SHA256SUMS
 export OMP_NUM_THREADS="${ICE_NTHRDS}"
 export OMP_SCHEDULE="${ICE_OMPSCHED}"
 
