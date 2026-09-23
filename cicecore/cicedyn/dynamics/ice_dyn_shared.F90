@@ -131,6 +131,10 @@
       real (kind=dbl_kind), public :: &
          Ktens               ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
 
+      ! Stage 1: optional local tensile coefficient, g fixed at one.
+      logical (kind=log_kind), public :: &
+         use_dyntens = .false. ! supported only by C-grid standard_2d EVP / avg_zeta
+
       ! seabed (basal) stress parameters and settings
       logical (kind=log_kind), public :: &
          seabed_stress  ! if true, seabed stress for landfast on
@@ -3523,7 +3527,7 @@
 ! J. Geophys. Res. Oceans, 121, 7354-7368.
 
     subroutine visc_replpress(strength, DminArea, Delta, &
-                                zetax2, etax2, rep_prs)
+                                zetax2, etax2, rep_prs, ktens_local)
 
       real (kind=dbl_kind), intent(in)::  &
          strength, & !
@@ -3537,6 +3541,9 @@
          etax2   , & ! shear viscosity
          rep_prs     ! replacement pressure
 
+      ! Omitted by all legacy callers.  The caller owns grid placement.
+      real (kind=dbl_kind), intent(in), optional :: ktens_local
+
       ! local variables
       real (kind=dbl_kind) :: &
          tmpcalc     ! temporary
@@ -3547,8 +3554,13 @@
 
       tmpcalc =     capping *(strength/max(Delta,DminArea))+ &
                 (c1-capping)*(strength/(Delta + DminArea))
-      zetax2  = (c1+Ktens)*tmpcalc
-      rep_prs = (c1-Ktens)*tmpcalc*Delta
+      if (present(ktens_local)) then
+         zetax2  = (c1+ktens_local)*tmpcalc
+         rep_prs = (c1-ktens_local)*tmpcalc*Delta
+      else
+         zetax2  = (c1+Ktens)*tmpcalc
+         rep_prs = (c1-Ktens)*tmpcalc*Delta
+      endif
       etax2   = epp2i*zetax2
 
       end subroutine visc_replpress

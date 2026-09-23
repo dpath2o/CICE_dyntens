@@ -11,7 +11,7 @@
 #PBS -j oe
 #PBS -W umask=022
 
-# Single bounded baseline; never submits another job.
+# Single bounded control or g=1 test; never submits another job.
 set -eo pipefail
 case_dir="${PBS_O_WORKDIR:?Submit from dyntens01}"
 cd -P "$case_dir"
@@ -29,6 +29,11 @@ fi
 # Define the Bash module function after inheriting the C-shell module environment.
 source "${MODULESHOME:?}/init/bash"
 set -u
+export DYNTENS_MODE="${DYNTENS_MODE:-control}"
+case "$DYNTENS_MODE" in
+    control|g1) ;;
+    *) echo "DYNTENS_MODE must be control or g1"; exit 2 ;;
+esac
 test "${ICE_NTASKS}" = "${PBS_NCPUS}"
 test -x "${ICE_RUNDIR}/cice"
 test "${ICE_NTHRDS}" = 1
@@ -46,7 +51,9 @@ expected = dict(npt_unit="d", npt="2", runtype="initial",
                 ice_ic="./input_restart/iced.2000-09-01-00000.nc",
                 restart_fsd=".true.", use_restart_time=".true.",
                 year_init="2000", month_init="9", day_init="1",
-                nprocs="1232", grid_ice="c", tr_fsd=".true.", nfsd="12")
+                nprocs="1232", grid_ice="c", tr_fsd=".true.", nfsd="12",
+                use_dyntens=".false.", kdyn="1", evp_algorithm="standard_2d",
+                visc_method="avg_zeta", yield_curve="ellipse", revised_evp=".false.")
 for name, want in expected.items():
     if value(name) != want:
         raise SystemExit(f"Baseline requires {name}={want}; got {value(name)}")
@@ -59,10 +66,22 @@ PY
 
 baseline_parent="${ICE_RUNDIR}/baselines"
 mkdir -p "$baseline_parent"
-baseline_run="$(mktemp -d "${baseline_parent}/control.XXXXXXXX")"
+baseline_run="$(mktemp -d "${baseline_parent}/${DYNTENS_MODE}.XXXXXXXX")"
 echo "BASELINE_RUN=$baseline_run"
 cp "${ICE_RUNDIR}/cice" "$baseline_run/cice"
 cp ice_in cice.settings "env.${ICE_MACHCOMP}" "Macros.${ICE_MACHCOMP}" "$baseline_run/"
+# Only the private runtime namelist changes; keep the tracked control disabled.
+python3 - "$baseline_run/ice_in" "$DYNTENS_MODE" <<'PY_MODE'
+import pathlib, re, sys
+path = pathlib.Path(sys.argv[1])
+value = ".true." if sys.argv[2] == "g1" else ".false."
+text, count = re.subn(r"(?im)^(\s*use_dyntens\s*=\s*)\.false\.",
+                      lambda m: m[1] + value, path.read_text())
+if count != 1:
+    raise SystemExit("Expected one disabled use_dyntens setting in source namelist")
+path.write_text(text)
+PY_MODE
+printf '%s\n' "$DYNTENS_MODE" > "$baseline_run/dyntens_mode.txt"
 mkdir "$baseline_run/history" "$baseline_run/restart"
 
 # Snapshot the parent restart independently of all new output.
@@ -71,7 +90,7 @@ test -r "$restart_source"
 mkdir "$baseline_run/input_restart"
 cp "$restart_source" "$baseline_run/input_restart/"
 chmod a-w "$baseline_run/input_restart/iced.2000-09-01-00000.nc"
-printf '%s\n' "Parent experiment: waves-floe300" "Copied from: $restart_source" > "$baseline_run/restart_provenance.txt"
+printf '%s\n' "Parent restart supplied from: ~/CICE_runs/frcg-exp03/restart (user-described waves-floe300)" "Copied from: $restart_source" > "$baseline_run/restart_provenance.txt"
 ncdump -h "$baseline_run/input_restart/iced.2000-09-01-00000.nc" > "$baseline_run/input_restart/header.txt"
 python3 - "$baseline_run/input_restart/header.txt" <<'PY_RESTART'
 import pathlib, re, sys

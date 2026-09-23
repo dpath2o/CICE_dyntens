@@ -11,9 +11,16 @@ The January initialisation check completed according to the user-supplied PBS ou
 
 This establishes successful execution, not yet finite-field, FSD-normalisation or restart-reproducibility validation. Preserve that directory and its input/source/executable records.
 
+The September control also completed, according to the supplied diagnostic/PBS
+log: job `179698538.gadi-pbs`, exit 0, 4 min 6 s, 105.23 SU, 344.0 GB.
+Output: `/g/data/gv90/da1339/cice-dirs/runs/dyntens01/baselines/control.nV1DLnlV`.
+It advanced September 1–3, 2000, steps 99360–99456. Preserve this reference.
+Pointwise finite-field/FSD checks and split-run reproducibility remain open;
+known snow-temperature warnings are deferred.
+
 ## Current control
 
-The next run starts from the user-selected `waves-floe300` restart, `iced.2000-09-01-00000.nc`. The parent is described by the user as a healthy waves run. Its configuration and restart contents have not been independently inspected.
+The control starts from `iced.2000-09-01-00000.nc`, supplied from `~/CICE_runs/frcg-exp03/restart/` and described by the user as the healthy `waves-floe300` run. The relationship between those experiment names and the parent's full configuration have not been independently verified.
 
 Copy the file into:
 
@@ -40,7 +47,7 @@ In this code, an explicit restart filename with `runtype='initial'` reads the sa
 
 The forcing cycle remains `fyear_init=1995, ycycle=11`; the inspected year-mapping expression selects forcing year 2000 for model year 2000. Confirm the dated atmospheric, ocean and wave files in the runtime diagnostic.
 
-No Fortran physics changed. Wave fracture still runs on even timestep counters with `2*dt`. Reading the saved timestep counter preserves its parity.
+The recorded September control predates the optional local-coefficient code. Wave fracture still runs on even timestep counters with `2*dt`. Reading the saved timestep counter preserves its parity.
 
 ## Restart compatibility
 
@@ -61,7 +68,7 @@ cd dyntens01
 qsub cice.baseline.run
 ```
 
-No rebuild is required. Do not edit the case while queued: inputs are captured at job start. The launcher reuses the case environment and existing executable, with the existing two-hour and 1200-GB resource ceilings; the healthy ice-state run may cost more than the January initialisation test.
+After the stage-1 source update, a rebuild is required; follow [the g=1 procedure](stage1-g1.md). Do not edit the case while queued: inputs are captured at job start. The launcher reuses the case environment and existing executable, with the existing two-hour and 1200-GB resource ceilings; the healthy ice-state run may cost more than the January initialisation test.
 
 The PBS output prints `BASELINE_RUN=...` for a fresh directory under `dyntens01/baselines/`. It records executable/input/restart checksums, source SHA and local changes, modules and compiler/MPI information. The actual build provenance of the earlier executable still depends on its original build log.
 

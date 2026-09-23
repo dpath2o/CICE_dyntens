@@ -47,7 +47,7 @@
            ndte, yield_curve, ecci, denom1, arlx1i, fcor_blk, fcorE_blk, fcorN_blk, &
            uvel_init, vvel_init, uvelE_init, vvelE_init, uvelN_init, vvelN_init, &
            seabed_stress_factor_LKD, seabed_stress_factor_prob, seabed_stress_method, &
-           seabed_stress, Ktens, revp, &
+           seabed_stress, Ktens, use_dyntens, revp, &
            lateral_drag, boundary_condition, form_func, lateral_drag_stress_factor, &
            Cs, Cq, C_L, u0, eps_blend, blend_exp, u_cap_eff, u_cap, &
            static_switch, quad_switch, linear_switch, blend_strain_switch
@@ -120,6 +120,10 @@
          umass    (:,:,:) , & ! total mass of ice and snow (u grid)
          umassdti (:,:,:)     ! mass of U-cell/dte (kg/m^2 s)
 
+      ! Diagnostic/derived coefficient, not prognostic restart state.
+      ! Stage 1 uses g=1 everywhere, including halo/land cells.
+      real (kind=dbl_kind), allocatable :: ktens_effT(:,:,:)
+
       public :: evp, init_evp
 
 !=======================================================================
@@ -154,6 +158,12 @@
 
 
       call init_dyn_shared(dt_dyn)
+
+      if (use_dyntens) then
+         allocate(ktens_effT(nx_block,ny_block,max_blocks), stat=ierr)
+         if (ierr /= 0) call abort_ice(subname//' ERROR: Out of memory ktens_effT')
+         ktens_effT(:,:,:) = Ktens*c1
+      endif
 
       !------------------------------------------------
       ! form factor load or test case scenario (uniform grid)
@@ -362,6 +372,11 @@
       integer (kind=int_kind) :: nE, nN, nU, nKux, nKuy
 
       call ice_timer_start(timer_dynamics) ! dynamics
+
+      ! Refresh once per dynamics step, outside EVP subcycling and OMP regions.
+      ! No FSD feedback in this equivalence stage.  No halo exchange is needed
+      ! for a uniform field; a spatial g will require its own halo treatment.
+      if (use_dyntens) ktens_effT(:,:,:) = Ktens*c1
 
       !-----------------------------------------------------------------
       ! Initialize
@@ -1083,7 +1098,7 @@
                                strength  (:,:,iblk), shearU    (:,:,iblk), &
                                zetax2T   (:,:,iblk), etax2T    (:,:,iblk), &
                                stresspT  (:,:,iblk), stressmT  (:,:,iblk), &
-                               stress12T (:,:,iblk))
+                               stress12T (:,:,iblk), iblk)
 
             enddo
             !$OMP END PARALLEL DO
@@ -1882,7 +1897,7 @@
                              strength   , shearU    , &
                              zetax2T    , etax2T    , &
                              stresspT   , stressmT  , &
-                             stress12T)
+                             stress12T, iblk)
 
       use ice_dyn_shared, only: strain_rates_T, &
                                 visc_replpress, e_factor
@@ -1932,6 +1947,8 @@
         uareaavgr , & ! 1 / uarea avg
         rep_prsT      ! replacement pressure at T point
 
+      integer (kind=int_kind), intent(in) :: iblk ! local block for ktens_effT
+
       character(len=*), parameter :: subname = '(stressC_T)'
 
       !-----------------------------------------------------------------
@@ -1976,8 +1993,14 @@
          ! viscosities and replacement pressure at T point
          !-----------------------------------------------------------------
 
-         call visc_replpress (strength(i,j), DminTarea(i,j), DeltaT, &
-                              zetax2T (i,j), etax2T(i,j), rep_prsT)
+         if (use_dyntens) then
+            call visc_replpress (strength(i,j), DminTarea(i,j), DeltaT, &
+                                 zetax2T(i,j), etax2T(i,j), rep_prsT, &
+                                 ktens_local=ktens_effT(i,j,iblk))
+         else
+            call visc_replpress (strength(i,j), DminTarea(i,j), DeltaT, &
+                                 zetax2T (i,j), etax2T(i,j), rep_prsT)
+         endif
 
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2

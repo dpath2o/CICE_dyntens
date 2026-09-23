@@ -175,6 +175,8 @@
     Cstar                = 20
     Cf                   = 17.
     Ktens                = 0.2
+    use_dyntens          = .false. ! stage 1: enable only for g=1 equivalence test
+    yield_curve          = 'ellipse' ! explicit baseline default
     e_yieldcurve         = 1.5
     e_plasticpot         = 1.5
     visc_method          = 'avg_zeta'
