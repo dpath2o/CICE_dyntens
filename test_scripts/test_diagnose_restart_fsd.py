@@ -26,7 +26,7 @@ class DiagnosticTests(unittest.TestCase):
                     if k==1:
                         v[:]=[[[1,0,0],[.5,np.nan,1]]]
             stats,cells,excluded,samples=diagnose(restart,read_grid(grid))
-            self.assertEqual(excluded['land'],1)
+            self.assertEqual(excluded['inactive_T'],1)
             self.assertEqual(stats['global']['normalised']['count'],2)
             self.assertEqual(stats['SH']['zero']['area'],1.)
             self.assertEqual(stats['NH']['other_sum']['area'],1.5)
@@ -39,6 +39,18 @@ class DiagnosticTests(unittest.TestCase):
                 ds['tarea'][:]*=1e4; ds['tarea'].units='cm^2'
             np.testing.assert_allclose(read_grid(grid)[2], [[1,2,9],[3,4,5]])
             np.testing.assert_allclose(read_grid(grid)[1], [[-60]*3,[60]*3])
+            with Dataset(grid,'a') as ds:
+                ds['tmask'][0,2] = .5
+                ds['tmask'][0,1] = .50001
+                ds['tmask'][1,2] = np.ma.masked
+            converted = read_grid(grid)
+            self.assertEqual(converted[0][0,2],0)
+            self.assertEqual(converted[0][0,1],1)
+            self.assertTrue(np.isnan(converted[0][1,2]))
+            stats, cells, excluded, samples = diagnose(restart,converted)
+            self.assertEqual(excluded['inactive_T'],1)
+            self.assertEqual(excluded['unknown_mask'],1)
+            self.assertEqual(sum(v['area'] for v in stats['global'].values()),5.)
             with Dataset(grid,'a') as ds:
                 ds['tmask'][0,0] = 2
             with self.assertRaisesRegex(ValueError,'Nonbinary decoded values') as caught:

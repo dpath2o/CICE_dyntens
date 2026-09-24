@@ -26,8 +26,8 @@ show whether the inherited issue changes during these two days.
 
 The report addresses:
 
-1. Counts on ocean cells globally and by hemisphere (`tmask=1`), with
-   occupied entries on land (`tmask=0`) and unknown/masked grid-mask cells
+1. Counts on ocean cells globally and by hemisphere (`hm > 0.5`, matching CICE’s logical T-cell mask), with
+   occupied entries on inactive T cells (`hm <= 0.5`) and unknown/masked grid-mask cells
    reported separately. NH includes the equator. Categories are counted
    separately; affected grid-cell counts are also printed.
 2. Four disjoint classes: normalised sums (within 1e-10 of one), effectively
@@ -59,7 +59,7 @@ python3 -m unittest discover -s test_scripts -v
 
 ## Nonbinary history masks
 
-If the history mask contains unexpected finite values, the script stops and
+If the history mask contains finite values outside [0,1], the script stops and
 prints its metadata, frequent values, nonbinary values and counts. It does
 not interpret arbitrary positive values as ocean or silently discard them.
 Inspect the mask alone with:
@@ -74,3 +74,11 @@ In this source, the NetCDF history variable named `tmask` is written from
 The standalone kmt path sets hm to zero or one. Unexpected output values
 therefore need inspection before changing diagnostic classification; missing
 markers must not be mistaken for ocean cells by applying a generic threshold.
+
+The reported history has 46 values of exactly 0.5. The diagnostic now
+accepts finite hm in [0,1] and uses the model's strict `hm > 0.5` rule.
+Thus 0.5 is inactive, not a half-weight ocean cell. Excluded entries are
+labelled `inactive_T`, which does not assert that they are all physical land.
+Fill/masked entries remain `unknown_mask`; they are not silently called land.
+The underlying cause of the fractional and missing history-mask values is
+not established by this diagnostic. No model mask or restart is modified.

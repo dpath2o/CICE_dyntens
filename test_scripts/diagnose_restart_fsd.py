@@ -46,7 +46,11 @@ def read_grid(path):
     with Dataset(path) as ds:
         mask, lat, area = (field2d(ds, n) for n in ('tmask', 'TLAT', 'tarea'))
         require(mask.shape == lat.shape == area.shape, 'Grid shapes differ')
-        require(np.all(~np.isfinite(mask) | (mask == 0) | (mask == 1)), 'tmask contains unrecognised nonbinary values. No cells have been reclassified.\n' + mask_summary(ds))
+        require(np.all(np.isnan(mask) | (np.isfinite(mask) & (mask >= 0) & (mask <= 1))),
+                'tmask contains values outside [0,1]. No cells have been reclassified.\n' + mask_summary(ds))
+        # History tmask stores hm; ice_grid constructs the logical mask as hm > p5.
+        # Preserve missing values as unknown, rather than interpreting them as land.
+        mask = np.where(np.isnan(mask), np.nan, (mask > 0.5).astype(float))
         units = str(getattr(ds['TLAT'], 'units', '')).lower().strip()
         if units in ('radian', 'radians', 'rad'):
             lat = np.rad2deg(lat)
@@ -73,7 +77,7 @@ def diagnose(path, grid, occupied_min=1e-12, sum_tol=1e-10, bin_tol=1e-12):
     stats = {r: {c: dict(count=0, area=0., max_a=0., min_sum=np.inf,
                          max_sum=-np.inf, substantial=0) for c in CLASSES} for r in regions}
     affected_cells = dict.fromkeys(regions, 0)
-    excluded = {'land': 0, 'unknown_mask': 0}
+    excluded = {'inactive_T': 0, 'unknown_mask': 0}
     samples = {c: [] for c in CLASSES if c != 'normalised'}
     with Dataset(path) as ds:
         a_var = ds['aicen']
@@ -90,7 +94,7 @@ def diagnose(path, grid, occupied_min=1e-12, sum_tol=1e-10, bin_tol=1e-12):
             require(not np.any(wet & (~np.isfinite(a) | (a < -bin_tol) | (a > 1 + bin_tol))),
                     f'{path}: invalid ocean aicen near row {start}')
             occupied = np.isfinite(a) & (a > occupied_min)
-            excluded['land'] += int(np.count_nonzero(occupied & (mask[sl] == 0)[None]))
+            excluded['inactive_T'] += int(np.count_nonzero(occupied & (mask[sl] == 0)[None]))
             excluded['unknown_mask'] += int(np.count_nonzero(occupied & ~np.isfinite(mask[sl])[None]))
             total = np.zeros_like(a)
             invalid = np.zeros(a.shape, dtype=bool)
@@ -160,6 +164,7 @@ def main():
             p.error('provide at least one restart, or use --inspect-grid')
         grid = read_grid(args.grid_history)
         print(f'Grid: {args.grid_history}\nOccupancy: aicen>1e-12; sum tolerance=1e-10; bin tolerance=1e-12')
+        print('Mask rule: finite hm > 0.5 is active ocean; hm <= 0.5 is inactive; fill remains unknown.')
         print('Ice area = sum(aicen*tarea) over occupied ocean categories; NH includes the equator.')
         for path in args.restarts:
             report(path, diagnose(path, grid))
