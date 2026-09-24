@@ -19,11 +19,34 @@ def field2d(ds, name):
     return np.ma.asarray(v[:], dtype=float).filled(np.nan)
 
 
+def mask_summary(ds):
+    """Describe decoded values and metadata without guessing mask semantics."""
+    v = ds['tmask']
+    a = np.ma.asarray(v[:])
+    vals = a.compressed()
+    finite = vals[np.isfinite(vals)]
+    unique, counts = np.unique(finite, return_counts=True)
+    order = np.argsort(-counts)[:12]
+    lines = [f'tmask dtype={v.dtype}; dimensions={v.dimensions}; shape={v.shape}',
+             'attributes=' + repr({n: v.getncattr(n) for n in v.ncattrs()}),
+             f'masked={np.count_nonzero(np.ma.getmaskarray(a))}; '
+             f'unmasked_nonfinite={np.count_nonzero(~np.isfinite(vals))}; '
+             f'distinct_finite={len(unique)}',
+             'Most frequent decoded values (value: count): ' +
+             ', '.join(f'{unique[i]!r}: {counts[i]}' for i in order)]
+    unexpected = (unique != 0) & (unique != 1)
+    lines.append('Nonbinary decoded values (first 12, value: count): ' +
+                 ', '.join(f'{x!r}: {n}' for x, n in zip(unique[unexpected][:12], counts[unexpected][:12])))
+    if finite.size:
+        lines.append(f'Decoded finite range: {finite.min()!r} to {finite.max()!r}')
+    return '\n'.join(lines)
+
+
 def read_grid(path):
     with Dataset(path) as ds:
         mask, lat, area = (field2d(ds, n) for n in ('tmask', 'TLAT', 'tarea'))
         require(mask.shape == lat.shape == area.shape, 'Grid shapes differ')
-        require(np.all(~np.isfinite(mask) | (mask == 0) | (mask == 1)), 'tmask must be 0/1')
+        require(np.all(~np.isfinite(mask) | (mask == 0) | (mask == 1)), 'tmask contains unrecognised nonbinary values. No cells have been reclassified.\n' + mask_summary(ds))
         units = str(getattr(ds['TLAT'], 'units', '')).lower().strip()
         if units in ('radian', 'radians', 'rad'):
             lat = np.rad2deg(lat)
@@ -125,9 +148,16 @@ def report(path, result):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--grid-history', type=Path, required=True, help='same-run history containing tmask, TLAT, tarea')
-    p.add_argument('restarts', type=Path, nargs='+')
+    p.add_argument('--inspect-grid', action='store_true', help='print mask values/metadata only; no restart files needed')
+    p.add_argument('restarts', type=Path, nargs='*')
     args = p.parse_args()
     try:
+        if args.inspect_grid:
+            with Dataset(args.grid_history) as ds:
+                print(mask_summary(ds))
+            return
+        if not args.restarts:
+            p.error('provide at least one restart, or use --inspect-grid')
         grid = read_grid(args.grid_history)
         print(f'Grid: {args.grid_history}\nOccupancy: aicen>1e-12; sum tolerance=1e-10; bin tolerance=1e-12')
         print('Ice area = sum(aicen*tarea) over occupied ocean categories; NH includes the equator.')

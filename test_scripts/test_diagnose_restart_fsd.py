@@ -40,6 +40,12 @@ class DiagnosticTests(unittest.TestCase):
             np.testing.assert_allclose(read_grid(grid)[2], [[1,2,9],[3,4,5]])
             np.testing.assert_allclose(read_grid(grid)[1], [[-60]*3,[60]*3])
             with Dataset(grid,'a') as ds:
+                ds['tmask'][0,0] = 2
+            with self.assertRaisesRegex(ValueError,'Nonbinary decoded values') as caught:
+                read_grid(grid)
+            self.assertIn('2.0',str(caught.exception))
+            with Dataset(grid,'a') as ds:
+                ds['tmask'][0,0] = 1
                 ds['tarea'].units='unknown'
             with self.assertRaisesRegex(ValueError,'Unrecognised tarea units'):
                 read_grid(grid)

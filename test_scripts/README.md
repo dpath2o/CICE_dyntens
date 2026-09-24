@@ -56,3 +56,21 @@ Synthetic test of classification, land exclusion, weighting and unit conversion:
 ```bash
 python3 -m unittest discover -s test_scripts -v
 ```
+
+## Nonbinary history masks
+
+If the history mask contains unexpected finite values, the script stops and
+prints its metadata, frequent values, nonbinary values and counts. It does
+not interpret arbitrary positive values as ocean or silently discard them.
+Inspect the mask alone with:
+
+```bash
+python3 test_scripts/diagnose_restart_fsd.py \
+  --grid-history "$off/history/iceh.2000-09-01.nc" --inspect-grid
+```
+
+In this source, the NetCDF history variable named `tmask` is written from
+`hm`, and the internal logical T-cell mask is constructed with `hm > 0.5`.
+The standalone kmt path sets hm to zero or one. Unexpected output values
+therefore need inspection before changing diagnostic classification; missing
+markers must not be mistaken for ocean cells by applying a generic threshold.
