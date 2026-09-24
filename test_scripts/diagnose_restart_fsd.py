@@ -5,6 +5,8 @@ from pathlib import Path
 import numpy as np
 from netCDF4 import Dataset
 
+THRESHOLDS = (1e-8, 1e-6, 1e-4, 1e-3, 1e-2)
+
 CLASSES = ('normalised', 'zero', 'other_sum', 'invalid_bins')
 
 
@@ -70,7 +72,21 @@ def read_grid(path):
     return mask, lat, area
 
 
-def diagnose(path, grid, occupied_min=1e-12, sum_tol=1e-10, bin_tol=1e-12):
+def read_longitude(path, mask):
+    with Dataset(path) as ds:
+        lon = field2d(ds, 'TLON')
+        units = str(getattr(ds['TLON'], 'units', '')).lower().strip()
+        if units in ('radian', 'radians', 'rad'):
+            lon = np.rad2deg(lon)
+        else:
+            require(units in ('degrees_east', 'degree_east', 'degrees', 'degree', 'degrees east'),
+                    f'Unrecognised TLON units: {units!r}')
+        require(lon.shape == mask.shape, 'Longitude/grid dimensions differ')
+        require(np.all(np.isfinite(lon[mask == 1])), 'Missing ocean longitude')
+    return (lon + 180) % 360 - 180
+
+
+def diagnose(path, grid, occupied_min=1e-12, sum_tol=1e-10, bin_tol=1e-12, detail=None, lon=None):
     mask, lat, area = grid
     regions = {'global': mask == 1, 'SH': (mask == 1) & (lat < 0),
                'NH': (mask == 1) & (lat >= 0)}
@@ -79,6 +95,10 @@ def diagnose(path, grid, occupied_min=1e-12, sum_tol=1e-10, bin_tol=1e-12):
     affected_cells = dict.fromkeys(regions, 0)
     excluded = {'inactive_T': 0, 'unknown_mask': 0}
     samples = {c: [] for c in CLASSES if c != 'normalised'}
+    if detail is not None:
+        require(lon is not None and lon.shape == mask.shape, 'Detailed report requires matching longitude')
+        detail.update({r: dict(thresholds={t: dict(count=0, cells=0, area=0., deficit=0., surplus=0.)
+                                          for t in THRESHOLDS}, worst=[]) for r in regions})
     with Dataset(path) as ds:
         a_var = ds['aicen']
         require(a_var.dimensions == ('ncat', 'nj', 'ni'), 'Unexpected aicen dimensions')
@@ -111,6 +131,31 @@ def diagnose(path, grid, occupied_min=1e-12, sum_tol=1e-10, bin_tol=1e-12):
                 active = occupied & domain[sl][None]
                 affected_cells[region] += int(np.count_nonzero(np.any(active & ~normal, axis=0)))
                 weights = a * np.where(domain[sl], area[sl], 0)[None]
+                if detail is not None:
+                    valid = active & ~invalid
+                    error = np.abs(total - 1)
+                    for threshold, record in detail[region]['thresholds'].items():
+                        selected = valid & (error > threshold)
+                        record['count'] += int(np.count_nonzero(selected))
+                        record['cells'] += int(np.count_nonzero(np.any(selected, axis=0)))
+                        record['area'] += float(weights[selected].sum())
+                        record['deficit'] += float(weights[selected & (total < 1)].sum())
+                        record['surplus'] += float(weights[selected & (total > 1)].sum())
+                    # Retain ten worst category entries per region across all chunks.
+                    candidates = np.flatnonzero(valid & (error > sum_tol))
+                    if candidates.size:
+                        scores = error.ravel()[candidates]
+                        order = np.argsort(-scores, kind='stable')[:10]
+                        for flat in candidates[order]:
+                            n, j, i = np.unravel_index(flat, a.shape)
+                            detail[region]['worst'].append(dict(
+                                ncat=int(n+1), j=int(start+j+1), i=int(i+1),
+                                lat=float(lat[start+j,i]), lon=float(lon[start+j,i]),
+                                aicen=float(a[n,j,i]), ice_km2=float(weights[n,j,i]),
+                                fsd_sum=float(total[n,j,i]), signed_error=float(total[n,j,i]-1),
+                                abs_error=float(error[n,j,i])))
+                        detail[region]['worst'].sort(key=lambda x: (-x['abs_error'], x['ncat'], x['j'], x['i']))
+                        del detail[region]['worst'][10:]
                 for label, selected in labels.items():
                     selected = selected & active
                     s = stats[region][label]
@@ -130,7 +175,7 @@ def diagnose(path, grid, occupied_min=1e-12, sum_tol=1e-10, bin_tol=1e-12):
     return stats, affected_cells, excluded, samples
 
 
-def report(path, result):
+def report(path, result, detail=None):
     stats, cells, excluded, samples = result
     print(f'\nFILE {path}', flush=True)
     print(f'Excluded occupied category entries: {excluded}')
@@ -147,6 +192,24 @@ def report(path, result):
     for label, entries in samples.items():
         for entry in entries:
             print(f'  SAMPLE {label} (1-based indices): {entry}')
+
+
+    if detail is not None:
+        print('\nCUMULATIVE ERROR THRESHOLDS: abs(sum(fsd)-1) > threshold; valid bins only')
+        print('region threshold categories cells ice_km2 %all_ice deficit_ice_km2 surplus_ice_km2')
+        for region, records in detail.items():
+            denominator = sum(v['area'] for v in stats[region].values())
+            for threshold, v in records['thresholds'].items():
+                pct = 100*v['area']/denominator if denominator else 0.
+                print(f"{region:6} {threshold:.0e} {v['count']:10d} {v['cells']:8d} "
+                      f"{v['area']:.9g} {pct:.9g} {v['deficit']:.9g} {v['surplus']:.9g}")
+        print('\nWORST TEN PER HEMISPHERE: valid-bin occupied categories; longitude -180..180; indices 1-based')
+        for region in ('SH', 'NH'):
+            for v in detail[region]['worst']:
+                print(f"WORST {region} cat={v['ncat']} j={v['j']} i={v['i']} "
+                      f"lat={v['lat']:.6f} lon={v['lon']:.6f} aicen={v['aicen']:.12g} "
+                      f"ice_km2={v['ice_km2']:.9g} sum={v['fsd_sum']:.15g} "
+                      f"signed_error={v['signed_error']:+.9e}")
 
 
 def main():
@@ -166,8 +229,11 @@ def main():
         print(f'Grid: {args.grid_history}\nOccupancy: aicen>1e-12; sum tolerance=1e-10; bin tolerance=1e-12')
         print('Mask rule: finite hm > 0.5 is active ocean; hm <= 0.5 is inactive; fill remains unknown.')
         print('Ice area = sum(aicen*tarea) over occupied ocean categories; NH includes the equator.')
+        lon = read_longitude(args.grid_history, grid[0])
         for path in args.restarts:
-            report(path, diagnose(path, grid))
+            detail = {}
+            result = diagnose(path, grid, detail=detail, lon=lon)
+            report(path, result, detail)
     except (ValueError, OSError, KeyError) as exc:
         p.exit(1, f'ERROR: {exc}\n')
 

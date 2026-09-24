@@ -82,3 +82,26 @@ labelled `inactive_T`, which does not assert that they are all physical land.
 Fill/masked entries remain `unknown_mask`; they are not silently called land.
 The underlying cause of the fractional and missing history-mask values is
 not established by this diagnostic. No model mask or restart is modified.
+
+## Error magnitude and location
+
+The same command now also reads `TLON` from the matching history and prints:
+
+- Cumulative counts, distinct grid-cell counts, ice area and percentage of
+  all occupied ocean ice area for absolute sum errors strictly greater than
+  1e-8, 1e-6, 1e-4, 1e-3 and 1e-2. Threshold rows overlap and must not be added.
+  The last two thresholds correspond to 0.1% and 1% departures from unity.
+- Separate ice areas for deficits (sum < 1) and surpluses (sum > 1).
+  These are affected ice areas, not estimates of lost/gained physical ice.
+- The ten largest absolute errors per hemisphere, with longitude in
+  [-180,180), latitude, one-based category/j/i, concentration, category ice
+  area, FSD sum and signed error. Locations refer to grid-cell centres.
+  Entries are category locations, so multiple categories may share a cell.
+
+Thresholds and worst lists include only individually valid bins. Invalid
+bins remain in their original separate class and in the all-ice denominator.
+Largest errors are not necessarily largest contributions to regional ice
+area; use the area tables alongside the worst-location list. The report
+continues to use the existing strict normalisation classification, and no
+restart values are changed. Actual Gadi data must be supplied to determine
+which geographic locations are affected.

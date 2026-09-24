@@ -3,7 +3,9 @@ import unittest
 from pathlib import Path
 import numpy as np
 from netCDF4 import Dataset
-from diagnose_restart_fsd import read_grid, diagnose
+from diagnose_restart_fsd import read_grid, read_longitude, diagnose, report
+import io
+from contextlib import redirect_stdout
 
 
 class DiagnosticTests(unittest.TestCase):
@@ -16,6 +18,7 @@ class DiagnosticTests(unittest.TestCase):
                 for name, units, data in [
                     ('tmask', '1', [[1,1,0],[1,1,1]]),
                     ('TLAT', 'degrees_north', [[-60,-60,-60],[60,60,60]]),
+                    ('TLON', 'degrees_east', [[0,60,120],[180,240,300]]),
                     ('tarea', 'm^2', [[1e6,2e6,9e6],[3e6,4e6,5e6]])]:
                     v=ds.createVariable(name,'f8',('nj','ni')); v.units=units; v[:]=data
             with Dataset(restart,'w') as ds:
@@ -34,6 +37,25 @@ class DiagnosticTests(unittest.TestCase):
             self.assertEqual(sum(v['area'] for v in stats['global'].values()),7.5)
             self.assertEqual(cells,{'global':3,'SH':1,'NH':2})
             self.assertEqual(samples['other_sum'][0]['j'],2)
+            longitude = read_longitude(grid, read_grid(grid)[0])
+            self.assertEqual(longitude[1,0],-180)
+            with Dataset(restart,'a') as ds:
+                ds['fsd001'][0,0,0] = 1 - 1e-5
+                ds['fsd002'][0,1,2] = 2e-3
+            detail = {}
+            result = diagnose(restart,read_grid(grid),detail=detail,lon=longitude)
+            self.assertEqual(detail['global']['thresholds'][1e-8]['count'],4)
+            self.assertEqual(detail['global']['thresholds'][1e-4]['count'],3)
+            self.assertEqual(detail['global']['thresholds'][1e-2]['count'],2)
+            self.assertEqual(detail['global']['thresholds'][1e-2]['area'],2.5)
+            self.assertEqual(detail['global']['thresholds'][1e-4]['surplus'],2.5)
+            self.assertEqual(detail['NH']['worst'][0]['lon'],-180)
+            self.assertEqual(detail['NH']['worst'][0]['fsd_sum'],.5)
+            self.assertEqual(detail['SH']['worst'][0]['fsd_sum'],0.)
+            with redirect_stdout(io.StringIO()) as output:
+                report(restart,result,detail)
+            self.assertIn('CUMULATIVE ERROR',output.getvalue())
+            self.assertIn('WORST NH',output.getvalue())
             with Dataset(grid,'a') as ds:
                 ds['TLAT'][:]=np.deg2rad(ds['TLAT'][:]); ds['TLAT'].units='radians'
                 ds['tarea'][:]*=1e4; ds['tarea'].units='cm^2'
