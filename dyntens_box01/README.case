@@ -1,0 +1,27 @@
+Thu Sep 24 18:42:49 AEST 2026 ./cice.setup -c dyntens_box01 -m gadi1 -e intel -g gbox12 -p 1x1 -s boxforcee,boxclosed,buildclean
+Thu Sep 24 18:42:53 AEST 2026 ./cice.setup adding namelist modes set_nml.gbox12
+Thu Sep 24 18:42:53 AEST 2026 ./cice.setup adding namelist modes set_nml.boxforcee
+Thu Sep 24 18:42:53 AEST 2026 ./cice.setup adding namelist modes set_nml.boxclosed
+Thu Sep 24 18:42:53 AEST 2026 ./cice.setup adding namelist modes set_env.buildclean
+Thu Sep 24 19:47:41 AEST 2026 ./cice.build:dyntens_box01 build completed cice.bldlog.260924-194620
+Thu Sep 24 20:03:36 AEST 2026 ./cice.submit: dyntens_box01 job submitted
+Thu Sep 24 20:08:10 AEST 2026 /local/spool/pbs/mom_priv/jobs/179770561.gadi-pbs.SC: CICE output file is /g/data/gv90/da1339/src/CICE_dyntens/dyntens_box01/logs/cice.runlog.260924-200806
+Thu Sep 24 20:08:10 AEST 2026 /local/spool/pbs/mom_priv/jobs/179770561.gadi-pbs.SC: CICE run completed successfully
+Thu Sep 24 20:21:08 AEST 2026 ./cice.submit: dyntens_box01 job submitted
+Thu Sep 24 20:27:14 AEST 2026 /local/spool/pbs/mom_priv/jobs/179775526.gadi-pbs.SC: CICE output file is /g/data/gv90/da1339/src/CICE_dyntens/dyntens_box01/logs/cice.runlog.260924-202649
+Thu Sep 24 20:27:14 AEST 2026 /local/spool/pbs/mom_priv/jobs/179775526.gadi-pbs.SC: CICE run completed successfully
+Thu Sep 24 21:00:34 AEST 2026 ./cice.submit: dyntens_box01 job submitted
+Thu Sep 24 21:08:00 AEST 2026 /local/spool/pbs/mom_priv/jobs/179780790.gadi-pbs.SC: CICE output file is /g/data/gv90/da1339/src/CICE_dyntens/dyntens_box01/logs/cice.runlog.260924-210754
+Thu Sep 24 21:08:03 AEST 2026 /local/spool/pbs/mom_priv/jobs/179780790.gadi-pbs.SC: CICE run completed successfully
+Fri Sep 25 06:48:14 AEST 2026 ./cice.submit: dyntens_box01 job submitted
+Fri Sep 25 06:50:28 AEST 2026 /local/spool/pbs/mom_priv/jobs/179819901.gadi-pbs.SC: CICE output file is /g/data/gv90/da1339/src/CICE_dyntens/dyntens_box01/logs/cice.runlog.260925-065019
+Fri Sep 25 06:50:28 AEST 2026 /local/spool/pbs/mom_priv/jobs/179819901.gadi-pbs.SC: CICE run completed successfully
+Fri Sep 25 12:01:37 AEST 2026 ./cice.build:dyntens_box01 build completed cice.bldlog.260925-120014
+Fri Sep 25 12:41:31 AEST 2026 ./cice.submit: dyntens_box01 job submitted
+Fri Sep 25 12:47:22 AEST 2026 /local/spool/pbs/mom_priv/jobs/179843659.gadi-pbs.SC: CICE output file is /g/data/gv90/da1339/src/CICE_dyntens/dyntens_box01/logs/cice.runlog.260925-124634
+Fri Sep 25 12:47:22 AEST 2026 /local/spool/pbs/mom_priv/jobs/179843659.gadi-pbs.SC: CICE run completed successfully
+Fri Sep 25 13:16:05 AEST 2026 ./cice.submit: dyntens_box01 job submitted
+Fri Sep 25 13:18:15 AEST 2026 /local/spool/pbs/mom_priv/jobs/179846283.gadi-pbs.SC: CICE output file is /g/data/gv90/da1339/src/CICE_dyntens/dyntens_box01/logs/cice.runlog.260925-131803
+Fri Sep 25 13:18:15 AEST 2026 /local/spool/pbs/mom_priv/jobs/179846283.gadi-pbs.SC: CICE run completed successfully
+Fri Sep 25 16:02:56 AEST 2026 ./cice.build:dyntens_box01 build completed cice.bldlog.260925-160129
+Fri Sep 25 16:35:38 AEST 2026 ./cice.build:dyntens_box01 build completed cice.bldlog.260925-163414

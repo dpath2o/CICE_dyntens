@@ -127,28 +127,35 @@
          dxhy   , & ! 0.5*(HTE(i,j) - HTW(i,j)) = 0.5*(HTE(i,j) - HTE(i-1,j))
          dyhx       ! 0.5*(HTN(i,j) - HTS(i,j)) = 0.5*(HTN(i,j) - HTN(i,j-1))
 
-      ! ice isotropic tensile strength parameter
-      real (kind=dbl_kind), public :: &
-         Ktens               ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
-
-      ! Prescribed tensile coefficient; box_band is a development test, not FSD feedback.
-      real (kind=dbl_kind), public :: dyntens_g_const = 1.0_dbl_kind
-      character (len=char_len), public :: dyntens_g_mode = 'constant'
-      real (kind=dbl_kind), public :: dyntens_g_band = 0.5_dbl_kind
-      integer (kind=int_kind), public :: dyntens_band_ilo = 6, dyntens_band_ihi = 7
-      logical (kind=log_kind), public :: &
-         use_dyntens = .false. ! supported only by C-grid standard_2d EVP / avg_zeta
-
       ! seabed (basal) stress parameters and settings
       logical (kind=log_kind), public :: &
-         seabed_stress  ! if true, seabed stress for landfast on
+           seabed_stress  ! if true, seabed stress for landfast on
 
       real (kind=dbl_kind), public :: &
-         k1              , & ! 1st free parameter for seabed1 grounding parameterization
-         k2              , & ! second free parameter (N/m^3) for seabed1 grounding parametrization
-         alphab          , & ! alphab=Cb factor in Lemieux et al 2015
-         threshold_hw        ! max water depth for grounding
-                             ! see keel data from Amundrud et al. 2004 (JGR)
+           k1              , & ! 1st free parameter for seabed1 grounding parameterization
+           k2              , & ! second free parameter (N/m^3) for seabed1 grounding parametrization
+           alphab          , & ! alphab=Cb factor in Lemieux et al 2015
+           threshold_hw        ! max water depth for grounding
+      ! see keel data from Amundrud et al. 2004 (JGR)
+
+      ! ice isotropic tensile strength parameter
+      real (kind=dbl_kind), public :: &
+           Ktens               ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
+
+      !---------------------------------------------------------------------------------------------
+      ! dynamic tensile strength
+      ! Prescribed tensile coefficient; box_band is a development test, not FSD feedback.
+      real (kind=dbl_kind), public :: &
+           dyntens_g_const = 1.0_dbl_kind
+      character (len=char_len), public :: &
+           dyntens_g_mode = 'constant'
+      real (kind=dbl_kind), public :: &
+           dyntens_g_band = 0.5_dbl_kind
+      integer (kind=int_kind), public :: &
+           dyntens_band_ilo = 6, &
+           dyntens_band_ihi = 7
+      logical (kind=log_kind), public :: &
+         use_dyntens = .false. ! supported only by C-grid standard_2d EVP / avg_zeta
 
       !---------------------------------------------------------------------------------------------
       ! lateral drag

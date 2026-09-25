@@ -1,0 +1,5 @@
+#!/bin/csh -f 
+
+qsub  ./cice.run
+echo "`date` ${0}: dyntens_box01 job submitted"  >> /g/data/gv90/da1339/src/CICE_dyntens/dyntens_box01/README.case
+

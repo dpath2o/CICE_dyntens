@@ -48,12 +48,10 @@
            uvel_init, vvel_init, uvelE_init, vvelE_init, uvelN_init, vvelN_init, &
            seabed_stress_factor_LKD, seabed_stress_factor_prob, seabed_stress_method, &
            seabed_stress, Ktens, use_dyntens, dyntens_g_const, revp, &
-           dyntens_g_mode, dyntens_g_band, dyntens_band_ilo, dyntens_band_ihi, &
-           lateral_drag, boundary_condition, form_func, lateral_drag_stress_factor, &
-           Cs, Cq, C_L, u0, eps_blend, blend_exp, u_cap_eff, u_cap, &
-           static_switch, quad_switch, linear_switch, blend_strain_switch
-           ! u_blend, u_sat, &
-           ! quad_cap_switch, blend_vel_switch, quad_sat_switch
+           dyntens_g_mode, dyntens_g_band, dyntens_band_ilo, dyntens_band_ihi, &        ! dynamic tensile strength
+           lateral_drag, boundary_condition, form_func, lateral_drag_stress_factor, &   ! lateral drag
+           Cs, Cq, C_L, u0, eps_blend, blend_exp, u_cap_eff, u_cap, &                   ! lateral drag
+           static_switch, quad_switch, linear_switch, blend_strain_switch               ! lateral drag
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -121,107 +119,104 @@
          umass    (:,:,:) , & ! total mass of ice and snow (u grid)
          umassdti (:,:,:)     ! mass of U-cell/dte (kg/m^2 s)
 
-      ! Diagnostic/derived coefficient, not prognostic restart state.
-      ! Public for history; consumers must check use_dyntens before access.
-      real (kind=dbl_kind), allocatable, public :: dyntens_gT(:,:,:), ktens_effT(:,:,:)
+      ! Dynamic tensile strength coefficients
+      real (kind=dbl_kind), allocatable, public :: &
+           dyntens_gT(:,:,:), & ! prescribed multiplier g at T points (units: 1)
+           ktens_effT(:,:,:)    ! effective coefficient Ktens*g at T points (units: 1)
 
       public :: evp, init_evp
 
 !=======================================================================
 
-      contains
+    contains
+
+      ! dynamic tensile strength
+      ! Construct on owned cells, then exchange T-centred scalar halos.
+      ! Do not prescribe by local i: local indices change with decomposition.
+      subroutine update_dyntens_coefficients()
+        use ice_blocks, only: block, get_block, i_global
+        use ice_domain, only: nblocks, blocks_ice, halo_info
+        use ice_boundary, only: ice_HaloUpdate
+        type(block) :: b
+        integer(kind=int_kind) :: iblk, i, j, ig
+        dyntens_gT = dyntens_g_const
+        if (trim(dyntens_g_mode) == 'box_band') then
+           do iblk = 1, nblocks
+              b = get_block(blocks_ice(iblk), iblk)
+              do j = b%jlo, b%jhi
+                 do i = b%ilo, b%ihi
+                    ig = i_global(i, blocks_ice(iblk))
+                    if (ig >= dyntens_band_ilo .and. ig <= dyntens_band_ihi) &
+                         dyntens_gT(i,j,iblk) = dyntens_g_band
+                 enddo
+              enddo
+           enddo
+        endif
+        call ice_HaloUpdate(dyntens_gT, halo_info, field_loc_center, field_type_scalar, fillValue = dyntens_g_const)
+        ktens_effT = Ktens*dyntens_gT
+      end subroutine update_dyntens_coefficients
 
 !=======================================================================
 ! Elastic-viscous-plastic dynamics driver
 !
-      ! Construct on owned cells, then exchange T-centred scalar halos.
-      ! Do not prescribe by local i: local indices change with decomposition.
-      subroutine update_dyntens_coefficients()
-      use ice_blocks, only: block, get_block, i_global
-      use ice_domain, only: nblocks, blocks_ice, halo_info
-      use ice_boundary, only: ice_HaloUpdate
-      type(block) :: b
-      integer(kind=int_kind) :: iblk, i, j, ig
-
-      dyntens_gT = dyntens_g_const
-      if (trim(dyntens_g_mode) == 'box_band') then
-         do iblk = 1, nblocks
-            b = get_block(blocks_ice(iblk), iblk)
-            do j = b%jlo, b%jhi
-               do i = b%ilo, b%ihi
-                  ig = i_global(i, blocks_ice(iblk))
-                  if (ig >= dyntens_band_ilo .and. ig <= dyntens_band_ihi) &
-                     dyntens_gT(i,j,iblk) = dyntens_g_band
-               enddo
-            enddo
-         enddo
-      endif
-      call ice_HaloUpdate(dyntens_gT, halo_info, field_loc_center, field_type_scalar, &
-                          fillValue=dyntens_g_const)
-      ktens_effT = Ktens*dyntens_gT
-      end subroutine update_dyntens_coefficients
-
       subroutine init_evp
-      use ice_blocks, only: get_block, nx_block, ny_block, nghost, block
-      use ice_domain_size, only: max_blocks
-      use ice_domain, only: nblocks, blocks_ice
-      use ice_grid, only: grid_ice, dyT, dxT, uarear, tmask, G_HTE, G_HTN, dxN, dyE, &
-         load_F2_form_factors
-      use ice_calendar, only: dt_dyn
-      use ice_dyn_shared, only: init_dyn_shared, evp_algorithm, iceEmask, iceNmask, &
-         lateral_drag
-      use ice_dyn_evp1d, only: dyn_evp1d_init
+        use ice_blocks, only: get_block, nx_block, ny_block, nghost, block
+        use ice_domain_size, only: max_blocks
+        use ice_domain, only: nblocks, blocks_ice
+        use ice_grid, only: grid_ice, dyT, dxT, uarear, tmask, G_HTE, G_HTN, dxN, dyE, &
+             load_F2_form_factors
+        use ice_calendar, only: dt_dyn
+        use ice_dyn_shared, only: init_dyn_shared, evp_algorithm, iceEmask, iceNmask, &
+             lateral_drag
+        use ice_dyn_evp1d, only: dyn_evp1d_init
 
 !allocate c and cd grid var. Follow structucre of eap
-      integer (int_kind) :: ierr
+        integer (int_kind) :: ierr
 
-      character(len=*), parameter :: subname = '(init_evp)'
+        character(len=*), parameter :: subname = '(init_evp)'
 
-     type (block) :: &
-         this_block   ! block information for current block
+        type (block) :: &
+             this_block   ! block information for current block
 
-      integer (kind=int_kind) :: &
-         i, j, iblk            , & ! block index
-         ilo,ihi,jlo,jhi           ! beginning and end of physical domain
+        integer (kind=int_kind) :: &
+             i, j, iblk            , & ! block index
+             ilo,ihi,jlo,jhi           ! beginning and end of physical domain
 
+        call init_dyn_shared(dt_dyn)
 
-      call init_dyn_shared(dt_dyn)
+        ! dynamic tensile strength
+        if (use_dyntens) then
+           allocate(ktens_effT(nx_block,ny_block,max_blocks), dyntens_gT(nx_block,ny_block,max_blocks), stat=ierr)
+           if (ierr /= 0) call abort_ice(subname//' ERROR: Out of memory ktens_effT')
+           call update_dyntens_coefficients()
+        endif
 
-      if (use_dyntens) then
-         allocate(ktens_effT(nx_block,ny_block,max_blocks), &
-                  dyntens_gT(nx_block,ny_block,max_blocks), stat=ierr)
-         if (ierr /= 0) call abort_ice(subname//' ERROR: Out of memory ktens_effT')
-         call update_dyntens_coefficients()
-      endif
+        !------------------------------------------------
+        ! form factor load or test case scenario (uniform grid)
+        if (lateral_drag) then
+           call load_F2_form_factors()
+        endif
 
-      !------------------------------------------------
-      ! form factor load or test case scenario (uniform grid)
-      if (lateral_drag) then
-         call load_F2_form_factors()
-      endif
+        if (evp_algorithm == "shared_mem_1d" ) then
+           call dyn_evp1d_init
+        endif
 
-      if (evp_algorithm == "shared_mem_1d" ) then
-         call dyn_evp1d_init
-      endif
-
-      allocate( uocnU    (nx_block,ny_block,max_blocks), & ! i ocean current (m/s)
-                vocnU    (nx_block,ny_block,max_blocks), & ! j ocean current (m/s)
-                ss_tltxU (nx_block,ny_block,max_blocks), & ! sea surface slope, x-direction (m/m)
-                ss_tltyU (nx_block,ny_block,max_blocks), & ! sea surface slope, y-direction (m/m)
-                cdn_ocnU (nx_block,ny_block,max_blocks), & ! ocn drag coefficient
-                tmass    (nx_block,ny_block,max_blocks), & ! total mass of ice and snow (kg/m^2)
-                waterxU  (nx_block,ny_block,max_blocks), & ! for ocean stress calculation, x (m/s)
-                wateryU  (nx_block,ny_block,max_blocks), & ! for ocean stress calculation, y (m/s)
-                forcexU  (nx_block,ny_block,max_blocks), & ! work array: combined atm stress and ocn tilt, x
-                forceyU  (nx_block,ny_block,max_blocks), & ! work array: combined atm stress and ocn tilt, y
-                umass    (nx_block,ny_block,max_blocks), & ! total mass of ice and snow (u grid)
-                umassdti (nx_block,ny_block,max_blocks), & ! mass of U-cell/dte (kg/m^2 s)
-                stat=ierr)
+        allocate(uocnU(nx_block,ny_block,max_blocks), & ! i ocean current (m/s)
+             vocnU    (nx_block,ny_block,max_blocks), & ! j ocean current (m/s)
+             ss_tltxU (nx_block,ny_block,max_blocks), & ! sea surface slope, x-direction (m/m)
+             ss_tltyU (nx_block,ny_block,max_blocks), & ! sea surface slope, y-direction (m/m)
+             cdn_ocnU (nx_block,ny_block,max_blocks), & ! ocn drag coefficient
+             tmass    (nx_block,ny_block,max_blocks), & ! total mass of ice and snow (kg/m^2)
+             waterxU  (nx_block,ny_block,max_blocks), & ! for ocean stress calculation, x (m/s)
+             wateryU  (nx_block,ny_block,max_blocks), & ! for ocean stress calculation, y (m/s)
+             forcexU  (nx_block,ny_block,max_blocks), & ! work array: combined atm stress and ocn tilt, x
+             forceyU  (nx_block,ny_block,max_blocks), & ! work array: combined atm stress and ocn tilt, y
+             umass    (nx_block,ny_block,max_blocks), & ! total mass of ice and snow (u grid)
+             umassdti (nx_block,ny_block,max_blocks), & ! mass of U-cell/dte (kg/m^2 s)
+             stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory B-Grid evp')
 
-
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
-
          allocate( strengthU(nx_block,ny_block,max_blocks), &
                    divergU  (nx_block,ny_block,max_blocks), &
                    tensionU (nx_block,ny_block,max_blocks), &
@@ -233,7 +228,6 @@
                    etax2U   (nx_block,ny_block,max_blocks), &
                    stat=ierr)
          if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory U evp')
-
          allocate( uocnN    (nx_block,ny_block,max_blocks), &
                    vocnN    (nx_block,ny_block,max_blocks), &
                    ss_tltxN (nx_block,ny_block,max_blocks), &
@@ -248,7 +242,6 @@
                    nmassdti (nx_block,ny_block,max_blocks), &
                    stat=ierr)
          if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory N evp')
-
          allocate( uocnE    (nx_block,ny_block,max_blocks), &
                    vocnE    (nx_block,ny_block,max_blocks), &
                    ss_tltxE (nx_block,ny_block,max_blocks), &
@@ -263,14 +256,12 @@
                    emassdti (nx_block,ny_block,max_blocks), &
                    stat=ierr)
          if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory E evp')
-
          allocate( ratiodxN (nx_block,ny_block,max_blocks), &
                    ratiodyE (nx_block,ny_block,max_blocks), &
                    ratiodxNr(nx_block,ny_block,max_blocks), &
                    ratiodyEr(nx_block,ny_block,max_blocks), &
                    stat=ierr)
          if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory ratio')
-
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
          do iblk = 1, nblocks
             this_block = get_block(blocks_ice(iblk),iblk)
@@ -278,18 +269,16 @@
             ihi = this_block%ihi
             jlo = this_block%jlo
             jhi = this_block%jhi
-
             do j = jlo, jhi
-            do i = ilo, ihi
-               ratiodxN (i,j,iblk) = - dxN(i+1,j  ,iblk) / dxN(i,j,iblk)
-               ratiodyE (i,j,iblk) = - dyE(i  ,j+1,iblk) / dyE(i,j,iblk)
-               ratiodxNr(i,j,iblk) =   c1 / ratiodxN(i,j,iblk)
-               ratiodyEr(i,j,iblk) =   c1 / ratiodyE(i,j,iblk)
-            enddo
+               do i = ilo, ihi
+                  ratiodxN (i,j,iblk) = - dxN(i+1,j  ,iblk) / dxN(i,j,iblk)
+                  ratiodyE (i,j,iblk) = - dyE(i  ,j+1,iblk) / dyE(i,j,iblk)
+                  ratiodxNr(i,j,iblk) =   c1 / ratiodxN(i,j,iblk)
+                  ratiodyEr(i,j,iblk) =   c1 / ratiodyE(i,j,iblk)
+               enddo
             enddo
          enddo                     ! iblk
          !$OMP END PARALLEL DO
-
       endif
 
       end subroutine init_evp
@@ -2020,13 +2009,14 @@
          ! viscosities and replacement pressure at T point
          !-----------------------------------------------------------------
 
+         ! dynamic tensile strength
          if (use_dyntens) then
             call visc_replpress (strength(i,j), DminTarea(i,j), DeltaT, &
-                                 zetax2T(i,j), etax2T(i,j), rep_prsT, &
-                                 ktens_local=ktens_effT(i,j,iblk))
+                                 zetax2T (i,j), etax2T   (i,j), rep_prsT, &
+                                 ktens_local = ktens_effT(i,j,iblk))
          else
             call visc_replpress (strength(i,j), DminTarea(i,j), DeltaT, &
-                                 zetax2T (i,j), etax2T(i,j), rep_prsT)
+                                 zetax2T (i,j), etax2T   (i,j), rep_prsT)
          endif
 
          !-----------------------------------------------------------------
@@ -2034,7 +2024,6 @@
          !-----------------------------------------------------------------
 
          ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
-
          stresspT(i,j)  = (stresspT (i,j)*(c1-arlx1i*revp) &
                           + arlx1i*(zetax2T(i,j)*divT(i,j) - rep_prsT)) * denom1
 
