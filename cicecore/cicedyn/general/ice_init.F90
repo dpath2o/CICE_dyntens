@@ -123,7 +123,7 @@
            ndte, kdyn, revised_evp, yield_curve, &
            evp_algorithm, visc_method,     &
            seabed_stress, seabed_stress_method, &
-           k1, k2, alphab, threshold_hw, Ktens, use_dyntens, &
+           k1, k2, alphab, threshold_hw, Ktens, use_dyntens, dyntens_g_const, &
            e_yieldcurve, e_plasticpot, coriolis, &
            ssh_stress, kridge, brlx, arlx,       &
            deltaminEVP, deltaminVP, capping,     &
@@ -268,7 +268,7 @@
            k1, k2,         alphab,         threshold_hw,                   &
            deltaminEVP,    deltaminVP,     capping_method,                 &
            Cf,             Pstar,          Cstar,          Ktens,          &
-           use_dyntens,                                                    &
+           use_dyntens, dyntens_g_const,                                   &
            dyn_area_min,   dyn_mass_min
 
       namelist /shortwave_nml/ &
@@ -477,7 +477,8 @@
       k2                    = 15.0_dbl_kind   ! 2nd free parameter (N/m^3) for landfast parametrization
       alphab                = 20.0_dbl_kind   ! alphab=Cb factor in Lemieux et al 2015
       threshold_hw          = 30.0_dbl_kind   ! max water depth for grounding
-      use_dyntens           = .false.        ! local tensile path (g=1 only)
+      use_dyntens           = .false.        ! local tensile path
+      dyntens_g_const       = 1.0_dbl_kind    ! prescribed g, not FSD feedback
       Ktens                 = 0.0_dbl_kind    ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
       e_yieldcurve          = 2.0_dbl_kind    ! VP aspect ratio of elliptical yield curve
       e_plasticpot          = 2.0_dbl_kind    ! VP aspect ratio of elliptical plastic potential
@@ -1133,6 +1134,7 @@
       call broadcast_scalar(threshold_hw,         master_task)
       call broadcast_scalar(Ktens,                master_task)
       call broadcast_scalar(use_dyntens,          master_task)
+      call broadcast_scalar(dyntens_g_const,       master_task)
       call broadcast_scalar(e_yieldcurve,         master_task)
       call broadcast_scalar(e_plasticpot,         master_task)
       call broadcast_scalar(visc_method,          master_task)
@@ -1514,6 +1516,10 @@
              yield_curve /= 'ellipse' .or. revised_evp) then
             call abort_ice(error_message= &
                  'use_dyntens requires C-grid, standard_2d EVP, avg_zeta, ellipse, revised_evp=F', &
+                 file=__FILE__, line=__LINE__)
+         endif
+         if (.not. (dyntens_g_const >= c0 .and. dyntens_g_const <= c1)) then
+            call abort_ice(error_message='use_dyntens requires 0 <= dyntens_g_const <= 1', &
                  file=__FILE__, line=__LINE__)
          endif
          if (.not. (Ktens >= c0 .and. Ktens <= c1)) then
@@ -2331,7 +2337,10 @@
 
             write(nu_diag,1002) ' Ktens            = ', Ktens, ' : tensile strength factor'
             write(nu_diag,*) ' use_dyntens      = ', use_dyntens
-            if (use_dyntens) write(nu_diag,*) ' Dynamic tensile stage 1: g=1; Ktens_eff=Ktens at all T points'
+            if (use_dyntens) then
+               write(nu_diag,*) ' Dynamic tensile prescribed constant g = ', dyntens_g_const
+               write(nu_diag,*) ' Ktens_eff at all T points = ', Ktens*dyntens_g_const
+            endif
 
             if (kdyn == 3) then
                write(nu_diag,1020) ' maxits_nonlin    = ', maxits_nonlin,' : max nb of iteration for nonlinear solver'

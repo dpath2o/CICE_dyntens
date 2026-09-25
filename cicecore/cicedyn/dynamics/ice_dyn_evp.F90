@@ -47,7 +47,7 @@
            ndte, yield_curve, ecci, denom1, arlx1i, fcor_blk, fcorE_blk, fcorN_blk, &
            uvel_init, vvel_init, uvelE_init, vvelE_init, uvelN_init, vvelN_init, &
            seabed_stress_factor_LKD, seabed_stress_factor_prob, seabed_stress_method, &
-           seabed_stress, Ktens, use_dyntens, revp, &
+           seabed_stress, Ktens, use_dyntens, dyntens_g_const, revp, &
            lateral_drag, boundary_condition, form_func, lateral_drag_stress_factor, &
            Cs, Cq, C_L, u0, eps_blend, blend_exp, u_cap_eff, u_cap, &
            static_switch, quad_switch, linear_switch, blend_strain_switch
@@ -121,7 +121,7 @@
          umassdti (:,:,:)     ! mass of U-cell/dte (kg/m^2 s)
 
       ! Diagnostic/derived coefficient, not prognostic restart state.
-      ! Stage 1 uses g=1 everywhere, including halo/land cells.
+      ! Prescribed constant g everywhere, including halo/land cells.
       real (kind=dbl_kind), allocatable :: ktens_effT(:,:,:)
 
       public :: evp, init_evp
@@ -162,7 +162,7 @@
       if (use_dyntens) then
          allocate(ktens_effT(nx_block,ny_block,max_blocks), stat=ierr)
          if (ierr /= 0) call abort_ice(subname//' ERROR: Out of memory ktens_effT')
-         ktens_effT(:,:,:) = Ktens*c1
+         ktens_effT(:,:,:) = Ktens*dyntens_g_const
       endif
 
       !------------------------------------------------
@@ -376,7 +376,7 @@
       ! Refresh once per dynamics step, outside EVP subcycling and OMP regions.
       ! No FSD feedback in this equivalence stage.  No halo exchange is needed
       ! for a uniform field; a spatial g will require its own halo treatment.
-      if (use_dyntens) ktens_effT(:,:,:) = Ktens*c1
+      if (use_dyntens) ktens_effT(:,:,:) = Ktens*dyntens_g_const
 
       !-----------------------------------------------------------------
       ! Initialize
