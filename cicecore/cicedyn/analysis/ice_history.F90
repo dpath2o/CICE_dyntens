@@ -660,6 +660,8 @@
       call broadcast_scalar (f_ldpquadE, master_task)
       call broadcast_scalar (f_ldplinN,  master_task)
       call broadcast_scalar (f_ldplinE,  master_task)
+      call broadcast_scalar (f_dyntens_g, master_task)
+      call broadcast_scalar (f_ktens_eff, master_task)
       call broadcast_scalar (f_strength, master_task)
       call broadcast_scalar (f_divu, master_task)
       call broadcast_scalar (f_shear, master_task)
@@ -1412,6 +1414,13 @@
              "seabed (basal) stress (y)",                                &
              "positive is y direction on E grid", c1, c0,                &
              ns1, f_taubyE)
+
+         call define_hist_field(n_dyntens_g,"dyntens_g","1",tstr2D, tcstr, &
+             "prescribed tensile multiplier g", &
+             "T-cell scalar; disabled path reports one", c1, c0, ns1, f_dyntens_g)
+         call define_hist_field(n_ktens_eff,"ktens_eff","1",tstr2D, tcstr, &
+             "effective tensile coefficient Ktens*g", &
+             "dimensionless coefficient, not tensile stress", c1, c0, ns1, f_ktens_eff)
 
          call define_hist_field(n_strength,"strength","N/m",tstr2D, tcstr, &
              "compressive ice strength",                                 &
@@ -2331,7 +2340,8 @@
                               new_month
       use ice_dyn_eap, only: a11, a12, e11, e12, e22, s11, s12, s22, &
           yieldstress11, yieldstress12, yieldstress22
-      use ice_dyn_shared, only: kdyn, principal_stress, &
+      use ice_dyn_evp, only: dyntens_gT, ktens_effT
+      use ice_dyn_shared, only: kdyn, principal_stress, use_dyntens, Ktens, &
            KuxN, KuyN, KuxE, KuyE, KuxU, KuyU, KuN, KuE, KuU, &
            ldphiN, ldphiE, ldwgtN, ldwgtE, ldepsN, ldepsE, &
            ldspdN, ldspdE, ldpstatN, ldpstatE, ldpquadN, ldpquadE, &
@@ -2852,6 +2862,22 @@
              call accum_hist_field(n_taubxE, iblk, taubxE(:,:,iblk), a2D)
          if (f_taubyE(1:1) /= 'x') &
              call accum_hist_field(n_taubyE, iblk, taubyE(:,:,iblk), a2D)
+         if (f_dyntens_g(1:1) /= 'x') then
+            if (use_dyntens) then
+               call accum_hist_field(n_dyntens_g,iblk,dyntens_gT(:,:,iblk),a2D)
+            else
+               worka(:,:) = c1
+               call accum_hist_field(n_dyntens_g,iblk,worka,a2D)
+            endif
+         endif
+         if (f_ktens_eff(1:1) /= 'x') then
+            if (use_dyntens) then
+               call accum_hist_field(n_ktens_eff,iblk,ktens_effT(:,:,iblk),a2D)
+            else
+               worka(:,:) = Ktens
+               call accum_hist_field(n_ktens_eff,iblk,worka,a2D)
+            endif
+         endif
          if (f_strength(1:1)/= 'x') &
              call accum_hist_field(n_strength,iblk, strength(:,:,iblk), a2D)
 

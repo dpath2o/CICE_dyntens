@@ -378,6 +378,8 @@ contains
        call uniform_data_atm('NE')
     elseif (trim(atm_data_type) == 'uniform_north') then
        call uniform_data_atm('N')
+    elseif (trim(atm_data_type) == 'box_tensile') then
+       call uniform_data_atm('TENSILE')
     elseif (trim(atm_data_type) == 'uniform_east') then
        call uniform_data_atm('E')
     elseif (trim(atm_data_type) == 'uniform_south') then
@@ -1729,6 +1731,8 @@ contains
        call uniform_data_atm('NE')
     elseif (trim(atm_data_type) == 'uniform_north') then
        call uniform_data_atm('N')
+    elseif (trim(atm_data_type) == 'box_tensile') then
+       call uniform_data_atm('TENSILE')
     elseif (trim(atm_data_type) == 'uniform_east') then
        call uniform_data_atm('E')
     elseif (trim(atm_data_type) == 'uniform_south') then
@@ -5668,8 +5672,9 @@ contains
  !=======================================================================
  subroutine uniform_data_atm(dir,spd)
    !     uniform wind fields in some direction
-   use ice_domain, only: nblocks
-   use ice_blocks, only: nx_block, ny_block, nghost
+   use ice_domain, only: nblocks, blocks_ice
+   use ice_blocks, only: nx_block, ny_block, nghost, i_global
+   use ice_grid, only: grid_type
    use ice_flux, only: uatm, vatm, wind, rhoa, strax, stray
    use ice_state, only: aice
 
@@ -5706,6 +5711,23 @@ contains
    elseif (dir == 'E') then
       uatm = atm_val
       vatm = c0
+   elseif (dir == 'TENSILE') then
+      ! Controlled box-only load: west half -5 m/s, east half +5 m/s.
+      ! Use global indices also in halos so this is decomposition independent.
+      if (trim(grid_type) /= 'rectangular' .or. mod(nx_global,2) /= 0) &
+         call abort_ice('box_tensile requires an even-width rectangular grid')
+      vatm = c0
+      uatm = c0
+      do iblk = 1, nblocks
+         do i = 1, nx_block
+            if (i_global(i,blocks_ice(iblk)) <= 0) cycle
+            if (i_global(i,blocks_ice(iblk)) <= nx_global/2) then
+               uatm(i,:,iblk) = -atm_val
+            else
+               uatm(i,:,iblk) = atm_val
+            endif
+         enddo
+      enddo
    elseif (dir == 'S') then
       uatm = c0
       vatm = -atm_val

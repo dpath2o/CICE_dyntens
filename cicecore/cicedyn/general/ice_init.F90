@@ -65,7 +65,7 @@
           debug_model_i, debug_model_j, debug_model_iblk
       use ice_domain, only: close_boundaries
       use ice_domain_size, only: &
-          ncat, nilyr, nslyr, nblyr, nfsd, nfreq, &
+          ncat, nilyr, nslyr, nblyr, nfsd, nfreq, nx_global, &
           n_iso, n_aero, n_zaero, n_algae, &
           n_doc, n_dic, n_don, n_fed, n_fep, &
           max_nstrm
@@ -124,6 +124,7 @@
            evp_algorithm, visc_method,     &
            seabed_stress, seabed_stress_method, &
            k1, k2, alphab, threshold_hw, Ktens, use_dyntens, dyntens_g_const, &
+           dyntens_g_mode, dyntens_g_band, dyntens_band_ilo, dyntens_band_ihi, &
            e_yieldcurve, e_plasticpot, coriolis, &
            ssh_stress, kridge, brlx, arlx,       &
            deltaminEVP, deltaminVP, capping,     &
@@ -269,6 +270,7 @@
            deltaminEVP,    deltaminVP,     capping_method,                 &
            Cf,             Pstar,          Cstar,          Ktens,          &
            use_dyntens, dyntens_g_const,                                   &
+           dyntens_g_mode, dyntens_g_band, dyntens_band_ilo, dyntens_band_ihi, &
            dyn_area_min,   dyn_mass_min
 
       namelist /shortwave_nml/ &
@@ -478,6 +480,10 @@
       alphab                = 20.0_dbl_kind   ! alphab=Cb factor in Lemieux et al 2015
       threshold_hw          = 30.0_dbl_kind   ! max water depth for grounding
       use_dyntens           = .false.        ! local tensile path
+      dyntens_g_mode        = 'constant'
+      dyntens_g_band        = 0.5_dbl_kind
+      dyntens_band_ilo      = 6
+      dyntens_band_ihi      = 7
       dyntens_g_const       = 1.0_dbl_kind    ! prescribed g, not FSD feedback
       Ktens                 = 0.0_dbl_kind    ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
       e_yieldcurve          = 2.0_dbl_kind    ! VP aspect ratio of elliptical yield curve
@@ -1135,6 +1141,10 @@
       call broadcast_scalar(Ktens,                master_task)
       call broadcast_scalar(use_dyntens,          master_task)
       call broadcast_scalar(dyntens_g_const,       master_task)
+      call broadcast_scalar(dyntens_g_mode, master_task)
+      call broadcast_scalar(dyntens_g_band, master_task)
+      call broadcast_scalar(dyntens_band_ilo, master_task)
+      call broadcast_scalar(dyntens_band_ihi, master_task)
       call broadcast_scalar(e_yieldcurve,         master_task)
       call broadcast_scalar(e_plasticpot,         master_task)
       call broadcast_scalar(visc_method,          master_task)
@@ -1511,6 +1521,15 @@
       ! Do not silently leave an enabled local coefficient unused.
       ! Other grids, solvers and U-point strength interpolation are not wired yet.
       if (use_dyntens) then
+         if (trim(dyntens_g_mode) /= 'constant' .and. trim(dyntens_g_mode) /= 'box_band') &
+            call abort_ice('dyntens_g_mode must be constant or box_band')
+         if (trim(dyntens_g_mode) == 'box_band') then
+            if (trim(grid_type) /= 'rectangular') call abort_ice('box_band requires rectangular grid')
+            if (dyntens_band_ilo < 1 .or. dyntens_band_ihi > nx_global .or. &
+                dyntens_band_ilo > dyntens_band_ihi) call abort_ice('invalid dyntens band global i bounds')
+            if (.not. (dyntens_g_band >= c0 .and. dyntens_g_band <= c1)) &
+               call abort_ice('dyntens_g_band must be in [0,1]')
+         endif
          if (grid_ice /= 'C' .or. kdyn /= 1 .or. &
              evp_algorithm /= 'standard_2d' .or. visc_method /= 'avg_zeta' .or. &
              yield_curve /= 'ellipse' .or. revised_evp) then
@@ -2338,8 +2357,12 @@
             write(nu_diag,1002) ' Ktens            = ', Ktens, ' : tensile strength factor'
             write(nu_diag,*) ' use_dyntens      = ', use_dyntens
             if (use_dyntens) then
-               write(nu_diag,*) ' Dynamic tensile prescribed constant g = ', dyntens_g_const
-               write(nu_diag,*) ' Ktens_eff at all T points = ', Ktens*dyntens_g_const
+               write(nu_diag,*) ' Dynamic tensile g mode = ', trim(dyntens_g_mode)
+               write(nu_diag,*) ' Background g, Ktens_eff = ', dyntens_g_const, Ktens*dyntens_g_const
+               if (trim(dyntens_g_mode) == 'box_band') then
+                  write(nu_diag,*) ' Band global i bounds = ', dyntens_band_ilo, dyntens_band_ihi
+                  write(nu_diag,*) ' Band g, Ktens_eff = ', dyntens_g_band, Ktens*dyntens_g_band
+               endif
             endif
 
             if (kdyn == 3) then

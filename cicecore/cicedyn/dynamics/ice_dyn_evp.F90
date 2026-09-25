@@ -48,6 +48,7 @@
            uvel_init, vvel_init, uvelE_init, vvelE_init, uvelN_init, vvelN_init, &
            seabed_stress_factor_LKD, seabed_stress_factor_prob, seabed_stress_method, &
            seabed_stress, Ktens, use_dyntens, dyntens_g_const, revp, &
+           dyntens_g_mode, dyntens_g_band, dyntens_band_ilo, dyntens_band_ihi, &
            lateral_drag, boundary_condition, form_func, lateral_drag_stress_factor, &
            Cs, Cq, C_L, u0, eps_blend, blend_exp, u_cap_eff, u_cap, &
            static_switch, quad_switch, linear_switch, blend_strain_switch
@@ -121,8 +122,8 @@
          umassdti (:,:,:)     ! mass of U-cell/dte (kg/m^2 s)
 
       ! Diagnostic/derived coefficient, not prognostic restart state.
-      ! Prescribed constant g everywhere, including halo/land cells.
-      real (kind=dbl_kind), allocatable :: ktens_effT(:,:,:)
+      ! Public for history; consumers must check use_dyntens before access.
+      real (kind=dbl_kind), allocatable, public :: dyntens_gT(:,:,:), ktens_effT(:,:,:)
 
       public :: evp, init_evp
 
@@ -133,6 +134,33 @@
 !=======================================================================
 ! Elastic-viscous-plastic dynamics driver
 !
+      ! Construct on owned cells, then exchange T-centred scalar halos.
+      ! Do not prescribe by local i: local indices change with decomposition.
+      subroutine update_dyntens_coefficients()
+      use ice_blocks, only: block, get_block, i_global
+      use ice_domain, only: nblocks, blocks_ice, halo_info
+      use ice_boundary, only: ice_HaloUpdate
+      type(block) :: b
+      integer(kind=int_kind) :: iblk, i, j, ig
+
+      dyntens_gT = dyntens_g_const
+      if (trim(dyntens_g_mode) == 'box_band') then
+         do iblk = 1, nblocks
+            b = get_block(blocks_ice(iblk), iblk)
+            do j = b%jlo, b%jhi
+               do i = b%ilo, b%ihi
+                  ig = i_global(i, blocks_ice(iblk))
+                  if (ig >= dyntens_band_ilo .and. ig <= dyntens_band_ihi) &
+                     dyntens_gT(i,j,iblk) = dyntens_g_band
+               enddo
+            enddo
+         enddo
+      endif
+      call ice_HaloUpdate(dyntens_gT, halo_info, field_loc_center, field_type_scalar, &
+                          fillValue=dyntens_g_const)
+      ktens_effT = Ktens*dyntens_gT
+      end subroutine update_dyntens_coefficients
+
       subroutine init_evp
       use ice_blocks, only: get_block, nx_block, ny_block, nghost, block
       use ice_domain_size, only: max_blocks
@@ -160,9 +188,10 @@
       call init_dyn_shared(dt_dyn)
 
       if (use_dyntens) then
-         allocate(ktens_effT(nx_block,ny_block,max_blocks), stat=ierr)
+         allocate(ktens_effT(nx_block,ny_block,max_blocks), &
+                  dyntens_gT(nx_block,ny_block,max_blocks), stat=ierr)
          if (ierr /= 0) call abort_ice(subname//' ERROR: Out of memory ktens_effT')
-         ktens_effT(:,:,:) = Ktens*dyntens_g_const
+         call update_dyntens_coefficients()
       endif
 
       !------------------------------------------------
@@ -373,10 +402,8 @@
 
       call ice_timer_start(timer_dynamics) ! dynamics
 
-      ! Refresh once per dynamics step, outside EVP subcycling and OMP regions.
-      ! No FSD feedback in this equivalence stage.  No halo exchange is needed
-      ! for a uniform field; a spatial g will require its own halo treatment.
-      if (use_dyntens) ktens_effT(:,:,:) = Ktens*dyntens_g_const
+      ! Collective exchange outside EVP subcycles and OMP regions.
+      if (use_dyntens) call update_dyntens_coefficients()
 
       !-----------------------------------------------------------------
       ! Initialize

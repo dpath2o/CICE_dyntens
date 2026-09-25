@@ -279,6 +279,7 @@
            f_strocnxE  = 'x', f_strocnyE   = 'x', &
            f_strintxE  = 'x', f_strintyE   = 'x', &
            f_taubxE    = 'x', f_taubyE     = 'x', &
+           f_dyntens_g = 'x', f_ktens_eff = 'x', &
            f_strength  = 'm', f_vort       = 'm', &
            f_divu      = 'm', f_shear      = 'm', &
            f_sig1      = 'm', f_sig2       = 'm', &
@@ -462,6 +463,7 @@
 !          f_strocnxE,  f_strocnyE , &
 !          f_strintxE,  f_strintyE , &
 !          f_taubxE,    f_taubyE   , &
+           f_dyntens_g, f_ktens_eff, &
            f_strength,  f_vort     , &
            f_divu,      f_shear    , &
            f_sig1,      f_sig2     , &
@@ -676,6 +678,7 @@
            n_strocnxE   , n_strocnyE   , &
            n_strintxE   , n_strintyE   , &
            n_taubxE     , n_taubyE     , &
+           n_dyntens_g, n_ktens_eff, &
            n_strength   , n_vort       , &
            n_divu       , n_shear      , &
            n_sig1       , n_sig2       , &

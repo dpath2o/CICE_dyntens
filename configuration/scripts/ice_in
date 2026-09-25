@@ -168,6 +168,12 @@
     Pstar           = 2.75e4
     Cstar           = 20
     Cf              = 17.
+    use_dyntens     = .false.
+    dyntens_g_mode  = 'constant'
+    dyntens_g_const = 1.0
+    dyntens_g_band  = 0.5
+    dyntens_band_ilo = 6
+    dyntens_band_ihi = 7
     Ktens           = 0.
     e_yieldcurve    = 2.
     e_plasticpot    = 2.
@@ -593,6 +599,8 @@
     f_strinty      = 'x'
     f_taubx        = 'x'
     f_tauby        = 'x'
+    f_dyntens_g    = 'x'
+    f_ktens_eff    = 'x'
     f_strength     = 'm'
     f_divu         = 'm'
     f_shear        = 'm'

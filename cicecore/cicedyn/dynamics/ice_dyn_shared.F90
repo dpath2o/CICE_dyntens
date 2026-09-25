@@ -131,8 +131,11 @@
       real (kind=dbl_kind), public :: &
          Ktens               ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
 
-      ! Optional local tensile coefficient with prescribed constant g.
+      ! Prescribed tensile coefficient; box_band is a development test, not FSD feedback.
       real (kind=dbl_kind), public :: dyntens_g_const = 1.0_dbl_kind
+      character (len=char_len), public :: dyntens_g_mode = 'constant'
+      real (kind=dbl_kind), public :: dyntens_g_band = 0.5_dbl_kind
+      integer (kind=int_kind), public :: dyntens_band_ilo = 6, dyntens_band_ihi = 7
       logical (kind=log_kind), public :: &
          use_dyntens = .false. ! supported only by C-grid standard_2d EVP / avg_zeta
 

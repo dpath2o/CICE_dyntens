@@ -149,3 +149,5 @@ A change in fast-ice extent alone does not establish improved physics. Assess wh
 Preserve source history and record the exact inherited baseline before changing model code. Keep experiment-specific forcing, restarts, executables and output separate from source control. Every experiment should identify its source commit and complete configuration.
 
 Development now uses the controlled 12×12 C-grid box case. See [Developing dynamic tensile strength on box01](docs/development/developing-dynamic-tensile-strength-box01.md) for run records, archive provenance, g=1 comparisons and the prescribed constant-g test. `dyntens_g_const` defaults to 1; values in [0,1] are supported when `use_dyntens` is enabled. This is not yet FSD feedback.
+
+Controlled spatial-coefficient development and tensile loading: [box01 step 3](docs/development/developing-dynamic-tensile-strength-box01-step3.md). Implementation is prepared; Gadi validation is pending.
