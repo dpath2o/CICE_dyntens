@@ -33,6 +33,24 @@ class SpatialGate(unittest.TestCase):
     def test_inward_wind_rejected(self):
         with Dataset(self.path,'a') as d:d['uatm'][:]=-d['uatm'][:]
         with self.assertRaises(ValueError):check_file(self.path,self.args)
+    def ic_file(self):
+        p = self.path.with_name('iceh_ic.2005-01-01-00000.nc')
+        self.path.rename(p)
+        with Dataset(p,'a') as d:d['uatm'][:]=0
+        return p
+    def test_initial_wind_not_yet_applied(self):
+        check_file(self.ic_file(),self.args)
+    def test_initial_bad_coefficient_still_rejected(self):
+        p=self.ic_file()
+        with Dataset(p,'a') as d:d['ktens_eff'][4,5]=.2
+        with self.assertRaises(ValueError):check_file(p,self.args)
+    def test_initial_nonfinite_still_rejected(self):
+        p=self.ic_file()
+        with Dataset(p,'a') as d:d['uatm'][4,5]=np.nan
+        with self.assertRaises(ValueError):check_file(p,self.args)
+    def test_unforced_regular_history_rejected(self):
+        with Dataset(self.path,'a') as d:d['uatm'][:]=0
+        with self.assertRaises(ValueError):check_file(self.path,self.args)
     def make_pair(self):
         runs=[Path(self.tmp.name)/'run',Path(self.tmp.name)/'reference']
         for r in runs:

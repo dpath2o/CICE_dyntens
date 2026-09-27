@@ -41,7 +41,12 @@ def check_file(path, args):
             x = np.ma.asarray(v[:])
             if np.issubdtype(x.dtype, np.number) and not np.isfinite(x.compressed()).all():
                 raise ValueError(f'{name}: nonfinite unmasked values')
-        if args.tensile:
+        # Standalone CICE writes IC history before init_forcing_atmo/get_forcing_atmo.
+        # Keep coefficient and finite-value checks above for this snapshot.
+        is_initial = path.name.startswith(getattr(args, 'ic_prefix', 'iceh_ic') + '.')
+        if args.tensile and is_initial:
+            print('  SKIP prescribed IC wind: snapshot precedes atmospheric forcing initialisation')
+        if args.tensile and not is_initial:
             if mask.shape[1] % 2:
                 raise ValueError('tensile box must have even width')
             want = np.where(ig <= mask.shape[1]//2, -5., 5.)
@@ -96,6 +101,7 @@ def main():
     p.add_argument('--ilo', type=int, default=6)
     p.add_argument('--ihi', type=int, default=7)
     p.add_argument('--tensile', action='store_true')
+    p.add_argument('--ic-prefix', default='iceh_ic', help='IC filename prefix (incond_file)')
     p.add_argument('--reference-run', type=Path)
     p.add_argument('--atol', type=float, default=0.)
     p.add_argument('--rtol', type=float, default=0.)

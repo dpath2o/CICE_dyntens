@@ -163,3 +163,15 @@ construction. This preserves the spatial experiment and all coefficient formulas
 Pull the fix, rebuild, and rerun 3C with the same namelist. The successful companion
 log `cice.runlog.260927-143256` reaches step 120 and 2005-01-06; it does not validate
 the failed spatial case. Runtime confirmation of the fix remains pending on Gadi.
+
+## 27 September 2026: IC wind check correction
+
+The rerun checker passed five daily histories then rejected `uatm` in
+`iceh_ic.2005-01-01-00000.nc`. In the standalone driver, `accum_hist` writes IC
+history before `init_forcing_atmo` and `get_forcing_atmo`. The checker now skips
+only the prescribed wind-pattern assertion for the `iceh_ic.` filename prefix
+(configurable with `--ic-prefix` to match `incond_file`). It still checks IC g,
+effective coefficient and finite values. All subsequent histories retain the wind
+assertion. No model rebuild or simulation rerun is required for this checker fix.
+The reported central daily divergence was positive, falling from about 0.206 to
+0.143 percent/day; hourly-file validation and comparisons to controls remain pending.
