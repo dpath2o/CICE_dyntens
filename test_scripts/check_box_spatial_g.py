@@ -8,10 +8,18 @@ import numpy as np
 from netCDF4 import Dataset
 
 
+def variable(ds, name):
+    # CICE's instantaneous stream uses _1; static grid fields remain unsuffixed.
+    candidates = [n for n in (name, name + '_1') if n in ds.variables]
+    if not candidates:
+        raise ValueError(f'missing field {name} (also tried {name}_1)')
+    if len(candidates) > 1:
+        raise ValueError(f'ambiguous field {name}: both base and _1 variables present')
+    return ds[candidates[0]]
+
+
 def field(ds, name):
-    if name not in ds.variables:
-        raise ValueError(f'missing field {name}')
-    x = np.ma.asarray(ds[name][:])
+    x = np.ma.asarray(variable(ds, name)[:])
     if x.ndim == 3 and x.shape[0] == 1:
         x = x[0]
     if x.ndim != 2:
@@ -54,11 +62,11 @@ def check_file(path, args):
                 x = field(ds, name)
                 if np.any(np.ma.getmaskarray(x)[ocean]) or not np.allclose(x.data[ocean], target[ocean], atol=1e-12, rtol=0):
                     raise ValueError(f'{name}: incorrect prescribed wind')
-        if 'divu' in ds.variables:
+        if 'divu' in ds.variables or 'divu_1' in ds.variables:
             d = field(ds, 'divu')
             centre = ocean & (ig >= mask.shape[1]//2) & (ig <= mask.shape[1]//2+1)
             vals = d[centre].compressed()
-            print(f'  central divu [{ds["divu"].units}]: min={vals.min():.8g}, max={vals.max():.8g}')
+            print(f'  central divu [{variable(ds, "divu").units}]: min={vals.min():.8g}, max={vals.max():.8g}')
 
 
 def compare_runs(run, reference, atol=0., rtol=0.):

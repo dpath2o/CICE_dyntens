@@ -7,6 +7,8 @@ from types import SimpleNamespace
 import numpy as np
 from netCDF4 import Dataset
 from check_box_spatial_g import check_file, compare_runs
+from contextlib import redirect_stdout
+import io
 
 class SpatialGate(unittest.TestCase):
     def setUp(self):
@@ -32,6 +34,30 @@ class SpatialGate(unittest.TestCase):
         with self.assertRaises(ValueError):check_file(self.path,self.args)
     def test_inward_wind_rejected(self):
         with Dataset(self.path,'a') as d:d['uatm'][:]=-d['uatm'][:]
+        with self.assertRaises(ValueError):check_file(self.path,self.args)
+    def instant_file(self):
+        with Dataset(self.path,'a') as d:
+            v=d.createVariable('divu','f8',('nj','ni'));v[:]=.2;v.units='%/day'
+            for name in ['dyntens_g','ktens_eff','uatm','vatm','divu']:
+                d.renameVariable(name,name+'_1')
+    def test_instantaneous_suffix_and_divergence(self):
+        self.instant_file()
+        out=io.StringIO()
+        with redirect_stdout(out):check_file(self.path,self.args)
+        self.assertIn('central divu [%/day]',out.getvalue())
+    def test_instantaneous_bad_wind_rejected(self):
+        self.instant_file()
+        with Dataset(self.path,'a') as d:d['uatm_1'][:]=0
+        with self.assertRaises(ValueError):check_file(self.path,self.args)
+    def test_instantaneous_bad_coefficient_rejected(self):
+        self.instant_file()
+        with Dataset(self.path,'a') as d:d['dyntens_g_1'][4,5]=1
+        with self.assertRaises(ValueError):check_file(self.path,self.args)
+    def test_missing_field_still_rejected(self):
+        with Dataset(self.path,'a') as d:d.renameVariable('dyntens_g','unrelated')
+        with self.assertRaises(ValueError):check_file(self.path,self.args)
+    def test_ambiguous_field_rejected(self):
+        with Dataset(self.path,'a') as d:d.createVariable('dyntens_g_1','f8',('nj','ni'))[:]=1
         with self.assertRaises(ValueError):check_file(self.path,self.args)
     def ic_file(self):
         p = self.path.with_name('iceh_ic.2005-01-01-00000.nc')

@@ -175,3 +175,13 @@ effective coefficient and finite values. All subsequent histories retain the win
 assertion. No model rebuild or simulation rerun is required for this checker fix.
 The reported central daily divergence was positive, falling from about 0.206 to
 0.143 percent/day; hourly-file validation and comparisons to controls remain pending.
+
+### Instantaneous stream variable names
+
+The checker also accepts CICE's `_1` instantaneous-variable suffix (for example
+`dyntens_g_1`, `ktens_eff_1`, `uatm_1`, `vatm_1`, `divu_1`). Static grid fields
+remain unsuffixed. This naming is confirmed in the supplied run's history-field
+registration log. Lookup applies to both data and divergence units; genuinely
+missing fields and ambiguous base-plus-suffix pairs still fail. Seventeen fixture
+tests cover daily, IC and instantaneous naming and retained validation failures.
+This is a checker-only correction; no rebuild or model rerun is required.
