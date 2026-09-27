@@ -147,3 +147,19 @@ Local validation: six modified Fortran modules preprocessed and parsed as Fortra
 ## Results
 
 Pending Gadi build and runs. Do not replace this with a pass based only on successful compilation.
+
+## 27 September 2026: 3C startup validation fix
+
+The supplied `cice.runlog.260927-145305` aborted in `input_data` with
+`invalid dyntens band global i bounds`, before domain initialisation or timestepping.
+Columns 6–7 in the supplied 12-column namelist were valid. The implementation
+incorrectly compared the band upper bound against `nx_global` before
+`init_domain_blocks` read and broadcast `domain_nml`. Constant mode bypassed this
+check, explaining why the earlier controls could run.
+
+Keep positive/ordered band-bound validation in `input_data`; defer the comparison
+with `nx_global` to `init_evp`, after domain initialisation and before coefficient
+construction. This preserves the spatial experiment and all coefficient formulas.
+Pull the fix, rebuild, and rerun 3C with the same namelist. The successful companion
+log `cice.runlog.260927-143256` reaches step 120 and 2005-01-06; it does not validate
+the failed spatial case. Runtime confirmation of the fix remains pending on Gadi.

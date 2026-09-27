@@ -65,7 +65,7 @@
           debug_model_i, debug_model_j, debug_model_iblk
       use ice_domain, only: close_boundaries
       use ice_domain_size, only: &
-          ncat, nilyr, nslyr, nblyr, nfsd, nfreq, nx_global, &
+          ncat, nilyr, nslyr, nblyr, nfsd, nfreq, &
           n_iso, n_aero, n_zaero, n_algae, &
           n_doc, n_dic, n_don, n_fed, n_fep, &
           max_nstrm
@@ -1525,7 +1525,8 @@
             call abort_ice('dyntens_g_mode must be constant or box_band')
          if (trim(dyntens_g_mode) == 'box_band') then
             if (trim(grid_type) /= 'rectangular') call abort_ice('box_band requires rectangular grid')
-            if (dyntens_band_ilo < 1 .or. dyntens_band_ihi > nx_global .or. &
+            ! Domain dimensions are read later; upper bound checked in init_evp.
+            if (dyntens_band_ilo < 1 .or. &
                 dyntens_band_ilo > dyntens_band_ihi) call abort_ice('invalid dyntens band global i bounds')
             if (.not. (dyntens_g_band >= c0 .and. dyntens_g_band <= c1)) &
                call abort_ice('dyntens_g_band must be in [0,1]')

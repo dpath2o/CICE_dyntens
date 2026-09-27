@@ -161,7 +161,7 @@
 !
       subroutine init_evp
         use ice_blocks, only: get_block, nx_block, ny_block, nghost, block
-        use ice_domain_size, only: max_blocks
+        use ice_domain_size, only: max_blocks, nx_global
         use ice_domain, only: nblocks, blocks_ice
         use ice_grid, only: grid_ice, dyT, dxT, uarear, tmask, G_HTE, G_HTN, dxN, dyE, &
              load_F2_form_factors
@@ -181,6 +181,17 @@
         integer (kind=int_kind) :: &
              i, j, iblk            , & ! block index
              ilo,ihi,jlo,jhi           ! beginning and end of physical domain
+
+        ! input_data precedes init_domain_blocks: nx_global is only valid here.
+        ! Check before allocating or constructing the prescribed spatial field.
+        if (use_dyntens .and. trim(dyntens_g_mode) == 'box_band') then
+           if (dyntens_band_ihi > nx_global) then
+              if (my_task == master_task) write(nu_diag,*) &
+                   'dyntens band ilo, ihi, nx_global = ', dyntens_band_ilo, dyntens_band_ihi, nx_global
+              call abort_ice(subname//' ERROR: dyntens_band_ihi exceeds nx_global', &
+                             file=__FILE__, line=__LINE__)
+           endif
+        endif
 
         call init_dyn_shared(dt_dyn)
 
