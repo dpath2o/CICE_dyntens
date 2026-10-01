@@ -94,19 +94,235 @@ These coefficients are prescribed, time-independent derived fields. They are rec
 
 ### Decomposition check
 
-A one-block run tests the prescribed map and forcing but cannot exercise internal block exchange. Use a separate case for each decomposition. The setup's explicit `-p` format is tasks × threads × block-x × block-y × maximum-blocks-per-rank:
+**Next action:** create and run the one-block reference below, check it, then
+progress to the two-block serial and MPI cases. Keep the original `dyntens_box01`
+and its archives unchanged. This is a six-run communication test, not six new
+physics experiments. The matched disabled/g=1 and spatial-null controls remain
+separate acceptance checks.
 
-| Layout | Setup argument | What it exercises |
+#### 1. Define the six cases
+
+The setup's explicit `-p` format is tasks × threads × block-x × block-y ×
+maximum-blocks-per-rank. Global dimensions remain 12×12 in every case.
+
+| Case name | Band columns | `-p` | Purpose |
+|---|---|---|---|
+| `dt_b67_s1` | 6–7 | `1x1x12x12x1` | Fresh one-block 3C reference |
+| `dt_b67_s2` | 6–7 | `1x1x6x12x2` | Two blocks on one rank; local copies |
+| `dt_b67_m2` | 6–7 | `2x1x6x12x1` | One block per rank; MPI exchange |
+| `dt_b6_s1` | 6 only | `1x1x12x12x1` | One-column-band reference |
+| `dt_b6_s2` | 6 only | `1x1x6x12x2` | Coefficient jump across local block edge |
+| `dt_b6_m2` | 6 only | `2x1x6x12x1` | Coefficient jump across MPI boundary |
+
+The internal boundary lies between global columns 6 and 7. With the two-column
+band, both sides have g=0.5. With the one-column band, column 6 has g=0.5 and
+column 7 has g=1: this explicitly tests copying unlike neighbour values. A halo
+is a neighbour's copied value, not an extra physical cell. Compare each split
+layout with its matching one-block reference; do not compare b6 with b67 or
+require east–west symmetry in b6.
+
+#### 2. Generate separate cases from the same source revision
+
+Run from Bash on Gadi. Use the working compiler/module environment established
+for the successful build. Case creation must complete without unresolved module
+errors. The guard prevents accidental regeneration of an existing case.
+
+```bash
+cd /g/data/gv90/da1339/src/CICE_dyntens
+git pull --ff-only origin dev
+git rev-parse HEAD
+for band in b67 b6; do
+    for layout in s1 s2 m2; do
+        case "$layout" in
+            s1) pes=1x1x12x12x1 ;;
+            s2) pes=1x1x6x12x2 ;;
+            m2) pes=2x1x6x12x1 ;;
+        esac
+        case_name="dt_${band}_${layout}"
+        if [ -e "$case_name" ]; then
+            echo "Already exists: $case_name; inspect it before proceeding"
+            break 2
+        fi
+        ./cice.setup -c "$case_name" -m gadi1 -e intel \
+            -g gbox12 -p "$pes" -s boxforcee,boxclosed,buildclean || break 2
+    done
+done
+```
+
+Do not update model source between these builds/runs. Record `git diff` as well
+as the commit if there are uncommitted model changes. Different serial/MPI
+executables are expected; identical source and compiler flags are the controls.
+
+#### 3. Apply the verified physics without losing the generated decomposition
+
+The setup options alone do not recreate the accepted experiment. Use the
+**archived successful 3C `ice_in`**, not an actively edited working namelist.
+The following one-time preparation copies that configuration while retaining
+**each generated `domain_nml` in full**. The archived output paths are relative
+and therefore resolve inside each case's own run directory. It saves the
+original generated namelist for inspection and refuses to overwrite that backup.
+
+```bash
+python3 - <<'PY'
+from pathlib import Path
+import re
+
+source = Path.home() / 'AFIM_archive/LFI-waves-dyntens/dyntens-box01.step3-C.20260927-154047/ice_in'
+accepted = source.read_text()
+domain = re.compile(r'(?ms)^\s*&domain_nml\b.*?^\s*/\s*$')
+assert len(domain.findall(accepted)) == 1, 'expected one archived domain_nml'
+for key, value in [('ice_ic', "'internal'"), ('npt', '5'),
+                   ('atm_data_type', "'box_tensile'"),
+                   ('use_dyntens', '.true.'), ('dyntens_g_mode', "'box_band'")]:
+    match = re.search(r'(?mi)^\s*' + key + r'\s*=\s*([^!\n]+)', accepted)
+    assert match and match[1].strip() == value, (key, 'unexpected template')
+for key in ['restart_dir', 'history_dir', 'incond_dir', 'pointer_file']:
+    match = re.search(r'(?mi)^\s*' + key + r"\s*=\s*'([^']+)'", accepted)
+    assert match and match[1].startswith('./'), (key, 'expected case-relative path')
+
+prepared = []
+for band, upper in [('b67', 7), ('b6', 6)]:
+    for layout in ['s1', 's2', 'm2']:
+        case = Path(f'dt_{band}_{layout}')
+        target = case / 'ice_in'
+        generated = target.read_text()
+        matches = domain.findall(generated)
+        assert len(matches) == 1, (case, 'expected one generated domain_nml')
+        backup = case / 'ice_in.setup-original'
+        assert not backup.exists(), (backup, 'already prepared')
+        result = domain.sub(lambda m: matches[0], accepted)
+        result, count = re.subn(r'(?mi)^(\s*dyntens_band_ihi\s*=).*$',
+                               lambda m: m[1] + f' {upper}', result)
+        assert count == 1
+        prepared.append((target, backup, generated, result))
+# Validate all six before writing any of them.
+for target, backup, generated, result in prepared:
+    backup.write_text(generated)
+    target.write_text(result)
+    print('Prepared', target)
+PY
+```
+
+Check that these settings are present in each prepared case:
+
+- `use_dyntens=.true.`, mode `box_band`, background 1, band 0.5,
+  `Ktens=0.2`, lower column 6; upper column 7 or 6 as above.
+- `atm_data_type='box_tensile'`; free-slip C-grid; lateral drag, waves,
+  thermodynamics and mixed-layer evolution remain as in archived 3C.
+- Internal initial conditions, five days, one-hour timestep, the same EVP
+  subcycling; daily plus hourly coefficient/stress/velocity output.
+
+```bash
+for case_name in dt_b67_s1 dt_b67_s2 dt_b67_m2 dt_b6_s1 dt_b6_s2 dt_b6_m2; do
+    echo "$case_name"
+    sed -n '/&domain_nml/,/^\//p' "$case_name/ice_in"
+    grep -E 'ICE_(CASEDIR|RUNDIR|NTASKS|NTHRDS|COMMDIR)' "$case_name/cice.settings"
+done
+```
+
+Expected `nprocs/block_size_x/block_size_y/max_blocks` are `1/12/12/1`
+for s1, `1/6/12/2` for s2, and `2/6/12/1` for m2. Keep global nx/ny=12,
+`roundrobin` and the generated processor-shape settings. Verify the actual
+block/rank allocation in the model startup diagnostic too; a launch with only
+one rank does not test MPI.
+
+#### 4. Preserve the working build environment; check the launcher
+
+Reuse the accepted environment and compiler macros, but keep the newly generated
+`cice.settings`, `cice.run`, `cice.submit` and case paths. For example, after
+confirming these are still the working files from the successful box build:
+
+```bash
+for case_name in dt_b67_s1 dt_b67_s2 dt_b67_m2 dt_b6_s1 dt_b6_s2 dt_b6_m2; do
+    cp dyntens_box01/env.gadi1_intel "$case_name/"
+    cp dyntens_box01/Macros.gadi1_intel "$case_name/"
+done
+```
+
+In each generated `cice.run`, inspect the PBS header and executable launch line:
+
+| Setting | s1 and s2 | m2 |
 |---|---|---|
-| One block, serial | `-p 1x1x12x12x1` | Reference |
-| Two x-blocks, serial | `-p 1x1x6x12x2` | Local halo copies across columns 6/7 |
-| Two x-blocks, MPI | `-p 2x1x6x12x1` | Remote halo exchange across columns 6/7 |
+| `ICE_NTASKS` in settings | 1 | 2 |
+| `ICE_NTHRDS` | 1 | 1 |
+| Effective `ICE_COMMDIR` | serial | mpi |
+| PBS `ncpus` | 1 | 2 |
+| PBS memory / walltime | 4gb / 00:30:00 | 4gb / 00:30:00 |
+| Launch | `./cice >&! $ICE_RUNLOG_FILE` | `mpirun -np 2 ./cice >&! $ICE_RUNLOG_FILE` |
 
-Use `-g gbox12 -m gadi1 -e intel -s boxforcee,boxclosed,buildclean` with separate `-c` names. Apply the accepted box settings and the same step-3 edits to each generated case: the setup options alone do not reproduce the accepted C-grid experiment. Preserve each case's generated decomposition and paths rather than copying the whole serial ice_in over the MPI one. Use the working Gadi compiler environment; the MPI job needs two processes and matching PBS resources.
+Retain project `gv90`, queue `normalbw`, working storage directives and each
+case's own PBS output path. The generator may already supply the correct MPI
+launcher: inspect it rather than adding a second launch. Never copy the old
+serial `cice.run` into an MPI case. The generated `cice.settings` selects the
+communication directory from `ICE_NTASKS`; do not force it to serial for m2.
 
-Repeat 3C on these layouts. Also run a deliberate **one-column band** (`dyntens_band_ilo=6`, `dyntens_band_ihi=6`) on all three: g then jumps exactly across the internal block boundary. This asymmetric case is a communication test, so do not require east–west symmetry. Check coefficient maps exactly on ocean cells; compare the full physical history and restarts, initially with zero numerical tolerance. If MPI/build-order rounding appears, measure it and document an appropriate tolerance before accepting it. Equal prescribed maps alone do not establish correct stress/velocity halos.
+#### 5. Build, submit and retain each run
 
-A final continuous versus split-run comparison under identical prescribed settings is still required for restart reproducibility.
+Start with `dt_b67_s1`. After its check passes, do s2 then m2; repeat for b6.
+Build each generated case: do not copy the old serial executable into m2.
+
+```bash
+case_name=dt_b67_s1    # change to the next case from the table
+(
+    cd "$case_name" || exit
+    ./cice.build > build.decomp.log 2>&1 && ./cice.submit
+)
+```
+
+Submission is asynchronous. Wait for completion before checking or changing
+anything. Confirm `CICE COMPLETED SUCCESSFULLY`, final step 120 / 2005-01-06,
+and the intended rank/block count in the log/diagnostics. Keep the build log.
+Each case should have its own `ICE_RUNDIR` under
+`/g/data/gv90/da1339/cice-dirs/runs/`; verify that path in `cice.settings`.
+If a chosen run directory already contains results, archive those and use a
+fresh directory before submitting. Do not mix old and new NetCDF output.
+
+Archive each completed run using the established workflow, retaining executable,
+`ice_in`, `cice.settings`, compiler environment/macros, build/run logs, history,
+restarts and source revision. Record the executable SHA-256. Keep the six run
+directories intact until their comparisons are complete.
+
+#### 6. Check maps and compare all decoded fields
+
+After all six jobs complete, run from the repository root. Use the actual
+`ICE_RUNDIR` paths if yours differ from those below. `load_modules` is for the
+Python checks, after the model build/run environment has done its job.
+
+```bash
+load_modules
+runs=/g/data/gv90/da1339/cice-dirs/runs
+for band in b67 b6; do
+    if [ "$band" = b67 ]; then upper=7; else upper=6; fi
+    reference="$runs/dt_${band}_s1"
+    python3 test_scripts/check_box_spatial_g.py "$reference" \
+        --mode box_band --ktens 0.2 --background 1 --band 0.5 \
+        --ilo 6 --ihi "$upper" --tensile || break
+    for layout in s2 m2; do
+        python3 test_scripts/check_box_spatial_g.py "$runs/dt_${band}_${layout}" \
+            --mode box_band --ktens 0.2 --background 1 --band 0.5 \
+            --ilo 6 --ihi "$upper" --tensile \
+            --reference-run "$reference" || break 2
+    done
+done
+```
+
+Expected for this five-day configuration: six summaries of
+`PASS prescribed fields/finite history: 126 files`, plus four summaries of
+`PASS reference comparison: 131 file pairs; atol=0.0, rtol=0.0` (126 histories
+and five restarts). Compare only runs with the same band. Record the actual
+counts and any first failing field. If arithmetic differences occur, measure
+and explain them before considering a tolerance; do not loosen tolerances simply
+to obtain a pass. Equal g maps alone cannot verify stress/velocity exchange.
+
+Optionally compare the fresh b67/s1 with archived 3C using the same
+`--reference-run` option to establish continuity with the accepted archive.
+A difference across builds is a separate question from decomposition equivalence.
+
+**Completion criterion:** both band profiles pass across local and remote block
+boundaries, with physical history and restarts matching the appropriate reference.
+This closes the decomposition gate only. A continuous versus split-run comparison
+and the matched-control/spatial-null checks remain required; FSD feedback and
+global experiments follow the box acceptance sequence below.
 
 ## Output checks
 
@@ -318,3 +534,14 @@ Twenty checker-fixture tests also pass. No Fortran code was changed in this audi
    initial-state and forcing provenance. Establish short disabled/g=1 controls
    and diagnostics before committing to the control and two to three ten-year
    simulations. Retain the same comparison basis across those experiments.
+
+## 2 October 2026: Gadi checker confirmation
+
+After preserving the uncommitted local checker edit and synchronising the working
+copy, Dan reports `PASS prescribed fields/finite history: 126 files` for the
+3C check on Gadi. This independently confirms the supplied archive's complete
+history check in the Gadi Python environment, in agreement with the archive audit
+above. The earlier local failure is resolved. It does not add a decomposition or
+split-restart result: those runs remain pending. The expanded decomposition
+procedure above is the next communication test. No model-source change is made
+by this documentation update.
