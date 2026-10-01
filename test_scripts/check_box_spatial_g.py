@@ -13,8 +13,8 @@ def variable(ds, name):
     candidates = [n for n in (name, name + '_1') if n in ds.variables]
     if not candidates:
         raise ValueError(f'missing field {name} (also tried {name}_1)')
-    if len(candidates) > 1:
-        raise ValueError(f'ambiguous field {name}: both base and _1 variables present')
+    # IC files can contain both stream copies. The exact requested name takes
+    # precedence; _1 is a fallback, never a way to bypass invalid base values.
     return ds[candidates[0]]
 
 

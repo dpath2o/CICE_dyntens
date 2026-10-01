@@ -182,6 +182,19 @@ The checker also accepts CICE's `_1` instantaneous-variable suffix (for example
 `dyntens_g_1`, `ktens_eff_1`, `uatm_1`, `vatm_1`, `divu_1`). Static grid fields
 remain unsuffixed. This naming is confirmed in the supplied run's history-field
 registration log. Lookup applies to both data and divergence units; genuinely
-missing fields and ambiguous base-plus-suffix pairs still fail. Seventeen fixture
+missing fields still fail. IC files may contain both names; exact unsuffixed names
+take precedence, with `_1` used only when the base name is absent. Seventeen fixture
 tests cover daily, IC and instantaneous naming and retained validation failures.
 This is a checker-only correction; no rebuild or model rerun is required.
+
+## 2 October 2026: IC contains both history streams
+
+The reported IC file contains both `dyntens_g` and `dyntens_g_1`. This is a valid
+multi-stream IC layout, not a missing model diagnostic. The checker now selects
+the exact base name first and falls back to `_1` only when the base is absent.
+Invalid base values still fail even if a valid suffixed copy is present; the finite
+scan continues to inspect all numeric variables. Eighteen fixture tests pass,
+including dual-stream IC, suffix-only instantaneous files and invalid coefficients.
+Load the Python analysis environment before running the checker (the reported
+`load_modules` command supplies NumPy/netCDF4). No model rebuild or rerun is needed.
+The complete 3C archive has not yet been independently checked here.

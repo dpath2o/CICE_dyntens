@@ -6,7 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 import numpy as np
 from netCDF4 import Dataset
-from check_box_spatial_g import check_file, compare_runs
+from check_box_spatial_g import check_file, compare_runs, variable
 from contextlib import redirect_stdout
 import io
 
@@ -56,9 +56,20 @@ class SpatialGate(unittest.TestCase):
     def test_missing_field_still_rejected(self):
         with Dataset(self.path,'a') as d:d.renameVariable('dyntens_g','unrelated')
         with self.assertRaises(ValueError):check_file(self.path,self.args)
-    def test_ambiguous_field_rejected(self):
-        with Dataset(self.path,'a') as d:d.createVariable('dyntens_g_1','f8',('nj','ni'))[:]=1
-        with self.assertRaises(ValueError):check_file(self.path,self.args)
+    def test_both_streams_select_base(self):
+        p=self.ic_file()
+        with Dataset(p,'a') as d:
+            for name in ['dyntens_g','ktens_eff','uatm','vatm']:
+                d.createVariable(name+'_1','f8',('nj','ni'))[:]=d[name][:]
+        with Dataset(p) as d:
+            self.assertEqual(variable(d,'dyntens_g').name,'dyntens_g')
+        check_file(p,self.args)
+    def test_bad_base_not_hidden_by_good_suffix(self):
+        p=self.ic_file()
+        with Dataset(p,'a') as d:
+            d.createVariable('dyntens_g_1','f8',('nj','ni'))[:]=d['dyntens_g'][:]
+            d['dyntens_g'][4,5]=1
+        with self.assertRaises(ValueError):check_file(p,self.args)
     def ic_file(self):
         p = self.path.with_name('iceh_ic.2005-01-01-00000.nc')
         self.path.rename(p)
