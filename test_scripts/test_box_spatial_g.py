@@ -23,6 +23,15 @@ class SpatialGate(unittest.TestCase):
             wind=np.ones((12,12))*5;wind[:,:6]=-5
             for n,x in [('tmask',mask),('dyntens_g',g),('ktens_eff',g*.2),('uatm',wind),('vatm',mask*0)]:
                 d.createVariable(n,'f8',('nj','ni'))[:]=x
+    def test_uniform_east_control(self):
+        self.args.wind = 'uniform_east'
+        self.args.tensile = False
+        with Dataset(self.path, 'a') as d: d['uatm'][:] = 5.
+        check_file(self.path, self.args)
+    def test_tensile_rejected_for_uniform_control(self):
+        self.args.wind = 'uniform_east'
+        self.args.tensile = False
+        with self.assertRaises(ValueError): check_file(self.path, self.args)
     def test_correct(self):
         check_file(self.path,self.args)
     def test_displaced_band_rejected(self):

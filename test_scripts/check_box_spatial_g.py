@@ -52,12 +52,14 @@ def check_file(path, args):
         # Standalone CICE writes IC history before init_forcing_atmo/get_forcing_atmo.
         # Keep coefficient and finite-value checks above for this snapshot.
         is_initial = path.name.startswith(getattr(args, 'ic_prefix', 'iceh_ic') + '.')
-        if args.tensile and is_initial:
+        wind = getattr(args, 'wind', None) or ('box_tensile' if args.tensile else None)
+        if wind and is_initial:
             print('  SKIP prescribed IC wind: snapshot precedes atmospheric forcing initialisation')
-        if args.tensile and not is_initial:
+        if wind and not is_initial:
             if mask.shape[1] % 2:
                 raise ValueError('tensile box must have even width')
-            want = np.where(ig <= mask.shape[1]//2, -5., 5.)
+            want = (np.where(ig <= mask.shape[1]//2, -5., 5.)
+                    if wind == 'box_tensile' else np.full(mask.shape, 5.))
             for name, target in [('uatm', want), ('vatm', np.zeros(mask.shape))]:
                 x = field(ds, name)
                 if np.any(np.ma.getmaskarray(x)[ocean]) or not np.allclose(x.data[ocean], target[ocean], atol=1e-12, rtol=0):
@@ -108,12 +110,15 @@ def main():
     p.add_argument('--band', type=float, default=.5)
     p.add_argument('--ilo', type=int, default=6)
     p.add_argument('--ihi', type=int, default=7)
-    p.add_argument('--tensile', action='store_true')
+    winds = p.add_mutually_exclusive_group()
+    winds.add_argument('--tensile', action='store_true', help='alias for --wind box_tensile')
+    winds.add_argument('--wind', choices=['box_tensile', 'uniform_east'])
     p.add_argument('--ic-prefix', default='iceh_ic', help='IC filename prefix (incond_file)')
     p.add_argument('--reference-run', type=Path)
     p.add_argument('--atol', type=float, default=0.)
     p.add_argument('--rtol', type=float, default=0.)
     args = p.parse_args()
+    print('check_box_spatial_g: dual-stream lookup; explicit wind selection (2026-10-02)')
     try:
         files = sorted((args.run/'history').glob('*.nc'))
         if not files:

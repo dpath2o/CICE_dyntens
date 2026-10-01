@@ -1,6 +1,6 @@
 # Developing dynamic tensile strength on box01: step 3 — spatial g and tensile loading
 
-Status: implementation prepared on 25 September 2026. Source syntax and diagnostic-fixture checks passed locally; Gadi compilation, physical results, MPI equivalence and split-run restart tests are pending. This is a prescribed-coefficient experiment, not yet g(FSD).
+Status (2 October 2026): all four supplied five-day archives checked end to end. Prescribed coefficients and the appropriate wind pass all 504 history files; all 20 restart files contain finite unmasked numeric values. Serial tensile response is demonstrated. Matched disabled-path tensile control, spatial-null, decomposition and split-run restart gates remain open. This is prescribed g, not yet g(FSD).
 
 The preceding constant-coefficient test established that Ktens=0.2 with g=0.5 reproduced Ktens=0.1 with the feature disabled across the supplied history and restart files. See the [box01 analysis record](developing-dynamic-tensile-strength-box01.md). This step tests location-dependent coefficients and deliberately loads the central ice in extension.
 
@@ -146,7 +146,7 @@ Local validation: six modified Fortran modules preprocessed and parsed as Fortra
 
 ## Results
 
-Pending Gadi build and runs. Do not replace this with a pass based only on successful compilation.
+See the archive verification below. Earlier dated entries record the debugging sequence; their pending statements are superseded only where the archive evidence below closes them.
 
 ## 27 September 2026: 3C startup validation fix
 
@@ -198,3 +198,123 @@ including dual-stream IC, suffix-only instantaneous files and invalid coefficien
 Load the Python analysis environment before running the checker (the reported
 `load_modules` command supplies NumPy/netCDF4). No model rebuild or rerun is needed.
 The complete 3C archive has not yet been independently checked here.
+
+
+## 2 October 2026: verification of all four supplied archives
+
+Aim: establish and document a verifiable 12×12 idealised implementation, then
+return to the global configuration and develop two to three ten-year experiments
+against a control tied to the wave-forcing results. Keep inherited global FSD and
+snow-temperature investigations outside this box verification stage.
+
+### Evidence and checker outcome
+
+The checker at commit `f227494` already passes A, B and C end to end: 126 histories
+each (one IC, five daily files and 120 hourly files). The reported duplicate-name
+failure is not reproducible with that version on these supplied archives. No
+additional model-source fix is justified by it. IC has both base and `_1` fields;
+hourly histories use `_1`. Base-name precedence and the IC wind-initialisation
+exception remain in force. The current checker prints an identifying banner so
+an older local script is recognisable, and supports explicit wind selection.
+
+| Archive under `~/AFIM_archive/LFI-waves-dyntens/` | Archived wind | Coefficient | History gate |
+|---|---|---|---|
+| `dyntens-box01.step3-0.20260927-130227` | uniform_east | disabled; effective 0.2 | 126/126 pass with uniform-east assertion |
+| `dyntens-box01.step3-A.20260927-142925` | box_tensile | constant g=1; effective 0.2 | 126/126 pass |
+| `dyntens-box01.step3-B.20260927-143430` | box_tensile | constant g=0.5; effective 0.1 | 126/126 pass |
+| `dyntens-box01.step3-C.20260927-154047` | box_tensile | g=0.5 in columns 6–7, 1 elsewhere | 126/126 pass |
+
+All four hourly inventories cover hours 1–120 with one-hour time-coordinate
+spacing. All five restart files per archive pass an independent scan of every
+unmasked numeric value for finiteness. This does not establish split-run restart
+reproducibility. Masked storage and arbitrary missing-field completeness are not
+certified by the finite scan.
+
+3-0 is a uniform-east reference, not a matched disabled-path tensile control.
+Its `uatm` is +5 m/s throughout the active ocean. Applying `--tensile` correctly
+rejects it. Preserve it; obtain a separate disabled `box_tensile` run for the
+identity comparison. A and B namelists differ only in `dyntens_g_const`; A and C
+namelists differ only in `dyntens_g_mode`.
+
+Executable SHA-256:
+
+- 3-0, A, B: `9703f37187a64e717873c63c0dc145f6114c58aab8e6ca7565b51c463c5c2202`
+- C: `24b9df36e1c01fb9e1093b2a4369c9838ac716f9f616db755e18d49d1da18158`
+
+The C executable differs following the startup-validation rebuild. The hashes
+alone cannot establish that this is its only source/build difference. Repeat the
+matched tensile controls using the accepted C executable before attributing all
+A–C differences exclusively to the coefficient map.
+
+### Measured tensile response
+
+Values below are instantaneous snapshots, sampled over active T cells in global
+columns 6–7. Spatial differences within that central set are below the displayed
+precision. `sig1` is dimensionless principal stress normalised by strength;
+`sigP` is vertically integrated pressure, positive in compression (N/m).
+
+| Quantity | 3A: g=1 | 3B: g=0.5 | 3C: weak band |
+|---|---:|---:|---:|
+| Hour 1 central divergence (%/day) | 11.547084 | 15.001759 | 14.825436 |
+| Hour 1 central sig1 | 0.269396 | 0.164093 | 0.164092 |
+| Hour 1 central sigP (N/m) | -165.574497 | -50.821862 | -50.821324 |
+| Hour 120 central divergence (%/day) | 0.138509 | 0.143498 | 0.142564 |
+| Hour 120 central sig1 | 0.243639 | 0.148884 | 0.148790 |
+| Hour 120 central aice | 0.883963 | 0.878667 | 0.879060 |
+
+At hour 1, the ocean velocity extrema have opposing signs: ±0.0213835 m/s
+(A), ±0.0277810 (B), and ±0.0274545 (C). Positive central divergence and
+principal stress, negative central pressure, and compression elsewhere support
+the intended extensional loading. Reduced g produces greater initial opening and
+lower central tensile stress. By hour 120, transport and strength feedback have
+substantially reduced opening rates. A and B form the clean same-executable
+comparison; C gives consistent spatial-case evidence subject to the rebuild
+qualification above. These diagnostics do not by themselves certify a yield
+surface, a crack threshold or resolution convergence.
+
+Do not interpret the small central-divergence values printed for daily files as
+the magnitude of the initial transient: the first hourly snapshot resolves a
+much larger response. Some CICE stress/divergence fields are snapshots even in
+daily output; consult their variable comments rather than assuming every field
+in a daily file is a daily mean.
+
+### Reproduce the checks
+
+Load the analysis environment first, then pull the updated checker. These
+commands do not rebuild or rerun CICE:
+
+```bash
+git pull --ff-only origin dev
+load_modules
+archive="$HOME/AFIM_archive/LFI-waves-dyntens"
+python3 test_scripts/check_box_spatial_g.py "$archive/dyntens-box01.step3-0.20260927-130227" --mode constant --ktens 0.2 --background 1 --wind uniform_east
+python3 test_scripts/check_box_spatial_g.py "$archive/dyntens-box01.step3-A.20260927-142925" --mode constant --ktens 0.2 --background 1 --tensile
+python3 test_scripts/check_box_spatial_g.py "$archive/dyntens-box01.step3-B.20260927-143430" --mode constant --ktens 0.2 --background 0.5 --tensile
+python3 test_scripts/check_box_spatial_g.py "$archive/dyntens-box01.step3-C.20260927-154047" --mode box_band --ktens 0.2 --background 1 --band 0.5 --ilo 6 --ihi 7 --tensile
+```
+
+Expected: four `PASS prescribed fields/finite history: 126 files` summaries.
+Twenty checker-fixture tests also pass. No Fortran code was changed in this audit.
+
+### Remaining box acceptance sequence
+
+1. Freeze the accepted executable and namelist template. Using that executable,
+   run disabled `box_tensile`, constant g=1, constant g=0.5 and spatial-null g=1
+   from identical internal initial conditions for the same five days. Disabled,
+   constant-one and spatial-null should match histories/restarts using the
+   checker's zero-tolerance reference comparison. Compare the rebuilt g=0.5
+   control with B to establish whether the rebuild changed its output.
+2. Exercise the already documented serial two-block and MPI two-rank layouts,
+   including the one-column band across a block boundary. A single 12×12 block
+   cannot demonstrate internal neighbour communication, even when its map is
+   correct. Compare physical outputs as well as coefficient maps.
+3. Verify a split restart run against the uninterrupted five-day spatial run,
+   comparing matching final snapshots/restarts and aligned averaging intervals.
+   Coefficients must reconstruct correctly without prognostic restart variables.
+4. Record those outcomes before closing prescribed-g box verification. Develop
+   the FSD-derived mapping with controlled, normalised box distributions before
+   the global scientific experiments; present tests do not validate g(FSD).
+5. Return to the global wave-forcing reference with documented executable,
+   initial-state and forcing provenance. Establish short disabled/g=1 controls
+   and diagnostics before committing to the control and two to three ten-year
+   simulations. Retain the same comparison basis across those experiments.
