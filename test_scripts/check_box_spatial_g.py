@@ -73,6 +73,7 @@ def check_file(path, args):
 
 def compare_runs(run, reference, atol=0., rtol=0.):
     count = 0
+    layout_fields = 0
     for folder in ['history', 'restart']:
         files = sorted((run/folder).glob('*.nc'))
         refs = sorted((reference/folder).glob('*.nc'))
@@ -91,6 +92,14 @@ def compare_runs(run, reference, atol=0., rtol=0.):
                     if not np.array_equal(np.ma.getmaskarray(x), np.ma.getmaskarray(y)):
                         raise ValueError(f'{p.name}:{name}: masks differ')
                     x, y = x.compressed(), y.compressed()
+                    # CICE defines history blkmask as mytask + iblk/100.
+                    # Ownership changes with decomposition; it is not physics.
+                    # Keep inventory, dimensions, masks and finiteness checks.
+                    if folder == 'history' and name == 'blkmask':
+                        if not (np.isfinite(x).all() and np.isfinite(y).all()):
+                            raise ValueError(f'{p.name}:{name}: nonfinite layout values')
+                        layout_fields += 1
+                        continue
                     if np.issubdtype(x.dtype, np.number):
                         ok = np.isfinite(x).all() and np.isfinite(y).all() and np.allclose(x,y,atol=atol,rtol=rtol)
                     else:
@@ -98,6 +107,8 @@ def compare_runs(run, reference, atol=0., rtol=0.):
                     if not ok:
                         raise ValueError(f'{p.name}:{name}: values differ')
             count += 1
+    if layout_fields:
+        print(f'INFO: excluded history blkmask value equality in {layout_fields} file pairs (block/rank IDs)')
     print(f'PASS reference comparison: {count} file pairs; atol={atol}, rtol={rtol}')
 
 

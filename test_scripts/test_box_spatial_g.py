@@ -104,6 +104,28 @@ class SpatialGate(unittest.TestCase):
                 (r/folder).mkdir(parents=True)
                 shutil.copyfile(self.path,r/folder/'box.nc')
         return runs
+    def layout_pair(self):
+        runs = self.make_pair()
+        for i, r in enumerate(runs):
+            with Dataset(r/'history'/'box.nc', 'a') as d:
+                d.createVariable('blkmask', 'f8', ('nj','ni'))[:] = .01 + i
+        return runs
+    def test_different_block_ids_accepted(self):
+        compare_runs(*self.layout_pair())
+    def test_layout_exception_does_not_hide_physics(self):
+        a,b = self.layout_pair()
+        with Dataset(b/'history'/'box.nc','a') as d: d['ktens_eff'][4,5] = .2
+        with self.assertRaises(ValueError): compare_runs(a,b)
+    def test_nonfinite_block_ids_rejected(self):
+        a,b = self.layout_pair()
+        with Dataset(b/'history'/'box.nc','a') as d: d['blkmask'][4,5] = np.nan
+        with self.assertRaises(ValueError): compare_runs(a,b)
+    def test_restart_block_ids_not_exempt(self):
+        a,b = self.layout_pair()
+        for i,r in enumerate([a,b]):
+            with Dataset(r/'restart'/'box.nc','a') as d:
+                d.createVariable('blkmask','f8',('nj','ni'))[:] = i
+        with self.assertRaises(ValueError): compare_runs(a,b)
     def test_reference_equal(self):
         compare_runs(*self.make_pair())
     def test_restart_difference_rejected(self):

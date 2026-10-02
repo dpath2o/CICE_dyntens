@@ -545,3 +545,27 @@ above. The earlier local failure is resolved. It does not add a decomposition or
 split-restart result: those runs remain pending. The expanded decomposition
 procedure above is the next communication test. No model-source change is made
 by this documentation update.
+
+## 2 October 2026: first decomposition comparison — block-ID exception
+
+The supplied Gadi transcript shows `dt_b67_s1` and `dt_b67_s2` each passing all
+126 history coefficient/loading/finite-value checks. Their printed central
+divergence agrees to the displayed precision. The reference comparison then
+stops at `iceh.2005-01-01.nc:blkmask: values differ`. No complete physical-field
+or restart equivalence has yet been established. The loop exits at this failure,
+so this transcript contains no m2 or b6 check results.
+
+`ice_history_write.F90` defines `blkmask` as “block id of T grid cells,
+mytask + iblk/100”. It is expected to differ between one block, two local blocks
+and two MPI ranks. Requiring equality was a checker error. Reference comparison
+now excludes **only value equality for history `blkmask`**, prints the exclusion
+count, and retains its inventory, dimensions, masks and finite-value checks.
+All other variables, including physical grid masks, g, effective coefficient,
+stresses, velocities and all restart variables retain the original comparison.
+Numerical tolerances remain zero. Twenty-four fixture tests pass, including
+changed ownership IDs, retained physical-difference rejection and nonfinite IDs.
+
+Pull the updated checker and rerun section 6's existing loop unchanged. No CICE
+rebuild or model rerun is needed for this correction. Preserve any subsequent
+failure verbatim; do not interpret this expected ownership difference as proof
+that the remainder of the decomposition comparison passes.
