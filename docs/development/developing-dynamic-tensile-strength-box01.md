@@ -234,6 +234,59 @@ gate passes for these tested layouts. Do not rerun it simply because this record
 has been consolidated.** It does not establish global-grid or FSD-dependent
 exchange, restart continuation, or physical yield-surface convergence.
 
+## B4 -- Matched controls results
+
+Results supplied 4 October 2026 in `Pasted text(8).txt` close the B4
+matched-controls gate. This subsection supersedes the earlier B4 “pending/next”
+status above and the original B4 acceptance recipe below; those sections are
+retained unchanged as requested. **B5 restart continuation is now the next gate.**
+
+The four cases used separate run directories under
+`/g/data/gv90/da1339/cice-dirs/runs/`. The displayed namelists specify fresh
+internal initial conditions, five days, `box_tensile` forcing and `Ktens=0.2`;
+the job scripts request one CPU. The preparation procedure reused the accepted
+`dt_b67_s1` executable without rebuilding. The supplied transcript does not print
+executable checksums, so retain the generated `cice.sha256` and `README.case`
+records with the actual run namelists and logs.
+
+| Case | PBS job | Enabled / mode | Prescribed g | Effective coefficient | History check | Reference comparison |
+|---|---|---|---|---|---|---|
+| dt_b4_off | 180464581 | false / constant | 1 | 0.2 | PASS, 126 files | Reference |
+| dt_b4_one | 180464582 | true / constant | 1 | 0.2 | PASS, 126 files | PASS vs off, 131 pairs |
+| dt_b4_null | 180464583 | true / box_band | background 1, band 1, columns 6–7 | 0.2 | PASS, 126 files | PASS vs one, 131 pairs |
+| dt_b4_half | 180464584 | true / constant | 0.5 | 0.1 | PASS, 126 files | PASS vs archived 3-B, 131 pairs |
+
+The half reference is
+`/home/581/da1339/AFIM_archive/LFI-waves-dyntens/dyntens-box01.step3-B.20260927-143430`.
+All three distinct reference comparisons report **atol=0.0, rtol=0.0** across
+126 history files and five restart files. This establishes exact decoded,
+unmasked numerical agreement under the existing comparison rules, not binary
+file identity. History `blkmask` value equality remains the sole field-value
+exception; physical-field tolerances were not relaxed.
+
+The transcript contains six 126-file checker passes and four 131-pair comparison
+passes because null was checked twice (first as a uniform field, then explicitly
+with `--mode box_band --background 1 --band 1 --ilo 6 --ihi 7`), and half was
+checked both alone and against 3-B. Count these as **four distinct runs and three
+distinct reference comparisons**, not six independent experiments.
+
+| Cases | Central divergence at hour 1 (%/day) | At hour 120 (%/day) |
+|---|---:|---:|
+| off / one / null | 11.547084 | 0.1385088 |
+| half | 15.001759 | 0.14349826 |
+
+The three unity-g controls agree across the full compared physical state.
+Uniform half-g reproduces the earlier 3-B solution. Thus enabling g=1 and
+selecting a spatial band with no contrast introduce no detected numerical
+change in this tested tensile-loading setup. This does not yet demonstrate
+restart continuation or FSD-dependent behaviour.
+
+The displayed off-job report records `CICE COMPLETED SUCCESSFULLY` and exit
+status 0. It also prints a missing `/g/data/xp65/public/modules` directory
+message before execution; this did not prevent that run completing. These
+results are recorded from the supplied transcript; the four new NetCDF datasets
+were not independently inspected here.
+
 ## Remaining work: explicit acceptance gates
 
 ### B4 — close the matched controls (next)
