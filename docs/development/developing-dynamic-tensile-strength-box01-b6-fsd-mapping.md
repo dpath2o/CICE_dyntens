@@ -20,14 +20,14 @@ whose result can be calculated independently. First verify the calculation
 without changing momentum. Then test a small number of equivalent solutions
 with feedback enabled.
 
-**The Python mapping contract has passed all 10 reported tests. The corresponding
-Fortran mapping and CICE diagnostic integration remain to be implemented.**
+**The Python mapping contract has passed all 10 reported tests. A standalone
+Fortran mapping routine and compiler-driven analytical tests have now been added.
+Compilation/runtime validation and the live CICE adapter remain pending.**
 The existing executable supports prescribed constant and box_band modes.
 Changing floediam alone does not currently exercise this mapping.
 
 The reference repository revision inspected for this plan is
-8dc6aa64bac99651cc302ed08f6eb47812ec82b1. No model-source changes are made by
-this documentation update.
+8dc6aa64bac99651cc302ed08f6eb47812ec82b1. The B6.1 audit references are pinned below; the B6.2 addition is recorded separately.
 
 ## 1. Agreed controlled-test mapping
 
@@ -416,6 +416,56 @@ Preserve zero-tolerance comparisons for equivalent CICE trajectories where
 the arithmetic path warrants them.
 
 The Python suite passing against itself is not sufficient for this step.
+
+#### B6.2 routine added — 5 October 2026
+
+New source: `cicecore/cicedyn/dynamics/ice_dyntens_mapping.F90`.
+It exports the pure `dyntens_map_fsd` routine with inputs
+`area(ncat), fsd(nbin,ncat), diameter(nbin), threshold, gmin, ktens`.
+It returns `large_fraction, g, ktens_eff, status`; all inputs are intent(in).
+The kind uses selected_real_kind(13), matching this repository's Icepack double
+precision definition, while keeping the arithmetic module independently compilable.
+There are no calls from the model yet and no new namelist options.
+
+Status codes are named public constants: 0 valid, 1 inactive, 2 bad shape,
+3 bad parameter, 4 bad diameter, 5 bad area, 6 bad occupied FSD.
+Invalid outputs remain -1; inactive outputs are fraction=-1, g=1 and
+ktens_eff=ktens. The negative sentinel is internal, not a history fill value.
+Callers must inspect status before using results. Integration must translate
+undefined fractions into masked diagnostics and implement collective error handling.
+
+The routine does not repair FSDs or alter live state. It validates sums to 1e-10,
+uses A<=1e-12 for inactive cells, classifies diameter strictly above the threshold,
+and clips only accepted roundoff excursions in the derived fraction.
+
+The new `test_scripts/test_b6_fortran_mapping.py` compiles the production source
+with `b6_mapping_driver.F90` and checks 67 analytical and invalid-input fixtures.
+It does not replace the user's local Python contract file. Native 12-bin fixtures
+use the B6.1 audited bounds, but are not a test of live tracer extraction.
+Python syntax, fixture names and Fortran line lengths were checked locally.
+No Fortran compiler was available in the editing environment; compilation and
+runtime results must be recorded after running the following on Gadi.
+
+~~~bash
+cd /g/data/gv90/da1339/src/CICE_dyntens
+git pull --ff-only origin dev
+# Load the same Intel compiler environment used for your CICE builds first.
+bash <<'BASH'
+set -euo pipefail
+stamp=$(date +%Y%m%d-%H%M%S)
+log="/g/data/gv90/da1339/cice-dirs/runs/b6-mapping-${stamp}.log"
+python3 test_scripts/test_b6_fortran_mapping.py \\
+    --fc ifort --fflags '-O0 -g -check all -traceback' 2>&1 | tee "$log"
+BASH
+~~~
+
+Use --fc ifx if that is the loaded Intel compiler. For GNU use
+--fc gfortran --fflags '-O0 -g -Wall -Wextra -fcheck=all'.
+Do not use fast-math flags: finite/NaN rejection is part of the contract.
+The runner needs Python's standard library only, builds in a temporary directory,
+and exits nonzero on compilation or comparison failure. No PBS/CICE submission
+is needed for these small routine tests. A successful result verifies this routine,
+not the adapter, diagnostics, MPI halos, restart reconstruction or feedback.
 
 ### B6.3 — add candidate diagnostics with feedback disabled
 
