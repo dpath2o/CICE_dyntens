@@ -909,3 +909,115 @@ independently reconstruct evolving pre-EVP FSD from end-step history, establish
 native-bin synthetic-fixture answers, verify mapped halos/feedback, or calibrate
 the closure. Earlier failure/pending entries above are historical records;
 this final acceptance entry supersedes their B6.3 history-gate status.
+
+## B6.4 Bash workflow — diagnostic-only continuation
+
+The helper `test_scripts/b64_restart_workflow.py` prepares new cases from the
+accepted B6.3 diagnostic case, copies its executable without rebuilding, stages
+the split restart and checks the complete expected inventory. It retains the
+accepted layout and launcher; this is a continuation gate, not a new MPI/halo
+test. Preparation refuses existing destinations and requires the accepted
+12-bin daily/hourly five-day configuration.
+
+Eight synthetic regression tests pass locally. They cover complete phase-aligned
+comparison, missing output, physical/candidate differences, wrong restart clocks,
+changed staging, wrong IC mapping and safe staging. These tests do not establish
+a Gadi run PASS.
+
+### Prepare and submit the initial runs
+
+Run from Bash. Load the usual analysis environment providing numpy/netCDF4.
+No compiler build is needed because only setup and checking are added.
+
+~~~bash
+(
+set -euo pipefail
+cd /g/data/gv90/da1339/src/CICE_dyntens
+git pull --ff-only origin dev
+load_modules
+python3 test_scripts/test_b64_restart_workflow.py -v
+python3 test_scripts/b64_restart_workflow.py prepare
+
+# Auto-detection requires exactly one dt_b63* diagnostic case.
+# If ambiguous, repeat prepare with --base-case /absolute/path/to/accepted/case.
+
+for name in dt_b64_cont dt_b64_seg1 dt_b64_seg2; do
+    echo "$name"
+    rg '^#PBS|mpirun|^\\./cice|ICE_NTASKS|ICE_NTHRDS' "$name/cice.run" "$name/cice.settings"
+done
+)
+~~~
+
+Inspect the copied PBS header/launcher for the accepted rank count, working
+queue/storage and new case paths. Then submit the five-day continuous path and
+two-day initial segment:
+
+~~~bash
+(
+set -euo pipefail
+cd /g/data/gv90/da1339/src/CICE_dyntens
+for name in dt_b64_cont dt_b64_seg1; do
+    ( cd "$name"; qsub ./cice.run | tee b64-job-id.txt )
+done
+)
+~~~
+
+These submissions are asynchronous. Wait for both to finish. Confirm
+CICE COMPLETED SUCCESSFULLY in each run log; the helper checks the dates,
+step counts, FSD and complete output inventories during analysis.
+
+### Stage and submit the three-day continuation
+
+Do this only after segment 1 completes:
+
+~~~bash
+(
+set -euo pipefail
+cd /g/data/gv90/da1339/src/CICE_dyntens
+load_modules
+runs=/g/data/gv90/da1339/cice-dirs/runs
+rg -l 'CICE COMPLETED SUCCESSFULLY' "$runs/dt_b64_seg1"/cice.runlog.*
+python3 test_scripts/b64_restart_workflow.py stage
+( cd dt_b64_seg2; qsub ./cice.run | tee b64-job-id.txt )
+)
+~~~
+
+Staging requires 3 January 2005 00:00 / step 48 and all twelve raw fsd bins.
+The staged copy is verified by SHA-256 and its absolute path is written to
+the continuation run's ice.restart_file. The continuation namelist uses
+runtype=continue, use_restart_time=T, restart_fsd=T and npt=3 days.
+
+### Analyse after all three jobs finish
+
+~~~bash
+(
+set -euo pipefail
+cd /g/data/gv90/da1339/src/CICE_dyntens
+load_modules
+runs=/g/data/gv90/da1339/cice-dirs/runs
+for name in dt_b64_cont dt_b64_seg1 dt_b64_seg2; do
+    rg -l 'CICE COMPLETED SUCCESSFULLY' "$runs/$name"/cice.runlog.*
+done
+python3 test_scripts/b64_restart_workflow.py analyse \
+    2>&1 | tee dt_b64_cont/b64-analysis.log
+)
+~~~
+
+Expected history inventories are 126 continuous, 51 segment-1 and 76
+segment-2 files. Candidate/applied invariants are checked in all of them,
+including the continuation IC. The independent IC reconstruction uses restart
+aicen and raw fsd001–fsd012, selecting audited native bins 7–12 for D>300 m.
+It validates occupied-bin normalization and ignores empty categories; it does
+not renormalize invalid input.
+
+Exact comparison includes every decoded field and mask, including all candidate
+diagnostics and land values. No blkmask exception is needed for an unchanged
+layout. Variable units/calendar/bounds/time_rep are also compared. Pre-split
+comparison covers 51 histories plus two restarts; post-split comparison covers
+75 histories plus three restarts. Only the extra continuation IC is outside
+that comparison and is instead checked against restored FSD, at mapping
+absolute tolerance 1e-10. All equivalent-path comparisons use zero tolerance.
+
+A final PASS establishes this diagnostic-only continuation gate. It does not
+close controlled native-bin spatial, mapped momentum, halo or feedback gates.
+Preserve the three runs, b64-provenance directories, job logs and analysis output.
