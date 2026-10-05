@@ -7,8 +7,8 @@ import re
 import numpy as np
 from netCDF4 import Dataset
 
-BASES = ('dyntens_large_fraction', 'dyntens_g_candidate',
-         'ktens_eff_candidate', 'dyntens_mapping_status')
+BASES = ('dtens_flarge', 'dtens_gcand',
+         'ktens_cand', 'dtens_status')
 
 
 def is_candidate(name):

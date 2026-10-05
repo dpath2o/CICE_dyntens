@@ -474,10 +474,10 @@ Implemented candidate diagnostics (runtime validation pending):
 
 | Diagnostic | Purpose | Units |
 |---|---|---|
-| dyntens_large_fraction | Derived F_L on active, valid T cells | 1 |
-| dyntens_g_candidate | Candidate multiplier | 1 |
-| ktens_eff_candidate | K_t times candidate g | 1 |
-| dyntens_mapping_status | Distinguish valid, inactive and invalid input | 1 |
+| dtens_flarge | Derived F_L on active, valid T cells | 1 |
+| dtens_gcand | Candidate multiplier | 1 |
+| ktens_cand | K_t times candidate g | 1 |
+| dtens_status | Distinguish valid, inactive and invalid input | 1 |
 
 Retain existing dyntens_g and ktens_eff as the applied coefficients.
 When candidate-only diagnostics are enabled, applied g remains one and applied
@@ -731,3 +731,25 @@ run did not complete, so B6.3 has not passed. Rebuild and rerun both matched
 cases with the same corrected executable, preserving the previous outputs.
 A source-order regression check guards the call placement; runtime verification
 on Gadi remains required.
+
+## B6.3 history-name correction — 5 October 2026
+
+After the initialization fix, job 180531265 reached IC history but aborted at
+NetCDF variable definition. History metadata stores vname in 16 characters.
+The original long candidate names lost their frequency suffixes on truncation,
+creating duplicate names when daily and hourly fields shared the IC file.
+The four output names are now short enough to preserve suffixes:
+
+| Unchanged namelist selector | NetCDF base name |
+|---|---|
+| f_dyntens_large_fraction | dtens_flarge |
+| f_dyntens_g_candidate | dtens_gcand |
+| f_ktens_eff_candidate | ktens_cand |
+| f_dyntens_mapping_status | dtens_status |
+
+The Fortran array/index identifiers and namelist selectors remain unchanged.
+The checker now expects these short names and their stream suffixes. A regression
+test reads the Fortran field definitions and metadata name width, checks suffix
+uniqueness, and defines the resulting names in NetCDF. No mapping or momentum
+calculation changed. A full model rebuild and fresh matched runs are required;
+B6.3 runtime acceptance remains pending.

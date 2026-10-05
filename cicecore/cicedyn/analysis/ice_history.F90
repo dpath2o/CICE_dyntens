@@ -1432,16 +1432,16 @@
              ns1, f_taubyE)
 
 ! dpath2o: dyntens
-         call define_hist_field(n_dyntens_large_fraction,"dyntens_large_fraction","1",tstr2D, tcstr, &
+         call define_hist_field(n_dyntens_large_fraction,"dtens_flarge","1",tstr2D, tcstr, &
              "large-floe ice-area fraction before EVP", &
              "masked if any sample inactive; IC uses restored/initial state", c1,c0,ns1,f_dyntens_large_fraction)
-         call define_hist_field(n_dyntens_g_candidate,"dyntens_g_candidate","1",tstr2D, tcstr, &
+         call define_hist_field(n_dyntens_g_candidate,"dtens_gcand","1",tstr2D, tcstr, &
              "candidate tensile multiplier before EVP; no feedback", &
              "inactive g=1; IC uses restored/initial state", c1,c0,ns1,f_dyntens_g_candidate)
-         call define_hist_field(n_ktens_eff_candidate,"ktens_eff_candidate","1",tstr2D, tcstr, &
+         call define_hist_field(n_ktens_eff_candidate,"ktens_cand","1",tstr2D, tcstr, &
              "candidate Ktens*g before EVP; no feedback", &
              "dimensionless; inactive value Ktens", c1,c0,ns1,f_ktens_eff_candidate)
-         call define_hist_field(n_dyntens_mapping_status,"dyntens_mapping_status","1",tstr2D, tcstr, &
+         call define_hist_field(n_dyntens_mapping_status,"dtens_status","1",tstr2D, tcstr, &
              "candidate mapping inactive indicator", &
              "0=valid 1=inactive; time mean is inactive sample fraction; invalid inputs abort", &
              c1,c0,ns1,f_dyntens_mapping_status)
