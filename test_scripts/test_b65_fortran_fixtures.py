@@ -55,7 +55,7 @@ end program fixtures
             str(repo/'cicecore/cicedyn/dynamics/ice_dyntens_mapping.F90'),
             str(root/'driver.F90'),'-o',str(root/'fixtures')]
         subprocess.run(command,cwd=root,check=True)
-        output=subprocess.check_output([str(root/'fixtures')],cwd=root,text=True)
+        output=subprocess.check_output([str(root/'fixtures')],cwd=root,universal_newlines=True)
     lines=output.splitlines()
     assert len(lines)==84, 'expected 84 fixture/column results'
     for line in lines:

@@ -97,7 +97,7 @@ def prepare(args):
             shutil.copy2(case/filename, provenance/filename)
         for filename, command in [('HEAD.txt', ['git','rev-parse','HEAD']),
                                   ('local.diff', ['git','diff'])]:
-            (provenance/filename).write_text(subprocess.check_output(command, cwd=repo, text=True))
+            (provenance/filename).write_text(subprocess.check_output(command, cwd=repo, universal_newlines=True))
         print('PREPARED', casename, row[1], row[2], row[3], 'days')
 
 

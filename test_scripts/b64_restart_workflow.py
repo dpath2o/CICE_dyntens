@@ -116,7 +116,7 @@ def prepare(args):
         for key, command in [('HEAD.txt', ['git', 'rev-parse', 'HEAD']),
                              ('local.diff', ['git', 'diff']),
                              ('status.txt', ['git', 'status', '--short'])]:
-            result = subprocess.run(command, cwd=repo, capture_output=True, text=True, check=True)
+            result = subprocess.run(command, cwd=repo, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True)
             (provenance / key).write_text(result.stdout)
         for filename in ['ice_in', 'cice.settings', 'cice.run', 'env.gadi1_intel', 'Macros.gadi1_intel']:
             source = case / filename
