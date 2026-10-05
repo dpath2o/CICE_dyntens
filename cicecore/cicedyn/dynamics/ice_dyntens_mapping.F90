@@ -10,7 +10,7 @@ module ice_dyntens_mapping
        dyntens_bad_area=5, dyntens_bad_fsd=6
   real(dyntens_kind), parameter :: sum_tol=1.e-10_dyntens_kind, &
        area_min=1.e-12_dyntens_kind
-  public :: dyntens_map_fsd
+  public :: dyntens_map_fsd, dyntens_box_inputs
 contains
   pure subroutine dyntens_map_fsd(area, fsd, diameter, threshold, gmin, ktens, &
                                  large_fraction, g, ktens_eff, status)
@@ -74,5 +74,49 @@ contains
     ktens_eff=ktens*g
     status=dyntens_ok
   end subroutine dyntens_map_fsd
+  ! Explicit shadow inputs for diagnostic-only B6.5 box tests.
+  ! These arrays never overwrite prognostic aicen/trcrn.
+  pure subroutine dyntens_box_inputs(mode, global_i, area, fsd, status)
+    character(len=*), intent(in) :: mode
+    integer, intent(in) :: global_i
+    real(dyntens_kind), intent(out) :: area(:), fsd(:,:)
+    integer, intent(out) :: status
+    area=0._dyntens_kind
+    fsd=0._dyntens_kind
+    status=dyntens_bad_shape
+    if (size(area)<2 .or. size(fsd,1)/=12 .or. size(fsd,2)/=size(area)) return
+    status=dyntens_bad_parameter
+    area(1)=0.9_dyntens_kind
+    select case(trim(mode))
+    case('small')
+      fsd(6,1)=1._dyntens_kind
+    case('large')
+      fsd(7,1)=1._dyntens_kind
+    case('mixed')
+      fsd(6,1)=0.5_dyntens_kind
+      fsd(7,1)=0.5_dyntens_kind
+    case('unequal','dilute')
+      area(1)=0.3_dyntens_kind
+      area(2)=0.6_dyntens_kind
+      if (trim(mode)=='dilute') then
+        area(1)=0.1_dyntens_kind
+        area(2)=0.2_dyntens_kind
+      endif
+      fsd(6,1)=1._dyntens_kind
+      fsd(7,2)=1._dyntens_kind
+    case('inactive')
+      area=0._dyntens_kind
+    case('spatial')
+      if (global_i<1 .or. global_i>12) return
+      if (global_i==6) then
+        fsd(6,1)=1._dyntens_kind
+      else
+        fsd(7,1)=1._dyntens_kind
+      endif
+    case default
+      return
+    end select
+    status=dyntens_ok
+  end subroutine dyntens_box_inputs
 end module ice_dyntens_mapping
 ! dpath2o: dyntens

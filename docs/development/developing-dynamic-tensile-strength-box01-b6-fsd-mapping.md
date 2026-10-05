@@ -1108,3 +1108,197 @@ columns 6/7 and equivalent decompositions, followed by mapped-feedback
 integration and independently prescribed-coefficient equivalence. This accepted
 diagnostic path supplies no FSD-derived coefficient to momentum, so its PASS
 cannot establish the future mapped halo or feedback path.
+
+## B6.5 diagnostic shadow-fixture implementation and Bash workflow
+
+Added 5 October 2026. **Implementation and local syntax/checker tests are complete;
+Gadi compiler/full-build and runtime evidence are pending. B6.5-F feedback
+equivalence remains a separate implementation/run gate.**
+
+An explicit dynamics_nml option, dyntens_box_fixture, supplies controlled
+diagnostic inputs: none (default live adapter), small, large, mixed, unequal,
+dilute, inactive or spatial. These are **shadow category areas/FSD arrays** passed
+to the existing production mapping routine with the actual native
+2*floe_rad_c diameters. They do not overwrite aicen, trcrn, FSD restart fields or
+any prognostic state. The fixture's status/large-fraction fields describe the
+synthetic input rather than the model's evolving ice. This controlled replay
+tests native-bin mapping and global indexing; it is not an evolving-tracer
+perturbation experiment or proof of a physical closure.
+
+The option is restricted to diagnostics=T, feedback=F, rectangular box_tensile,
+12x12, nfsd=12, ncat>=2, threshold=300, g_min=0.2, Ktens=0.2 and the previously
+supported EVP configuration. Configuration is MPI-broadcast and the selected
+fixture is printed in the startup log. Invalid names/configurations abort.
+The default none branch retains the live-FSD adapter used in B6.3/B6.4.
+
+Fixture arrays are reconstructed at initialization and every pre-EVP call;
+the spatial input uses global column indices, never rank-local i. Coefficients
+are held fixed through EVP subcycles. No new prognostic restart variable or
+candidate halo exchange is introduced.
+
+| Fixture | Synthetic inputs | Expected F_L | Expected g | Expected Ktens candidate |
+|---|---|---:|---:|---:|
+| small | area 0.9, native bin 6 | 0 | 0.2 | 0.04 |
+| large | area 0.9, native bin 7 | 1 | 1 | 0.2 |
+| mixed | area 0.9, half in bins 6 and 7 | 0.5 | 0.6 | 0.12 |
+| unequal | areas 0.3/0.6, bins 6/7 respectively | 2/3 | 11/15 | 11/75 |
+| dilute | areas 0.1/0.2, same fractions | 2/3 | 11/15 | 11/75 |
+| inactive | zero areas | masked | 1 | 0.2 |
+| spatial | bin 6 at global column 6; bin 7 elsewhere | 0 at column 6, 1 elsewhere | 0.2 at column 6, 1 elsewhere | 0.04 at column 6, 0.2 elsewhere |
+
+Native bin 6 is below the 300 m diameter threshold; bin 7 is above it.
+The exact D=300 boundary remains a standalone analytical routine test in the
+B6.2 suite, since the native grid has no representative diameter exactly there.
+
+### Create new cases
+
+Use the usual model-build shell. No accepted B6.3/B6.4 directory is modified.
+The prepare helper requires fresh destinations. It invokes cice.setup, preserves
+each generated domain_nml and launcher, copies the accepted machine environment/
+macros and physics, and sets the explicit fixture option. Its --base-case is
+the original case directory under src/CICE_dyntens, not a run directory.
+
+~~~bash
+(
+set -euo pipefail
+cd /g/data/gv90/da1339/src/CICE_dyntens
+git pull --ff-only origin dev
+python3 test_scripts/b65_box_workflow.py prepare \
+    --base-case /g/data/gv90/da1339/src/CICE_dyntens/dt_b63_diag
+)
+~~~
+
+There are fourteen cases: three controls (ctl_s1, ctl_s2, ctl_m2), six uniform
+analytical cases on s1, three spatial cases (sp_s1, sp_s2, sp_m2), and
+sp_a_m2/sp_b_m2 split segments. All names have the dt_b65_ prefix.
+Layouts are 1x1x12x12x1, 1x1x6x12x2 and 2x1x6x12x1 respectively.
+Full runs use five days; split segments use two and three days.
+
+### Compiler checks, builds and executable distribution
+
+Run the routine tests in the generated case's actual compiler environment:
+
+~~~bash
+(
+set -euo pipefail
+cd /g/data/gv90/da1339/src/CICE_dyntens
+csh -f <<'CSH'
+source /etc/profile.d/modules.csh
+cd dt_b65_ctl_s1
+source ./cice.settings
+source ./env.gadi1_intel
+cd ..
+python3 test_scripts/test_b6_fortran_mapping.py --fc ifort --fflags '-O0 -g -check all -traceback'
+if ($status != 0) exit 1
+python3 test_scripts/test_b65_fortran_fixtures.py --fc ifort --fflags '-O0 -g -check all -traceback'
+if ($status != 0) exit 1
+CSH
+
+for layout in s1 s2 m2; do
+    (
+        cd "dt_b65_ctl_$layout"
+        ./cice.build > build.b65.log 2>&1
+    )
+done
+python3 test_scripts/b65_box_workflow.py distribute
+)
+~~~
+
+Use ifx in both compiler commands if that is the loaded compiler. Do not use
+fast-math flags. The new compiler check derives native bin diameters from the
+Icepack source, tests 84 mode/column answers and three invalid fixture guards.
+Each layout gets one fresh executable; distribute copies it to every matching
+case and records hashes. Full model compilation is required because the fixture
+adapter/namelist source has changed.
+
+Before submission inspect PBS queue/project/storage, rank count, new case paths
+and the generated MPI launcher. The helper sets 1/2 CPUs, 9 GB and 30 minutes;
+it retains the generator's queue, storage and launcher. Do not copy a serial
+launcher or executable into an MPI case.
+
+### Submit the full matrix and first split segment
+
+~~~bash
+(
+set -euo pipefail
+cd /g/data/gv90/da1339/src/CICE_dyntens
+
+cases=(
+dt_b65_ctl_s1 dt_b65_small_s1 dt_b65_large_s1
+dt_b65_mix_s1 dt_b65_uneq_s1 dt_b65_dil_s1 dt_b65_zero_s1
+dt_b65_sp_s1 dt_b65_ctl_s2 dt_b65_sp_s2
+dt_b65_ctl_m2 dt_b65_sp_m2 dt_b65_sp_a_m2
+)
+for name in "${cases[@]}"; do
+    ( cd "$name"; qsub ./cice.run | tee b65-job-id.txt )
+done
+)
+~~~
+
+Wait for completion. Confirm each model log says CICE COMPLETED SUCCESSFULLY.
+
+### Stage and submit the spatial continuation
+
+~~~bash
+(
+set -euo pipefail
+cd /g/data/gv90/da1339/src/CICE_dyntens
+load_modules
+runs=/g/data/gv90/da1339/cice-dirs/runs
+rg -l 'CICE COMPLETED SUCCESSFULLY' "$runs/dt_b65_sp_a_m2"/cice.runlog.*
+python3 test_scripts/b65_box_workflow.py stage
+( cd dt_b65_sp_b_m2; qsub ./cice.run | tee b65-job-id.txt )
+)
+~~~
+
+This checks the 3 January / step 48 clock, stages a checksum-identical spatial
+restart and writes its pointer. The deterministic shadow fixture is reconstructed
+from the continuation namelist/global index, without modifying restored FSD.
+
+### Analyse after all fourteen jobs finish
+
+~~~bash
+(
+set -euo pipefail
+cd /g/data/gv90/da1339/src/CICE_dyntens
+load_modules
+runs=/g/data/gv90/da1339/cice-dirs/runs
+for name in dt_b65_ctl_s1 dt_b65_small_s1 dt_b65_large_s1 \
+            dt_b65_mix_s1 dt_b65_uneq_s1 dt_b65_dil_s1 dt_b65_zero_s1 \
+            dt_b65_sp_s1 dt_b65_ctl_s2 dt_b65_sp_s2 \
+            dt_b65_ctl_m2 dt_b65_sp_m2 dt_b65_sp_a_m2 dt_b65_sp_b_m2; do
+    rg -l 'CICE COMPLETED SUCCESSFULLY' "$runs/$name"/cice.runlog.*
+done
+python3 test_scripts/test_b65_box_workflow.py -v
+python3 test_scripts/b65_box_workflow.py analyse \
+    2>&1 | tee dt_b65_ctl_s1/b65-analysis.log
+)
+~~~
+
+The checker requires complete 126-file full histories and five daily restarts,
+51-file/two-restart segment 1 and 76-file/three-restart segment 2.
+Every candidate IC/daily/hourly family must match the independent table at
+absolute tolerance 1e-10, including inactive masking. Applied g=1/Ktens=0.2
+remains required.
+
+Against each layout's control, only the four candidate history families are
+excluded; other decoded values/masks and all restart fields match exactly.
+Across equivalent decompositions, candidates and physical fields match exactly;
+only history blkmask ownership values are exempted, retaining dimensions,
+masks and finiteness checks. Full restart equality includes extended halos.
+
+Spatial split/continuous comparison covers 51+75 history pairs and two+three
+restart pairs exactly. The extra continuation IC is checked against the
+analytical spatial fixture at initialization, since that fixture is explicitly
+reconstructed rather than inferred from the evolving prognostic FSD.
+
+Local verification: four preprocessed Fortran files passed an F2008 syntax
+parse; six synthetic checker regressions passed. The compiler-driven fixture
+test and full CICE build/runtime tests must be run on Gadi. No runtime PASS is
+claimed by this implementation entry.
+
+Passing this matrix closes the implemented **diagnostic shadow-fixture**
+analytical/spatial/restart gates. It does not establish raw-tracer perturbation
+fixtures, mapped coefficient halo exchange or B6.5-F momentum feedback
+equivalence. Implement that explicit mapped mode after this matrix passes,
+then compare endpoints/equal mixtures against independently prescribed controls.

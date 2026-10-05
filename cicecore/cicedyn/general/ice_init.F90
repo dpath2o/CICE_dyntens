@@ -65,7 +65,8 @@
           debug_model_i, debug_model_j, debug_model_iblk
 ! dpath2o: dyntens
       use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
-      use ice_dyn_shared, only: use_dyntens_diagnostics, dyntens_diameter_threshold, dyntens_g_min
+      use ice_dyn_shared, only: use_dyntens_diagnostics, dyntens_diameter_threshold, dyntens_g_min, &
+           dyntens_box_fixture
 ! dpath2o: dyntens
       use ice_domain, only: close_boundaries
       use ice_domain_size, only: &
@@ -256,7 +257,7 @@
         tscale_pnd_drain
 
 ! dpath2o: dyntens
-      namelist /dynamics_nml/ use_dyntens_diagnostics, dyntens_diameter_threshold, dyntens_g_min
+      namelist /dynamics_nml/ use_dyntens_diagnostics, dyntens_diameter_threshold, dyntens_g_min, dyntens_box_fixture
 ! dpath2o: dyntens
       namelist /dynamics_nml/ &
            boundary_condition, lateral_drag, form_func, Cs, Cq, C_L,       &
@@ -488,6 +489,7 @@
       threshold_hw          = 30.0_dbl_kind   ! max water depth for grounding
 ! dpath2o: dyntens
       use_dyntens_diagnostics = .false.
+      dyntens_box_fixture = 'none'
       dyntens_diameter_threshold = 300._dbl_kind
       dyntens_g_min = 0.2_dbl_kind
 ! dpath2o: dyntens
@@ -1153,6 +1155,7 @@
       call broadcast_scalar(Ktens,                master_task)
 ! dpath2o: dyntens
       call broadcast_scalar(use_dyntens_diagnostics, master_task)
+      call broadcast_scalar(dyntens_box_fixture, master_task)
       call broadcast_scalar(dyntens_diameter_threshold, master_task)
       call broadcast_scalar(dyntens_g_min, master_task)
 ! dpath2o: dyntens
@@ -1536,6 +1539,20 @@
       endif
 
 ! dpath2o: dyntens
+      ! Fixtures are explicit diagnostic-only shadow inputs, never global physics.
+      select case(trim(dyntens_box_fixture))
+      case('none','small','large','mixed','unequal','dilute','inactive','spatial')
+      case default
+         call abort_ice('Unknown dyntens_box_fixture')
+      end select
+      if (trim(dyntens_box_fixture)/='none') then
+         if (.not. use_dyntens_diagnostics .or. use_dyntens) &
+              call abort_ice('Box FSD fixture requires diagnostics=T and feedback=F')
+         if (trim(grid_type)/='rectangular' .or. trim(atm_data_type)/='box_tensile') &
+              call abort_ice('Box FSD fixture requires rectangular box_tensile setup')
+         if (dyntens_diameter_threshold/=300._dbl_kind .or. dyntens_g_min/=0.2_dbl_kind .or. Ktens/=0.2_dbl_kind) &
+              call abort_ice('Box FSD fixture requires threshold=300, g_min=0.2, Ktens=0.2')
+      endif
       ! Diagnostic mode leaves the control momentum path unchanged.
       if (use_dyntens_diagnostics) then
          if (use_dyntens) call abort_ice('FSD diagnostics require use_dyntens=F')
@@ -2391,6 +2408,7 @@
             write(nu_diag,1002) ' Ktens            = ', Ktens, ' : tensile strength factor'
 ! dpath2o: dyntens
             write(nu_diag,*) ' use_dyntens_diagnostics = ', use_dyntens_diagnostics
+            write(nu_diag,*) ' dyntens_box_fixture = ', trim(dyntens_box_fixture)
             if (use_dyntens_diagnostics) then
                write(nu_diag,*) ' FSD candidate only: applied g=1; Ktens unchanged'
                write(nu_diag,*) ' Diameter threshold, g_min = ', dyntens_diameter_threshold, dyntens_g_min

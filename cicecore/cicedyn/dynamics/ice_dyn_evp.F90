@@ -58,7 +58,8 @@
       use icepack_intfc, only: icepack_ice_strength, icepack_query_parameters
 
 ! dpath2o: dyntens
-      use ice_dyn_shared, only: use_dyntens_diagnostics, dyntens_diameter_threshold, dyntens_g_min
+      use ice_dyn_shared, only: use_dyntens_diagnostics, dyntens_diameter_threshold, dyntens_g_min, &
+           dyntens_box_fixture
 ! dpath2o: dyntens
       implicit none
       private
@@ -170,22 +171,27 @@
 !
 ! dpath2o: dyntens
       subroutine update_dyntens_candidates()
-        use ice_blocks, only: block, get_block, nx_block, ny_block
+        use ice_blocks, only: block, get_block, nx_block, ny_block, i_global
         use ice_domain, only: nblocks, blocks_ice, distrb_info
-        use ice_domain_size, only: max_blocks, nfsd, ncat
+        use ice_domain_size, only: max_blocks, nfsd, ncat, nx_global, ny_global
         use ice_grid, only: tmask
         use ice_state, only: aicen, trcrn
         use ice_arrays_column, only: floe_rad_c
         use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_indices
         use ice_global_reductions, only: global_sum
-        use ice_dyntens_mapping, only: dyntens_map_fsd, dyntens_ok, dyntens_inactive
+        use ice_dyntens_mapping, only: dyntens_map_fsd, dyntens_box_inputs, dyntens_ok, dyntens_inactive
         type(block) :: b
         integer (kind=int_kind) :: nt_fsd, iblk, i, j, ierr, bad, total_bad
         integer :: status
         logical (kind=log_kind) :: tr_fsd
         real (kind=dbl_kind) :: fraction, g, effective
+        real (kind=dbl_kind) :: fixture_area(ncat), fixture_fsd(nfsd,ncat)
 
         if (.not. use_dyntens_diagnostics) return
+        if (trim(dyntens_box_fixture)/='none') then
+           if (nx_global/=12 .or. ny_global/=12 .or. nfsd/=12 .or. ncat<2) &
+                call abort_ice('Box FSD fixture requires 12x12, nfsd=12, ncat>=2')
+        endif
         call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
         if (.not. tr_fsd) call abort_ice('FSD diagnostics require tr_fsd=T')
         if (.not. allocated(floe_rad_c)) call abort_ice('FSD bounds unavailable for dyntens')
@@ -211,9 +217,17 @@
            do j=b%jlo,b%jhi
               do i=b%ilo,b%ihi
                  if (.not. tmask(i,j,iblk)) cycle
-                 call dyntens_map_fsd(aicen(i,j,:,iblk), trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,:,iblk), &
-                      2._dbl_kind*floe_rad_c, dyntens_diameter_threshold, dyntens_g_min, Ktens, &
-                      fraction, g, effective, status)
+                 if (trim(dyntens_box_fixture)=='none') then
+                    call dyntens_map_fsd(aicen(i,j,:,iblk), trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,:,iblk), &
+                         2._dbl_kind*floe_rad_c, dyntens_diameter_threshold, dyntens_g_min, Ktens, &
+                         fraction, g, effective, status)
+                 else
+                    call dyntens_box_inputs(dyntens_box_fixture, i_global(i,blocks_ice(iblk)), &
+                         fixture_area, fixture_fsd, status)
+                    if (status/=dyntens_ok) call abort_ice('Invalid box FSD fixture configuration')
+                    call dyntens_map_fsd(fixture_area, fixture_fsd, 2._dbl_kind*floe_rad_c, &
+                         dyntens_diameter_threshold, dyntens_g_min, Ktens, fraction, g, effective, status)
+                 endif
                  if (status /= dyntens_ok .and. status /= dyntens_inactive) then
                     if (bad == 0) write(nu_diag,*) 'dyntens invalid: rank, block, i, j, status=', &
                          my_task, blocks_ice(iblk), i, j, status
