@@ -169,10 +169,6 @@
 
       call init_forcing_ocn(dt) ! initialize sss and sst from data
       call init_state           ! initialize the ice state
-! dpath2o: dyntens
-      ! Bounds and initialized/restarted tracers are now available.
-      call update_dyntens_candidates()
-! dpath2o: dyntens
 
       call init_transport       ! initialize horizontal transport
       call ice_HaloRestore_init ! restored boundary conditions
@@ -186,6 +182,10 @@
       if (skl_bgc .or. z_tracers) call alloc_forcing_bgc ! allocate biogeochemistry arrays
 
       call init_restart         ! initialize restart variables
+! dpath2o: dyntens
+      ! FSD is populated by init_restart, including initial runs.
+      call update_dyntens_candidates()
+! dpath2o: dyntens
       call init_diags           ! initialize diagnostic output points
       call init_history_therm   ! initialize thermo history variables
       call init_history_dyn     ! initialize dynamic history variables

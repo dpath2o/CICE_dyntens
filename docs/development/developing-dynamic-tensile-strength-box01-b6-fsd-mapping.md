@@ -327,13 +327,13 @@ substitute for summing the category FSD.
 
 The standalone driver calls init_evp before initialising FSD bounds and before
 init_state ([CICE_InitMod.F90:133–169](https://github.com/dpath2o/CICE_dyntens/blob/c7c8770055196406eccfb3f47e01ddceafdf4160/cicecore/drivers/standalone/cice/CICE_InitMod.F90#L133-L169)).
-In init_state, an enabled FSD is read from restart when requested (forced for
+In the driver's init_restart routine, an enabled FSD is read from restart when requested (forced for
 runtype=continue), otherwise init_fsd populates it
 ([CICE_InitMod.F90:426–434](https://github.com/dpath2o/CICE_dyntens/blob/c7c8770055196406eccfb3f47e01ddceafdf4160/cicecore/drivers/standalone/cice/CICE_InitMod.F90#L426-L434)).
 The driver writes IC history later, at line 197.
 
 Consequently, retain allocation/neutral defaults in init_evp, but initialise
-the FSD-derived candidate **after init_state returns and before IC history**.
+the FSD-derived candidate **after init_restart returns and before IC history**.
 The existing prescribed-g call inside init_evp must not simply be changed to
 dereference the FSD. Recompute the candidate after restart restoration; do not
 store it as an additional prognostic tracer. Disabled tr_fsd is “input
@@ -497,7 +497,7 @@ The implemented namelist names and constraints are recorded below.
 
 #### B6.3 implementation — 5 October 2026
 
-The standalone driver now initializes candidates after init_state, when the
+The standalone driver now initializes candidates after init_restart, when the
 FSD bounds and initialized/restarted tracers exist. EVP refreshes candidates
 before its dynamics work. The adapter uses aicen, the queried nt_fsd slice of
 trcrn, and twice floe_rad_c; it never changes those inputs.
@@ -713,3 +713,21 @@ The next concrete evidence is the B6.2 compiler-run output and a clean B6.3
 matched control/diagnostic run. The implemented candidate path must pass before
 moving to the controlled spatial, restart and feedback stages.
 
+
+## B6.3 initialization-order correction — 5 October 2026
+
+The first diagnostic run (job 180528071) aborted with mapping status 6 before
+IC history. The candidate call had incorrectly been placed after init_state.
+FSD initialization/read occurs later inside the standalone driver's init_restart,
+including runtype=initial. The call is now after init_restart and before IC
+history. The earlier B6.1 statement attributing FSD population to init_state
+was incorrect and has been corrected above. No tolerance, mapping formula,
+FSD state or momentum code changed.
+
+User-supplied evidence before this correction: the full model built successfully;
+all 67 production Fortran fixtures passed at absolute tolerance 1e-12; the
+matched control completed with the expected history coverage. The diagnostic
+run did not complete, so B6.3 has not passed. Rebuild and rerun both matched
+cases with the same corrected executable, preserving the previous outputs.
+A source-order regression check guards the call placement; runtime verification
+on Gadi remains required.
