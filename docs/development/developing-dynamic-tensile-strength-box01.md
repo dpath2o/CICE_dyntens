@@ -287,13 +287,16 @@ message before execution; this did not prevent that run completing. These
 results are recorded from the supplied transcript; the four new NetCDF datasets
 were not independently inspected here.
 
-## B5 -- Restart continuation execution results
+## B5 -- Restart continuation results
 
-Results supplied 5 October 2026 in `Pasted text(9).txt` confirm successful
-execution of both split-run segments and successful staging of the restart
-between them. **Execution has succeeded; the B5 numerical reproducibility gate
-remains open until the continuous-versus-split comparisons are supplied.**
-The rest of this document is retained unchanged.
+Results supplied 5 October 2026 in `Pasted text(9).txt` establish successful
+split-run execution and restart staging. The subsequent `Pasted text(10).txt`,
+`pre_split.log` and `post_split.log` establish prescribed-field checks and
+exact continuous-versus-split agreement. **The B5 numerical restart comparison
+passes for this tested prescribed-g box configuration: 53 pairs before the
+split and 78 pairs after it, with atol=rtol=0.** This supersedes earlier
+pending B5 wording elsewhere in this document; B6 is the next box-development
+task. The rest of this document is retained unchanged.
 
 The agreed setup uses the accepted `dt_b6_m2` two-rank, one-column-band case:
 `box_tensile` forcing, `Ktens=0.2`, background g=1 and g=0.5 at global
@@ -304,9 +307,9 @@ actual run namelists or executable checksums.
 
 | Case | Intended experiment | Evidence supplied | Status |
 |---|---|---|---|
-| dt_b5_cont | Five days from internal initial conditions | No continuous-run completion report or comparison output in this transcript | Awaiting validation evidence |
-| dt_b5_seg1 | Two days from the same internal state | Job 180508707.gadi-pbs; CICE completed successfully; exit status 0 | Execution PASS |
-| dt_b5_seg2 | Three further days from the segment-1 restart | Job 180509882.gadi-pbs; CICE completed successfully; exit status 0 | Execution PASS |
+| dt_b5_cont | Five days from internal initial conditions | 126-file prescribed-field check; reference for both comparison windows | History checks PASS; reference comparisons PASS |
+| dt_b5_seg1 | Two days from the same internal state | Job 180508707.gadi-pbs; CICE completed successfully; exit status 0 | Execution and 53-pair comparison PASS |
+| dt_b5_seg2 | Three further days from the segment-1 restart | Job 180509882.gadi-pbs; CICE completed successfully; exit status 0 | Execution and 78-pair comparison PASS |
 
 Both supplied job reports request two CPUs and 9 GB memory, with a 30-minute
 walltime limit. Segment 1 ran on 5 October 2026 from 14:19:58 to 14:20:11 AEDT
@@ -331,25 +334,54 @@ The transcript shows the following restart transfer under
 - The printed `dt_b5_seg2/ice.restart_file` points to that staged input by
   absolute path. Segment 2 was then submitted and completed successfully.
 
-This establishes the successful job execution and restart-staging sequence.
-It does not by itself establish that the restart clock, reconstructed
-coefficients or subsequent physical trajectory match the continuous run.
-To close B5, retain and check:
+### Numerical validation supplied 5 October 2026
 
-1. Matching executable hashes and actual namelists/launch settings for all three
-   cases; successful completion of the continuous case.
-2. Segment-2 startup evidence identifying the staged restart and resumption at
-   3 January 2005, step 48; final restart headers at 6 January, step 120.
-3. Exact comparison of the segment-1 and continuous restarts at the split time.
-4. Prescribed g and ktens_eff checks after restart, plus exact comparison of
-   aligned post-restart outputs: 72 hourly snapshots, three daily histories
-   with matching averaging intervals, and three restarts (78 pairs under the
-   intended schedule). Exclude the extra segment-2 IC snapshot from that
-   reference comparison.
+The complete-run checker transcript `Pasted text(10).txt` reports prescribed
+coefficient/loading and finite-history PASS results for 126 continuous files,
+51 segment-1 files and 76 segment-2 files. The segment-2 total includes its
+restart-time IC snapshot; that additional snapshot is excluded from the
+continuous-versus-split comparison.
 
-No coefficient-check or reference-comparison PASS output is present in this
-attachment. No new NetCDF files were independently inspected here, and no
-numerical tolerance has been relaxed.
+| Comparison log | Split output versus continuous reference | History checks | Restart pairs | Total comparison | Result |
+|---|---|---:|---:|---:|---|
+| pre_split.log | Segment 1: initial snapshot, daily histories for 1–2 January and hourly histories through 3 January 00:00 | 51 | 2 | 53 pairs | PASS, atol=0.0, rtol=0.0 |
+| post_split.log | Segment 2: daily histories for 3–5 January and 72 hourly histories from 3 January 01:00 through 6 January 00:00 | 75 | 3 | 78 pairs | PASS, atol=0.0, rtol=0.0 |
+
+Case attribution and restart-date selection follow the supplied comparison
+procedure. Together these windows compare 126 histories and five restarts
+against the continuous run, including the split-time and final restart states.
+The two logs report no comparison failures. Coefficients and finite history
+pass after continuation, and the compared physical fields retain exact
+decoded, unmasked numerical agreement. This is not a claim of byte-identical
+NetCDF files.
+
+The checker retains its history `blkmask` value exception (51 pre-split and
+75 post-split history pairs), because those values identify block/rank ownership.
+Variable inventories, dimensions and masks remain checked; physical-field
+tolerances were not relaxed.
+
+| Instantaneous output | Central divergence minimum (%/day) | Maximum (%/day) |
+|---|---:|---:|
+| Split boundary: 3 January 00:00 | 0.0049842222 | 0.38701003 |
+| First post-restart hour: 3 January 01:00 | 0.0049583075 | 0.38524518 |
+| Final output: 6 January 00:00 | 0.0035674161 | 0.30690565 |
+
+The exact comparisons support restart reproducibility across the tested
+two-day plus three-day split with a prescribed spatial coefficient jump.
+They also support correct reconstruction of the diagnostic g and ktens_eff
+fields after restart. They do not establish evolving-FSD or global-forcing
+restart behaviour.
+
+Provenance qualification: these uploaded comparison logs contain the checker
+output only. The preparation script separately checks executable hashes,
+restart headers (3 January/step 48 and 6 January/step 120), the staged copy,
+and daily time units/calendar/bounds before invoking the checker. Its preflight
+stdout is not included in these two log files, so the actual hash values,
+header values and interval-check messages are not independently recorded here.
+Preserve that stdout, actual namelists, launch settings and model startup logs
+with the experiment archive. Numerical comparison PASS results are directly
+present in the supplied logs; the new NetCDF datasets were not independently
+inspected here.
 
 ## Remaining work: explicit acceptance gates
 
