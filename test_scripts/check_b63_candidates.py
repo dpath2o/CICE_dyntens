@@ -20,6 +20,23 @@ def close(actual, expected, tol, label):
         raise ValueError(label)
 
 
+
+def ocean_cells(ds, variable):
+    if 'tmask' not in ds.variables:
+        raise ValueError('missing tmask: ocean domain cannot be established')
+    grid = ds['tmask']
+    if grid.dimensions != ('nj', 'ni') or variable.dimensions[-2:] != grid.dimensions:
+        raise ValueError('unexpected tmask/field dimensions')
+    mask = np.ma.asarray(grid[:])
+    values = np.asarray(mask)
+    known = ~np.ma.getmaskarray(mask)
+    if np.any(known & (~np.isfinite(values) | ((values != 0) & (values != 1)))):
+        raise ValueError('box tmask must contain finite 0/1 values')
+    ocean = known & (values == 1)
+    if not np.any(ocean):
+        raise ValueError('no ocean cells in tmask')
+    return np.broadcast_to(ocean, variable.shape)
+
 def check_dataset(ds, ktens, gmin, tol):
     families = [{n[len(b):]: n for n in ds.variables
                  if re.fullmatch(re.escape(b)+r'(?:_\w+)?', n)} for b in BASES]
@@ -32,12 +49,10 @@ def check_dataset(ds, ktens, gmin, tol):
         frac,g,k,status = [np.ma.asarray(v[:]) for v in variables]
         if any(x.shape!=g.shape for x in (frac,k,status)):
             raise ValueError('candidate shapes differ')
+        valid = ocean_cells(ds, variables[1])
         mask = np.ma.getmaskarray(g)
-        if not np.array_equal(mask,np.ma.getmaskarray(k)) or not np.array_equal(mask,np.ma.getmaskarray(status)):
-            raise ValueError('candidate coefficient/status masks differ')
-        valid = ~mask
-        if not np.any(valid):
-            raise ValueError('no unmasked candidate cells')
+        if any(np.any(valid & np.ma.getmaskarray(x)) for x in (g,k,status)):
+            raise ValueError('candidate coefficient/status masked on ocean')
         gv,kv,sv = [np.asarray(x)[valid] for x in (g,k,status)]
         if any(not np.all(np.isfinite(x)) for x in (gv,kv,sv)):
             raise ValueError('nonfinite candidate')
@@ -47,7 +62,7 @@ def check_dataset(ds, ktens, gmin, tol):
             raise ValueError('candidate g outside bounds')
         close(kv,ktens*gv,tol,'candidate ktens != Ktens*g')
         fm = np.ma.getmaskarray(frac)
-        if np.any(~fm & mask):
+        if np.any(valid & ~fm & mask):
             raise ValueError('fraction unmasked outside coefficient mask')
         # Any inactive sample poisons the fraction interval, even if very rare.
         if np.any(valid & (np.asarray(status)>0) & ~fm):
@@ -66,9 +81,11 @@ def check_dataset(ds, ktens, gmin, tol):
         if not names:
             raise ValueError(f'missing applied coefficient {base}')
         for name in names:
-            data=np.ma.asarray(ds[name][:]).compressed()
-            if data.size==0:
-                raise ValueError(f'applied coefficient entirely masked: {name}')
+            field=np.ma.asarray(ds[name][:])
+            ocean=ocean_cells(ds, ds[name])
+            if np.any(ocean & np.ma.getmaskarray(field)):
+                raise ValueError(f'applied coefficient masked on ocean: {name}')
+            data=np.asarray(field)[ocean]
             close(data,value,tol,f'applied {name} differs from control')
 
 

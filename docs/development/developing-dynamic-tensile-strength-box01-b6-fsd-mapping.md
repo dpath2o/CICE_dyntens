@@ -753,3 +753,25 @@ test reads the Fortran field definitions and metadata name width, checks suffix
 uniqueness, and defines the resulting names in NetCDF. No mapping or momentum
 calculation changed. A full model rebuild and fresh matched runs are required;
 B6.3 runtime acceptance remains pending.
+
+## B6.3 IC ocean-domain checker correction — 5 October 2026
+
+Both corrected model runs completed with expected history coverage. Five daily
+files passed candidate validation and exact control comparison. The checker
+then rejected the IC hourly candidate copy because it treated unmasked land
+zeros as ocean values. User-supplied inspection showed 64 ocean cells in each
+copy, all with g=0.32273816251731574, and 80 unmasked zero-valued non-ocean cells
+only in dtens_gcand_h. There were no ocean bound violations in that inspection.
+
+Candidate and applied-coefficient invariant checks now select ocean explicitly
+from the box tmask: finite binary 0/1, with masked locations excluded. All ocean
+coefficient/status values must be present and finite, including inactive ice
+cells. Ocean bounds, equations and inactive-fraction masking remain enforced.
+The exact control comparison remains unchanged across all stored unmasked
+values and masks, including land. This is a checker-only correction; no rebuild
+or model rerun is required.
+
+Nineteen synthetic checker tests pass, including the observed IC land-zero
+layout, rejection of ocean zeros and missing ocean values, missing/nonbinary
+tmask rejection, and detection of control differences on land. Full 126-file
+comparison remains pending; this partial result is not a B6.3 acceptance PASS.

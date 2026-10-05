@@ -17,6 +17,8 @@ class CandidateHistory(unittest.TestCase):
         ds.createDimension('time',1)
         ds.createDimension('nj',1)
         ds.createDimension('ni',3)
+        grid=ds.createVariable('tmask','f8',('nj','ni'),fill_value=1.e30)
+        grid[:]=[[1,1,0]]
         values={'dtens_flarge':[.5,0,0],
                 'dtens_gcand':[.6,1,0],
                 'ktens_cand':[.12,.2,0],
@@ -49,6 +51,41 @@ class CandidateHistory(unittest.TestCase):
 
     def test_hourly_suffixes(self):
         check_dataset(self.fixture(('', '_h')),.2,.2,1.e-10)
+
+    def test_ic_hourly_unmasked_land_zeros(self):
+        ds=self.fixture(('', '_h'))
+        for name in ds.variables:
+            if name.endswith('_h'):
+                ds[name][0,0,2]=0.
+        check_dataset(ds,.2,.2,1.e-10)
+
+    def test_hourly_ocean_zero_still_fails(self):
+        ds=self.fixture(('', '_h'))
+        ds['dtens_gcand_h'][0,0,0]=0.
+        with self.assertRaises(ValueError): check_dataset(ds,.2,.2,1.e-10)
+
+    def test_missing_ocean_candidate_fails(self):
+        ds=self.fixture()
+        ds['dtens_gcand'][0,0,0]=np.ma.masked
+        with self.assertRaises(ValueError): check_dataset(ds,.2,.2,1.e-10)
+
+    def test_missing_tmask_fails(self):
+        ds=self.fixture();ds.renameVariable('tmask','missing_mask')
+        with self.assertRaises(ValueError): check_dataset(ds,.2,.2,1.e-10)
+
+    def test_nonbinary_tmask_fails(self):
+        ds=self.fixture();ds['tmask'][0,0]=.5
+        with self.assertRaises(ValueError): check_dataset(ds,.2,.2,1.e-10)
+
+    def test_masked_land_tmask(self):
+        ds=self.fixture();ds['tmask'][0,2]=np.ma.masked
+        check_dataset(ds,.2,.2,1.e-10)
+
+    def test_control_land_difference_still_fails(self):
+        a,b=self.fixture(),self.fixture()
+        a['dyntens_g'][0,0,2]=0.
+        b['dyntens_g'][0,0,2]=.1
+        with self.assertRaises(ValueError): compare_history(a,b)
 
     def test_valid_and_inactive(self):
         check_dataset(self.fixture(),.2,.2,1.e-10)
