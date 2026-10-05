@@ -70,7 +70,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix='b6-fortran-') as tmp:
         exe = Path(tmp)/'mapping_test'
         command = shlex.split(args.fc)+shlex.split(args.fflags)+[str(p) for p in sources]+['-o',str(exe)]
-        print('BUILD:', shlex.join(command), flush=True)
+        print('BUILD:', ' '.join(shlex.quote(arg) for arg in command), flush=True)
         subprocess.run(command, cwd=tmp, check=True)
         cases = fixtures()
         for name,a,f,d,threshold,gmin,ktens,status,fraction in cases:
@@ -79,7 +79,8 @@ def main():
                      ' '.join(map(str,a)), ' '.join(map(str,d))]
             lines += [' '.join(map(str,row)) for row in f]
             result = subprocess.run([str(exe)], input='\n'.join(lines)+'\n',
-                                    text=True, capture_output=True, check=True)
+                                    universal_newlines=True, stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE, check=True)
             fields = result.stdout.split()
             if len(fields)!=4 or int(fields[0])!=status:
                 raise AssertionError((name, 'status/output', result.stdout, status))
