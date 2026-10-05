@@ -429,7 +429,7 @@ assumed here.
 
 ### B6 — size/FSD mapping in controlled inputs
 
-Detailed specification and results: [B6 — Developing the size/FSD mapping](developing-dynamic-tensile-strength-box01-b6-fsd-mapping.md). The controlled mapping contract is now agreed for B6, and its ten Python reference tests passed on 5 October 2026. The original planning text below is retained; production implementation and validation remain pending.
+Detailed specification and results: [B6 — Developing the size/FSD mapping](developing-dynamic-tensile-strength-box01-b6-fsd-mapping.md). On 5 October 2026, the supplied evidence established PASS for 67 B6.2 production Fortran fixtures and B6.3 candidate-only history validation: 19 checker regressions, 126 files, and exact decoded matched-control comparison with candidate diagnostics excluded. B6.4 now specifies timing, scalar halos and restart sampling alignment. Controlled native-bin spatial/restart and mapped-feedback gates remain pending; the original planning text below is retained.
 
 This is development still to implement. Agree a bounded mapping and parameters
 first; the README large-floe-area fraction is a candidate, not a settled closure.

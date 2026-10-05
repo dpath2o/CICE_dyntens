@@ -20,10 +20,11 @@ whose result can be calculated independently. First verify the calculation
 without changing momentum. Then test a small number of equivalent solutions
 with feedback enabled.
 
-**The Python mapping contract has passed all 10 reported tests. A standalone
-Fortran mapping routine and compiler-driven analytical tests have now been added.
-The live candidate-only adapter and history wiring have now been added under B6.3.
-Full CICE compilation and runtime validation remain pending.**
+**B6.2's 67 production Fortran fixtures and the full CICE build have passed
+according to the supplied run evidence. B6.3 is now PASS for the matched
+candidate-only history test: 19 checker regressions, all 126 history files,
+and exact decoded control comparison. B6.4's timing/halo/restart contract is
+specified below; mapped spatial, restart and feedback validation remain pending.**
 The existing executable supports prescribed constant and box_band modes.
 Changing floediam alone does not currently exercise this mapping.
 
@@ -470,7 +471,7 @@ not the adapter, diagnostics, MPI halos, restart reconstruction or feedback.
 
 ### B6.3 — add candidate diagnostics with feedback disabled
 
-Implemented candidate diagnostics (runtime validation pending):
+Implemented candidate diagnostics (matched-history runtime validation PASS; see acceptance record below):
 
 | Diagnostic | Purpose | Units |
 |---|---|---|
@@ -599,12 +600,12 @@ It does not independently reconstruct pre-EVP FSD from end-step history.
 Analytical native-bin fixtures and the later controlled inputs supply the
 independent mapping checks.
 
-Local verification: all changed Fortran files passed a preprocessed Fortran
-2008 syntax parse; ten synthetic NetCDF checker tests passed. These checks
-are not a CICE compilation or a Gadi integration run. No B6.3 runtime PASS is
-claimed. B6.2 compiler results, clean CICE build, IC/daily/instantaneous
-diagnostics, matched-control trajectory identity and restart verification
-remain to be supplied from the actual runs.
+Initial local verification consisted of a preprocessed Fortran 2008 syntax
+parse and ten synthetic NetCDF checker tests. Subsequent user-supplied evidence
+establishes the full build, 67 B6.2 compiler fixtures, 19 checker regressions,
+and B6.3's IC/daily/instantaneous diagnostics and matched-control history
+identity. Restart-file equality and mapped restart reproducibility are separate
+checks and are not established by the B6.3 history checker.
 
 The separate mapping module remains the development arrangement. It can later
 move unchanged into ice_dyn_shared's contains section, using dbl_kind and
@@ -615,22 +616,115 @@ no consortium approval is assumed.
 
 ### B6.4 — specify timing, halo and restart semantics
 
-For a first implementation, target one candidate evaluation per dynamics
-timestep from the current pre-dynamics ice/FSD state, held fixed during EVP
-subcycling. Confirm the actual driver ordering before coding and document
-whether transport, thermodynamics and fracture have already updated that state.
-Do not promise a same-timestep fracture response without tracing that ordering.
+**Contract specified from source at dev revision
+311e9a1b6a6c6a561c77b179a675bb5562334f86. This is a source audit and implementation
+contract, not a mapped-feedback or restart runtime PASS.** No new namelist mode
+or momentum change is introduced by this documentation update.
 
-Compute owned T-cell values, then exchange the derived scalar field needed by
-the dynamics stencil using the established centre/scalar halo pathway.
-Define physical-boundary fill and inactive-cell behaviour explicitly. Use
-global indices only for controlled spatial fixtures, never rank-local band
-positions. Compare the 6/7 boundary across decompositions.
+#### Timing and the state being sampled
 
-Recompute derived candidates after restart from restored inputs and unchanged
-parameters. Do not make g a prognostic restart tracer. Synthetic prescribed
-inputs must also be reconstructed reproducibly; otherwise a passing restart
-test would not exercise the same mapping input.
+| Phase | Required behaviour |
+|---|---|
+| init_evp | Keep allocation/neutral defaults; do not read uninitialized FSD |
+| After init_restart, before IC history | Recompute from initialized/restored aicen and trcrn and initialized bin bounds |
+| Each entry to EVP | Evaluate once from the current pre-EVP state |
+| EVP subcycles | Hold the derived multiplier and effective coefficient fixed |
+| Next horizontal dynamics call | Re-evaluate after preceding transport, ridging and update_state |
+| History accumulation | Retain the latest pre-EVP sample; do not replace it with an end-step mapping |
+
+The standalone driver executes thermodynamics and update_state, then wave
+fracture on even istep when tr_fsd and wave_spec are enabled, then the ndtd
+horizontal-dynamics/ridging/update_state loop
+([CICE_RunMod.F90](https://github.com/dpath2o/CICE_dyntens/blob/311e9a1b6a6c6a561c77b179a675bb5562334f86/cicecore/drivers/standalone/cice/CICE_RunMod.F90#L219-L319)).
+Inside step_dyn_horiz, EVP precedes transport
+([ice_step_mod.F90](https://github.com/dpath2o/CICE_dyntens/blob/311e9a1b6a6c6a561c77b179a675bb5562334f86/cicecore/cicedyn/general/ice_step_mod.F90#L1313-L1365)).
+Thus a fracture call's updated FSD is available to the next EVP in that same
+model timestep. There is no fracture call on the intervening odd timesteps.
+Use ndtd=1 first; with ndtd>1 this is once per horizontal dynamics call,
+not once per full model timestep.
+
+The implemented candidate call is at EVP entry, before the prescribed
+coefficient update
+([ice_dyn_evp.F90](https://github.com/dpath2o/CICE_dyntens/blob/311e9a1b6a6c6a561c77b179a675bb5562334f86/cicecore/cicedyn/dynamics/ice_dyn_evp.F90#L478-L482)).
+The IC call is after init_restart
+([CICE_InitMod.F90](https://github.com/dpath2o/CICE_dyntens/blob/311e9a1b6a6c6a561c77b179a675bb5562334f86/cicecore/drivers/standalone/cice/CICE_InitMod.F90#L184-L188)).
+
+#### Owned cells, halos and physical boundaries
+
+B6.3 maps owned ocean T cells only. Candidate arrays have neutral defaults
+elsewhere and are not exchanged, because history reads owned cells and no
+momentum stencil consumes them. This remains sufficient for diagnostic-only
+mode. Do not infer mapped halo correctness from its history PASS.
+
+For a future mapped-feedback path, use this order:
+
+1. Evaluate and validate every owned ocean T cell.
+2. Complete the existing global invalid-count reduction. Abort collectively
+   before any coefficient exchange if an occupied input is invalid.
+3. Initialize the applied multiplier array to one, then copy valid/inactive
+   candidate values into owned ocean cells.
+4. Exchange that applied scalar with ice_HaloUpdate, halo_info,
+   field_loc_center, field_type_scalar and fillValue=1.
+5. Derive ktens_effT=Ktens*dyntens_gT over the whole exchanged array, including
+   halos, before any EVP stress calculation.
+
+Inactive ocean cells and owned land use neutral g=1 and effective Ktens.
+Unconnected physical ghost boundaries use the same neutral fill; internal
+block/rank boundaries receive their neighbour's values, and periodic boundaries
+follow the configured halo topology. Do not fill an internal boundary with a
+local default or apply vector sign changes to g. F_L remains undefined for
+inactive cells; the multiplier alone is the finite scalar needed by momentum.
+
+The prescribed path already exchanges g before multiplying by Ktens
+([ice_dyn_evp.F90](https://github.com/dpath2o/CICE_dyntens/blob/311e9a1b6a6c6a561c77b179a675bb5562334f86/cicecore/cicedyn/dynamics/ice_dyn_evp.F90#L143-L166)).
+Its fillValue is dyntens_g_const. A mapped mode must use the neutral mapped
+boundary policy above rather than inherit an unrelated prescribed constant.
+The current update_dyntens_coefficients overwrites the applied field from the
+prescribed configuration: a future mapped mode must select a distinct branch
+there, otherwise a copied candidate would be overwritten.
+
+Use global indices for controlled spatial inputs. The first spatial fixture
+must put unlike coefficients across global columns 6/7, then compare one block,
+two local blocks and two MPI ranks. Compare candidates, applied coefficients
+and physical fields; require exact decoded values and masks for equivalent
+layouts unless a numerical-policy change is explicitly documented.
+
+#### Restart reconstruction and sampling alignment
+
+Do not add g or F_L as prognostic restart tracers. Restore aicen, the raw FSD
+tracers and the usual model state, initialize/check the same bin definitions,
+then recompute the derived candidate before IC history. Mapping parameters,
+source/build provenance, FSD restart settings and synthetic-input definitions
+must be identical between continuous and split paths. A continuation must
+restore FSD; it must not silently reinitialize it.
+
+A restart contains end-step prognostic state, whereas the continuous run's
+last stored candidate describes the earlier pre-EVP state. Consequently, a
+restart IC candidate is a new evaluation of restored state and need not equal
+the continuous run's last pre-EVP candidate at that timestamp. This phase
+difference must be documented, not hidden by loosening tolerances.
+
+For the two-day plus three-day test, compare matching physical restart state
+at the split, verify the restart IC mapping independently from its restored
+raw FSD, and compare candidate/applied/physical history at matching phases
+after the first resumed EVP. Handle duplicate split-time IC output explicitly.
+For daily means, use completed, aligned averaging intervals; do not compare a
+partial restarted average with a full continuous average.
+
+#### Next execution gates
+
+| Gate | First evidence required |
+|---|---|
+| Live-FSD diagnostic continuation | Five-day continuous versus two-day plus three-day split; restored-FSD/IC checks and phase-aligned history comparison |
+| Controlled spatial adapter | Native-bin small/large fixture across global columns 6/7; exact one-block/local-block/MPI agreement |
+| Mapped momentum integration | Explicit mode selection, collective validation, scalar halo exchange and no prescribed-field overwrite |
+| Feedback equivalence | B6.5 endpoint/equal-mixture cases versus independently prescribed g controls |
+
+Keep feedback disabled for the first continuation test. Preserve accepted B6.3
+outputs and use new cases/build directories when code changes become necessary.
+The existing checker verifies neutrality against a matched control; it is not
+a general continuous-versus-split comparator and must not be used to certify
+restart coverage without a phase-aware comparison.
 
 ### B6.5 — run the controlled box matrix
 
@@ -682,11 +776,11 @@ bin definitions, job logs and comparison output for every accepted result.
 | Controlled mathematical definition and test parameters | Agreed for B6; not global calibration |
 | Python analytical reference, ten reported tests | PASS |
 | Inherited Icepack representation and adapter verified | Source audit complete (B6.1); runtime adapter tests pending |
-| Production Fortran routine matches analytical fixtures | Pending |
-| Candidate-only diagnostics preserve control dynamics | Adapter/history implemented; matched-run evidence pending |
+| Production Fortran routine matches analytical fixtures | PASS: 67 user-reported compiler fixtures, absolute tolerance 1e-12 |
+| Candidate-only diagnostics preserve control dynamics | PASS: 126 history files and exact decoded matched-control comparison |
 | Spatial/halo and restart tests of the mapped coefficient | Pending |
 | Uniform mapped-feedback cases match prescribed controls | Pending |
-| Invalid/inactive inputs handled explicitly | Python evidence only; production checks pending |
+| Invalid/inactive inputs handled explicitly | Analytical routine/checker evidence passed; deliberate live/MPI failure tests pending |
 
 B6 is complete when the production mapping and its adapter have passed these
 checks in the controlled box environment. Passing B6 validates the implementation
@@ -709,9 +803,10 @@ answer, tolerance and pass/fail outcome. Keep diagnostic-only and feedback
 results distinguishable. Record any change to the mapping contract before
 running replacement tests.
 
-The next concrete evidence is the B6.2 compiler-run output and a clean B6.3
-matched control/diagnostic run. The implemented candidate path must pass before
-moving to the controlled spatial, restart and feedback stages.
+B6.2 compiler fixtures and B6.3 matched-history evidence are now recorded as
+PASS. The next work follows the B6.4 contract: phase-aligned diagnostic
+continuation, controlled native-bin spatial inputs, and then mapped-feedback
+integration/equivalence. Full B6 acceptance remains pending.
 
 
 ## B6.3 initialization-order correction — 5 October 2026
@@ -775,3 +870,42 @@ Nineteen synthetic checker tests pass, including the observed IC land-zero
 layout, rejection of ocean zeros and missing ocean values, missing/nonbinary
 tmask rejection, and detection of control differences on land. Full 126-file
 comparison remains pending; this partial result is not a B6.3 acceptance PASS.
+
+## B6.3 matched-history acceptance — 5 October 2026
+
+**PASS for candidate-only history validation and matched-control trajectory
+identity over the supplied five-day box run.** The final user-supplied transcript
+reports:
+
+~~~
+Ran 19 tests in 0.227s
+
+OK
+PASS B6.3 candidate history: 126 files
+PASS exact decoded control history comparison (candidate diagnostics excluded)
+~~~
+
+Coverage is five daily files (1–5 January 2005), one IC file at 1 January
+00:00 and 120 hourly instantaneous files from 1 January 01:00 through
+6 January 00:00. All 126 files passed candidate validation. The comparison
+excludes only the four candidate diagnostic families; applied coefficients and
+all remaining decoded history values/masks, including stored land values,
+remain part of the exact control comparison.
+
+The 19 regressions cover mapping identities, validity/masks, stream names and
+suffixes, inactive cells, ocean-domain enforcement, feedback rejection and
+control differences including land. The earlier IC land-zero rejection was a
+checker-domain error, resolved without changing the model mapping or momentum.
+
+The inspected repository checker revision is
+311e9a1b6a6c6a561c77b179a675bb5562334f86; this is not a claim that the supplied
+transcript independently identifies the local source SHA or executable hash.
+Archive the actual source revision/local diff, executable hash, both namelists,
+job logs and full checker output with the accepted cases. Those provenance
+values are not present in this final transcript and must not be invented.
+
+This closes B6.3's matched-history gate. It does not compare restart files,
+independently reconstruct evolving pre-EVP FSD from end-step history, establish
+native-bin synthetic-fixture answers, verify mapped halos/feedback, or calibrate
+the closure. Earlier failure/pending entries above are historical records;
+this final acceptance entry supersedes their B6.3 history-gate status.
