@@ -73,6 +73,9 @@
       use ice_domain, only: init_domain_blocks
       use ice_domain_size, only: ncat, nfsd
       use ice_dyn_eap, only: init_eap
+! dpath2o: dyntens
+      use ice_dyn_evp, only: update_dyntens_candidates
+! dpath2o: dyntens
       use ice_dyn_evp, only: init_evp
       use ice_dyn_vp, only: init_vp
       use ice_dyn_shared, only: kdyn
@@ -166,6 +169,11 @@
 
       call init_forcing_ocn(dt) ! initialize sss and sst from data
       call init_state           ! initialize the ice state
+! dpath2o: dyntens
+      ! Bounds and initialized/restarted tracers are now available.
+      call update_dyntens_candidates()
+! dpath2o: dyntens
+
       call init_transport       ! initialize horizontal transport
       call ice_HaloRestore_init ! restored boundary conditions
 
@@ -520,3 +528,4 @@
       end module CICE_InitMod
 
 !=======================================================================
+

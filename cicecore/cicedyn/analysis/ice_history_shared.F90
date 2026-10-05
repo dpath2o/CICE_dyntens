@@ -380,6 +380,14 @@
       ! namelist variables
       !---------------------------------------------------------------
 
+! dpath2o: dyntens
+      character (len=max_nstrm), public :: f_dyntens_large_fraction='x', &
+           f_dyntens_g_candidate='x', f_ktens_eff_candidate='x', f_dyntens_mapping_status='x'
+      integer (kind=int_kind), dimension(max_nstrm), public :: n_dyntens_large_fraction=0, &
+           n_dyntens_g_candidate=0, n_ktens_eff_candidate=0, n_dyntens_mapping_status=0
+      namelist /icefields_nml/ f_dyntens_large_fraction, f_dyntens_g_candidate, &
+           f_ktens_eff_candidate, f_dyntens_mapping_status
+! dpath2o: dyntens
       namelist / icefields_nml /     &
            f_tlon     , f_tlat     , &
            f_ulon     , f_ulat     , &
@@ -1240,3 +1248,4 @@
       end module ice_history_shared
 
 !=======================================================================
+

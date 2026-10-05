@@ -57,6 +57,9 @@
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_ice_strength, icepack_query_parameters
 
+! dpath2o: dyntens
+      use ice_dyn_shared, only: use_dyntens_diagnostics, dyntens_diameter_threshold, dyntens_g_min
+! dpath2o: dyntens
       implicit none
       private
 ! all c or cd
@@ -124,6 +127,12 @@
            dyntens_gT(:,:,:), & ! prescribed multiplier g at T points (units: 1)
            ktens_effT(:,:,:)    ! effective coefficient Ktens*g at T points (units: 1)
 
+! dpath2o: dyntens
+      ! Candidate fields are diagnostics only (all units: 1).
+      real (kind=dbl_kind), allocatable, public :: dyntens_large_fractionT(:,:,:), &
+           dyntens_g_candidateT(:,:,:), ktens_eff_candidateT(:,:,:), dyntens_mapping_statusT(:,:,:)
+      public :: update_dyntens_candidates
+! dpath2o: dyntens
       public :: evp, init_evp
 
 !=======================================================================
@@ -159,6 +168,69 @@
 !=======================================================================
 ! Elastic-viscous-plastic dynamics driver
 !
+! dpath2o: dyntens
+      subroutine update_dyntens_candidates()
+        use ice_blocks, only: block, get_block, nx_block, ny_block
+        use ice_domain, only: nblocks, blocks_ice, distrb_info
+        use ice_domain_size, only: max_blocks, nfsd, ncat
+        use ice_grid, only: tmask
+        use ice_state, only: aicen, trcrn
+        use ice_arrays_column, only: floe_rad_c
+        use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_indices
+        use ice_global_reductions, only: global_sum
+        use ice_dyntens_mapping, only: dyntens_map_fsd, dyntens_ok, dyntens_inactive
+        type(block) :: b
+        integer (kind=int_kind) :: nt_fsd, iblk, i, j, ierr, bad, total_bad
+        integer :: status
+        logical (kind=log_kind) :: tr_fsd
+        real (kind=dbl_kind) :: fraction, g, effective
+
+        if (.not. use_dyntens_diagnostics) return
+        call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
+        if (.not. tr_fsd) call abort_ice('FSD diagnostics require tr_fsd=T')
+        if (.not. allocated(floe_rad_c)) call abort_ice('FSD bounds unavailable for dyntens')
+        call icepack_query_tracer_indices(nt_fsd_out=nt_fsd)
+        if (nfsd < 1 .or. size(floe_rad_c) /= nfsd) call abort_ice('Invalid dyntens bin extent')
+        if (nt_fsd < 1 .or. nt_fsd+nfsd-1 > size(trcrn,3)) call abort_ice('Invalid dyntens tracer slice')
+        if (size(aicen,3) /= ncat .or. size(trcrn,4) /= ncat) call abort_ice('Invalid dyntens categories')
+        if (.not. allocated(dyntens_g_candidateT)) then
+           allocate(dyntens_large_fractionT(nx_block,ny_block,max_blocks), &
+                    dyntens_g_candidateT(nx_block,ny_block,max_blocks), &
+                    ktens_eff_candidateT(nx_block,ny_block,max_blocks), &
+                    dyntens_mapping_statusT(nx_block,ny_block,max_blocks), stat=ierr)
+           if (ierr /= 0) call abort_ice('Cannot allocate dyntens candidate diagnostics')
+        endif
+        dyntens_large_fractionT = -1._dbl_kind
+        dyntens_g_candidateT = c1
+        ktens_eff_candidateT = Ktens
+        dyntens_mapping_statusT = real(dyntens_inactive,dbl_kind)
+        bad = 0
+        ! Owned ocean cells only; these fields are not used by stencils.
+        do iblk=1,nblocks
+           b=get_block(blocks_ice(iblk),iblk)
+           do j=b%jlo,b%jhi
+              do i=b%ilo,b%ihi
+                 if (.not. tmask(i,j,iblk)) cycle
+                 call dyntens_map_fsd(aicen(i,j,:,iblk), trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,:,iblk), &
+                      2._dbl_kind*floe_rad_c, dyntens_diameter_threshold, dyntens_g_min, Ktens, &
+                      fraction, g, effective, status)
+                 if (status /= dyntens_ok .and. status /= dyntens_inactive) then
+                    if (bad == 0) write(nu_diag,*) 'dyntens invalid: rank, block, i, j, status=', &
+                         my_task, blocks_ice(iblk), i, j, status
+                    bad=bad+1
+                 endif
+                 dyntens_large_fractionT(i,j,iblk)=fraction
+                 dyntens_g_candidateT(i,j,iblk)=g
+                 ktens_eff_candidateT(i,j,iblk)=effective
+                 dyntens_mapping_statusT(i,j,iblk)=real(status,dbl_kind)
+              enddo
+           enddo
+        enddo
+        ! All ranks reach the reduction before rejecting invalid state.
+        total_bad=global_sum(bad,distrb_info)
+        if (total_bad > 0) call abort_ice('Invalid occupied FSD in dyntens candidate mapping; see status log')
+      end subroutine update_dyntens_candidates
+! dpath2o: dyntens
       subroutine init_evp
         use ice_blocks, only: get_block, nx_block, ny_block, nghost, block
         use ice_domain_size, only: max_blocks, nx_global
@@ -403,6 +475,10 @@
       call ice_timer_start(timer_dynamics) ! dynamics
 
       ! Collective exchange outside EVP subcycles and OMP regions.
+! dpath2o: dyntens
+      ! Hold the pre-EVP candidate fixed through subcycles.
+      call update_dyntens_candidates()
+! dpath2o: dyntens
       if (use_dyntens) call update_dyntens_coefficients()
 
       !-----------------------------------------------------------------
@@ -2579,3 +2655,4 @@
       end module ice_dyn_evp
 
 !=======================================================================
+

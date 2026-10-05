@@ -63,6 +63,10 @@
           diag_file, print_global, print_points, latpnt, lonpnt, &
           debug_model, debug_model_step, debug_model_task, &
           debug_model_i, debug_model_j, debug_model_iblk
+! dpath2o: dyntens
+      use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+      use ice_dyn_shared, only: use_dyntens_diagnostics, dyntens_diameter_threshold, dyntens_g_min
+! dpath2o: dyntens
       use ice_domain, only: close_boundaries
       use ice_domain_size, only: &
           ncat, nilyr, nslyr, nblyr, nfsd, nfreq, &
@@ -251,6 +255,9 @@
         floediam,       hfrazilmin,      Tliquidus_max,   hi_min,       &
         tscale_pnd_drain
 
+! dpath2o: dyntens
+      namelist /dynamics_nml/ use_dyntens_diagnostics, dyntens_diameter_threshold, dyntens_g_min
+! dpath2o: dyntens
       namelist /dynamics_nml/ &
            boundary_condition, lateral_drag, form_func, Cs, Cq, C_L,       &
            blend_exp, eps_blend, u0, u_cap, u_blend,                       &
@@ -479,6 +486,11 @@
       k2                    = 15.0_dbl_kind   ! 2nd free parameter (N/m^3) for landfast parametrization
       alphab                = 20.0_dbl_kind   ! alphab=Cb factor in Lemieux et al 2015
       threshold_hw          = 30.0_dbl_kind   ! max water depth for grounding
+! dpath2o: dyntens
+      use_dyntens_diagnostics = .false.
+      dyntens_diameter_threshold = 300._dbl_kind
+      dyntens_g_min = 0.2_dbl_kind
+! dpath2o: dyntens
       use_dyntens           = .false.        ! local tensile path
       dyntens_g_mode        = 'constant'
       dyntens_g_band        = 0.5_dbl_kind
@@ -1139,6 +1151,11 @@
       call broadcast_scalar(alphab,               master_task)
       call broadcast_scalar(threshold_hw,         master_task)
       call broadcast_scalar(Ktens,                master_task)
+! dpath2o: dyntens
+      call broadcast_scalar(use_dyntens_diagnostics, master_task)
+      call broadcast_scalar(dyntens_diameter_threshold, master_task)
+      call broadcast_scalar(dyntens_g_min, master_task)
+! dpath2o: dyntens
       call broadcast_scalar(use_dyntens,          master_task)
       call broadcast_scalar(dyntens_g_const,       master_task)
       call broadcast_scalar(dyntens_g_mode, master_task)
@@ -1518,6 +1535,22 @@
          abort_list = trim(abort_list)//":5"
       endif
 
+! dpath2o: dyntens
+      ! Diagnostic mode leaves the control momentum path unchanged.
+      if (use_dyntens_diagnostics) then
+         if (use_dyntens) call abort_ice('FSD diagnostics require use_dyntens=F')
+         if (kdyn /= 1 .or. grid_ice /= 'C' .or. evp_algorithm /= 'standard_2d' .or. &
+             visc_method /= 'avg_zeta' .or. yield_curve /= 'ellipse' .or. revised_evp) &
+              call abort_ice('FSD diagnostics require C-grid standard_2d EVP, avg_zeta, ellipse, revised_evp=F')
+         if (.not. ieee_is_finite(dyntens_diameter_threshold)) &
+              call abort_ice('Nonfinite dyntens diameter threshold')
+         if (dyntens_diameter_threshold <= c0) call abort_ice('Invalid dyntens diameter threshold')
+         if (.not. ieee_is_finite(dyntens_g_min) .or. .not. ieee_is_finite(Ktens)) &
+              call abort_ice('Nonfinite dyntens coefficient')
+         if (dyntens_g_min < c0 .or. dyntens_g_min > c1 .or. Ktens < c0 .or. Ktens > c1) &
+              call abort_ice('Invalid dyntens coefficient')
+      endif
+! dpath2o: dyntens
       ! Do not silently leave an enabled local coefficient unused.
       ! Other grids, solvers and U-point strength interpolation are not wired yet.
       if (use_dyntens) then
@@ -2356,6 +2389,13 @@
             endif
 
             write(nu_diag,1002) ' Ktens            = ', Ktens, ' : tensile strength factor'
+! dpath2o: dyntens
+            write(nu_diag,*) ' use_dyntens_diagnostics = ', use_dyntens_diagnostics
+            if (use_dyntens_diagnostics) then
+               write(nu_diag,*) ' FSD candidate only: applied g=1; Ktens unchanged'
+               write(nu_diag,*) ' Diameter threshold, g_min = ', dyntens_diameter_threshold, dyntens_g_min
+            endif
+! dpath2o: dyntens
             write(nu_diag,*) ' use_dyntens      = ', use_dyntens
             if (use_dyntens) then
                write(nu_diag,*) ' Dynamic tensile g mode = ', trim(dyntens_g_mode)
@@ -3845,3 +3885,4 @@
       end module ice_init
 
 !=======================================================================
+

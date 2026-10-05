@@ -145,6 +145,12 @@
       !---------------------------------------------------------------------------------------------
       ! dynamic tensile strength
       ! Prescribed tensile coefficient; box_band is a development test, not FSD feedback.
+! dpath2o: dyntens
+      ! Candidate-only FSD mapping parameters (m, 1).
+      logical (kind=log_kind), public :: use_dyntens_diagnostics = .false.
+      real (kind=dbl_kind), public :: dyntens_diameter_threshold = 300._dbl_kind
+      real (kind=dbl_kind), public :: dyntens_g_min = 0.2_dbl_kind
+! dpath2o: dyntens
       real (kind=dbl_kind), public :: &
            dyntens_g_const = 1.0_dbl_kind
       character (len=char_len), public :: &
@@ -4181,3 +4187,4 @@
       end module ice_dyn_shared
 
 !=======================================================================
+

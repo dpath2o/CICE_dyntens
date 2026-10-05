@@ -82,6 +82,9 @@
           histfreq_n, nstreams
       use ice_domain_size, only: max_blocks, nilyr, nslyr, nblyr, ncat, nfsd ! tides: max_nstrm,
       ! use ice_domain_size, only: max_blocks, max_nstrm, nilyr, nslyr, nblyr, ncat, nfsd 
+! dpath2o: dyntens
+      use ice_dyn_shared, only: use_dyntens_diagnostics
+! dpath2o: dyntens
       use ice_dyn_shared, only: kdyn
       use ice_flux, only: mlt_onset, frz_onset, albcnt, snwcnt
       use ice_grid, only: grid_ice, grid_outfile, &
@@ -660,6 +663,19 @@
       call broadcast_scalar (f_ldpquadE, master_task)
       call broadcast_scalar (f_ldplinN,  master_task)
       call broadcast_scalar (f_ldplinE,  master_task)
+! dpath2o: dyntens
+      call broadcast_scalar (f_dyntens_large_fraction, master_task)
+      call broadcast_scalar (f_dyntens_g_candidate, master_task)
+      call broadcast_scalar (f_ktens_eff_candidate, master_task)
+      call broadcast_scalar (f_dyntens_mapping_status, master_task)
+      if (.not. use_dyntens_diagnostics) then
+         if (f_dyntens_large_fraction /= 'x' .or. f_dyntens_g_candidate /= 'x' .or. &
+             f_ktens_eff_candidate /= 'x' .or. f_dyntens_mapping_status /= 'x') &
+              call abort_ice('Candidate history fields require use_dyntens_diagnostics=T')
+      endif
+      if (use_dyntens_diagnostics .and. .not. tr_fsd) &
+           call abort_ice('FSD diagnostics require tr_fsd=T')
+! dpath2o: dyntens
       call broadcast_scalar (f_dyntens_g, master_task)
       call broadcast_scalar (f_ktens_eff, master_task)
       call broadcast_scalar (f_strength, master_task)
@@ -1415,6 +1431,21 @@
              "positive is y direction on E grid", c1, c0,                &
              ns1, f_taubyE)
 
+! dpath2o: dyntens
+         call define_hist_field(n_dyntens_large_fraction,"dyntens_large_fraction","1",tstr2D, tcstr, &
+             "large-floe ice-area fraction before EVP", &
+             "masked if any sample inactive; IC uses restored/initial state", c1,c0,ns1,f_dyntens_large_fraction)
+         call define_hist_field(n_dyntens_g_candidate,"dyntens_g_candidate","1",tstr2D, tcstr, &
+             "candidate tensile multiplier before EVP; no feedback", &
+             "inactive g=1; IC uses restored/initial state", c1,c0,ns1,f_dyntens_g_candidate)
+         call define_hist_field(n_ktens_eff_candidate,"ktens_eff_candidate","1",tstr2D, tcstr, &
+             "candidate Ktens*g before EVP; no feedback", &
+             "dimensionless; inactive value Ktens", c1,c0,ns1,f_ktens_eff_candidate)
+         call define_hist_field(n_dyntens_mapping_status,"dyntens_mapping_status","1",tstr2D, tcstr, &
+             "candidate mapping inactive indicator", &
+             "0=valid 1=inactive; time mean is inactive sample fraction; invalid inputs abort", &
+             c1,c0,ns1,f_dyntens_mapping_status)
+! dpath2o: dyntens
          call define_hist_field(n_dyntens_g,"dyntens_g","1",tstr2D, tcstr, &
              "prescribed tensile multiplier g", &
              "T-cell scalar; disabled path reports one", c1, c0, ns1, f_dyntens_g)
@@ -2340,6 +2371,11 @@
                               new_month
       use ice_dyn_eap, only: a11, a12, e11, e12, e22, s11, s12, s22, &
           yieldstress11, yieldstress12, yieldstress22
+! dpath2o: dyntens
+      use ice_dyn_shared, only: use_dyntens_diagnostics
+      use ice_dyn_evp, only: dyntens_large_fractionT, dyntens_g_candidateT, &
+           ktens_eff_candidateT, dyntens_mapping_statusT
+! dpath2o: dyntens
       use ice_dyn_evp, only: dyntens_gT, ktens_effT
       use ice_dyn_shared, only: kdyn, principal_stress, use_dyntens, Ktens, &
            KuxN, KuyN, KuxE, KuyE, KuxU, KuyU, KuN, KuE, KuU, &
@@ -2862,6 +2898,17 @@
              call accum_hist_field(n_taubxE, iblk, taubxE(:,:,iblk), a2D)
          if (f_taubyE(1:1) /= 'x') &
              call accum_hist_field(n_taubyE, iblk, taubyE(:,:,iblk), a2D)
+! dpath2o: dyntens
+         if (use_dyntens_diagnostics) then
+            if (.not. allocated(dyntens_g_candidateT)) call abort_ice('Uninitialized dyntens candidates')
+            worka=dyntens_large_fractionT(:,:,iblk)
+            where (worka < c0) worka=-spval_dbl
+            call accum_hist_field(n_dyntens_large_fraction,iblk,worka,a2D)
+            call accum_hist_field(n_dyntens_g_candidate,iblk,dyntens_g_candidateT(:,:,iblk),a2D)
+            call accum_hist_field(n_ktens_eff_candidate,iblk,ktens_eff_candidateT(:,:,iblk),a2D)
+            call accum_hist_field(n_dyntens_mapping_status,iblk,dyntens_mapping_statusT(:,:,iblk),a2D)
+         endif
+! dpath2o: dyntens
          if (f_dyntens_g(1:1) /= 'x') then
             if (use_dyntens) then
                call accum_hist_field(n_dyntens_g,iblk,dyntens_gT(:,:,iblk),a2D)
@@ -3969,6 +4016,12 @@
               enddo             ! i
               enddo             ! j
 
+! dpath2o: dyntens
+              ! Convert undefined candidate accumulations to the history fill value.
+              if (n == n_dyntens_large_fraction(ns)) then
+                 where (a2D(:,:,n,iblk) < c0) a2D(:,:,n,iblk)=spval_dbl
+              endif
+! dpath2o: dyntens
               ! Only average for timesteps when ice present
               if (avail_hist_fields(n)%avg_ice_present) then
                  do j = jlo, jhi
@@ -4534,3 +4587,4 @@
       end module ice_history
 
 !=======================================================================
+

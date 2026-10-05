@@ -22,7 +22,8 @@ with feedback enabled.
 
 **The Python mapping contract has passed all 10 reported tests. A standalone
 Fortran mapping routine and compiler-driven analytical tests have now been added.
-Compilation/runtime validation and the live CICE adapter remain pending.**
+The live candidate-only adapter and history wiring have now been added under B6.3.
+Full CICE compilation and runtime validation remain pending.**
 The existing executable supports prescribed constant and box_band modes.
 Changing floediam alone does not currently exercise this mapping.
 
@@ -469,7 +470,7 @@ not the adapter, diagnostics, MPI halos, restart reconstruction or feedback.
 
 ### B6.3 — add candidate diagnostics with feedback disabled
 
-Proposed diagnostics, not currently available variables:
+Implemented candidate diagnostics (runtime validation pending):
 
 | Diagnostic | Purpose | Units |
 |---|---|---|
@@ -492,7 +493,125 @@ dynamics routines.
 
 Make candidate diagnostics available on daily and instantaneous streams.
 Define the IC snapshot behaviour so fields are initialised before output.
-No new namelist names are prescribed here until their implementation exists.
+The implemented namelist names and constraints are recorded below.
+
+#### B6.3 implementation — 5 October 2026
+
+The standalone driver now initializes candidates after init_state, when the
+FSD bounds and initialized/restarted tracers exist. EVP refreshes candidates
+before its dynamics work. The adapter uses aicen, the queried nt_fsd slice of
+trcrn, and twice floe_rad_c; it never changes those inputs.
+
+New dynamics_nml options:
+
+~~~fortran
+! dpath2o: dyntens
+! Diagnose live FSD without changing the momentum coefficient.
+    use_dyntens_diagnostics = .true.
+    dyntens_diameter_threshold = 300.0
+    dyntens_g_min = 0.2
+! dpath2o: dyntens
+~~~
+
+Keep use_dyntens=.false. and Ktens=0.2. Diagnostic mode rejects use_dyntens=T,
+and is restricted to the tested C-grid standard_2d EVP / avg_zeta / ellipse /
+revised_evp=F configuration. It requires tr_fsd=T. The switch defaults to false;
+the old prescribed-g experiments retain their existing behaviour.
+
+For a new 12-bin initial-state test, set nfsd=12 in grid_nml and tr_fsd=T,
+restart_fsd=F in tracer_nml. Both the matched control and diagnostic case must
+use the same FSD-enabled configuration, initial state, forcing and executable.
+Do not compare against the older tr_fsd-disabled control to infer neutrality:
+enabling FSD itself is a separate model change. Do not copy a global restart
+into this box test. The live adapter reads evolving FSD; it does not impose the
+synthetic analytical mixtures. Those controlled fixtures remain B6.5 work.
+
+Candidate history fields are now implemented in icefields_nml. For example,
+with daily means and hourly snapshots configured identically in both cases:
+
+~~~fortran
+! In setup_nml, for both cases:
+    histfreq   = 'd','h','x','x','x'
+    histfreq_n = 1,1,1,1,1
+    hist_avg = .true.,.false.,.true.,.true.,.true.
+
+! In icefields_nml, for both cases:
+    f_dyntens_g = 'dh'
+    f_ktens_eff = 'dh'
+
+! In icefields_nml, diagnostic case only:
+! dpath2o: dyntens
+! Match these frequency letters to the configured streams.
+    f_dyntens_large_fraction = 'dh'
+    f_dyntens_g_candidate = 'dh'
+    f_ktens_eff_candidate = 'dh'
+    f_dyntens_mapping_status = 'dh'
+! dpath2o: dyntens
+~~~
+
+These are entries for existing groups, not a complete ice_in. If retaining a
+timestep stream ('1') instead of hourly ('h'), use 'd1' for the field selectors.
+Do not request candidate fields in the control: keep their default 'x' and
+use_dyntens_diagnostics=F. Requesting candidate fields with the switch off
+aborts rather than writing misleading zeros.
+
+All four fields have units 1. Candidates describe the state before the latest
+EVP call in each model timestep; they remain fixed through the subcycles.
+With ndtd>1, history samples the last such call, not an average of all dynamics
+calls. Use ndtd=1 for the first matched test. IC fields use the initialized or
+restored state, not atmospheric-forcing initialization.
+
+Inactive cells have g_candidate=1 and ktens_eff_candidate=Ktens, with the
+large fraction masked. On averaged streams, large fraction is masked if any
+sample was inactive; candidate coefficients include the neutral inactive
+samples. dyntens_mapping_status is 0 for valid active and 1 for inactive
+snapshots; its time mean is the inactive sample fraction. It must not be read
+as an averaged categorical error code. Invalid occupied inputs log the first
+rank/block/local-i/local-j/status failure per rank, complete a global count
+reduction, then abort collectively. They are never repaired or fed to momentum.
+
+Candidate arrays have neutral defaults outside owned ocean cells. History
+accumulates owned cells only, so no candidate halo exchange is required yet.
+This does not establish the B6.4 feedback halo contract. No prognostic restart
+fields were added. Only the standalone CICE initialization driver is wired;
+other coupling drivers are outside this implementation's supported scope.
+
+Validation available now:
+
+~~~bash
+cd /g/data/gv90/da1339/src/CICE_dyntens
+git pull --ff-only origin dev
+# First complete the B6.2 compiler-driven routine test above.
+python3 test_scripts/test_b63_candidates.py -v
+
+# After clean-building and running matched FSD-enabled cases:
+python3 test_scripts/check_b63_candidates.py "$diagnostic_run" \
+    --control "$control_run" --ktens 0.2 --gmin 0.2
+~~~
+
+The checker handles base and suffixed IC/stream variables, requires all candidate
+fields and applied coefficient diagnostics, validates masks, bounds and mapping
+identities, and checks applied g=1 and ktens_eff=Ktens. With --control it requires
+matching history file/variable sets (excluding only the four candidate families)
+and exact decoded values and masks. It does not compare file bytes, global
+attributes or restart files; retain the existing restart comparison workflow.
+It does not independently reconstruct pre-EVP FSD from end-step history.
+Analytical native-bin fixtures and the later controlled inputs supply the
+independent mapping checks.
+
+Local verification: all changed Fortran files passed a preprocessed Fortran
+2008 syntax parse; ten synthetic NetCDF checker tests passed. These checks
+are not a CICE compilation or a Gadi integration run. No B6.3 runtime PASS is
+claimed. B6.2 compiler results, clean CICE build, IC/daily/instantaneous
+diagnostics, matched-control trajectory identity and restart verification
+remain to be supplied from the actual runs.
+
+The separate mapping module remains the development arrangement. It can later
+move unchanged into ice_dyn_shared's contains section, using dbl_kind and
+shared status constants, while ice_dyn_evp retains state adaptation and field
+updates. That organisational option does not change the equations or fixtures;
+no consortium approval is assumed.
+
 
 ### B6.4 — specify timing, halo and restart semantics
 
@@ -564,7 +683,7 @@ bin definitions, job logs and comparison output for every accepted result.
 | Python analytical reference, ten reported tests | PASS |
 | Inherited Icepack representation and adapter verified | Source audit complete (B6.1); runtime adapter tests pending |
 | Production Fortran routine matches analytical fixtures | Pending |
-| Candidate-only diagnostics preserve control dynamics | Pending |
+| Candidate-only diagnostics preserve control dynamics | Adapter/history implemented; matched-run evidence pending |
 | Spatial/halo and restart tests of the mapped coefficient | Pending |
 | Uniform mapped-feedback cases match prescribed controls | Pending |
 | Invalid/inactive inputs handled explicitly | Python evidence only; production checks pending |
@@ -590,7 +709,7 @@ answer, tolerance and pass/fail outcome. Keep diagnostic-only and feedback
 results distinguishable. Record any change to the mapping contract before
 running replacement tests.
 
-The next concrete deliverable is the inherited-FSD interface audit and a tested
-production calculation, followed by candidate diagnostics. CICE case-generation
-and output-check commands should be added once those interfaces exist; no
-unimplemented namelist switches should be presented as runnable instructions.
+The next concrete evidence is the B6.2 compiler-run output and a clean B6.3
+matched control/diagnostic run. The implemented candidate path must pass before
+moving to the controlled spatial, restart and feedback stages.
+
