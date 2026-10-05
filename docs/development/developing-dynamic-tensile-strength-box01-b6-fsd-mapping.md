@@ -23,8 +23,10 @@ with feedback enabled.
 **B6.2's 67 production Fortran fixtures and the full CICE build have passed
 according to the supplied run evidence. B6.3 is now PASS for the matched
 candidate-only history test: 19 checker regressions, all 126 history files,
-and exact decoded control comparison. B6.4's timing/halo/restart contract is
-specified below; mapped spatial, restart and feedback validation remain pending.**
+and exact decoded control comparison. B6.4's diagnostic-only continuation gate has now passed, including independent
+restart IC mapping and exact continuous-versus-split comparison. The timing/halo
+contract is specified below; controlled spatial and mapped-feedback validation
+remain pending.**
 The existing executable supports prescribed constant and box_band modes.
 Changing floediam alone does not currently exercise this mapping.
 
@@ -778,7 +780,8 @@ bin definitions, job logs and comparison output for every accepted result.
 | Inherited Icepack representation and adapter verified | Source audit complete (B6.1); runtime adapter tests pending |
 | Production Fortran routine matches analytical fixtures | PASS: 67 user-reported compiler fixtures, absolute tolerance 1e-12 |
 | Candidate-only diagnostics preserve control dynamics | PASS: 126 history files and exact decoded matched-control comparison |
-| Spatial/halo and restart tests of the mapped coefficient | Pending |
+| Live-FSD diagnostic restart continuity | PASS: independent restart IC mapping; 126 exact history pairs and five exact restart pairs |
+| Controlled spatial/halo tests of the mapped coefficient | Pending |
 | Uniform mapped-feedback cases match prescribed controls | Pending |
 | Invalid/inactive inputs handled explicitly | Analytical routine/checker evidence passed; deliberate live/MPI failure tests pending |
 
@@ -1049,3 +1052,59 @@ restart comparisons still include every stored cell, including extended halos.
 This is a checker-only correction: rerun analysis on the completed cases;
 no preparation, rebuild, staging or model submission is required.
 Full B6.4 continuation acceptance remains pending the final comparison output.
+
+## B6.4 diagnostic-only continuation acceptance — 5 October 2026
+
+**PASS for the five-day continuous versus two-day plus three-day live-FSD
+diagnostic-only continuation gate.** This is user-supplied Gadi execution and
+analysis evidence. It does not complete B6's controlled spatial or mapped-feedback
+tests.
+
+| Check | Supplied result |
+|---|---|
+| Workflow regression tests | 11 tests in 44.845 s; OK |
+| Continuous candidate/applied history | 126 files PASS |
+| Segment-1 candidate/applied history | 51 files PASS |
+| Segment-2 candidate/applied history, including restart IC | 76 files PASS |
+| Restart clocks and twelve-bin FSD inventories | All expected daily restarts PASS |
+| Split clock | 3 January 2005, 00:00, step 48 |
+| Final clock | 6 January 2005, 00:00, step 120 |
+| Extended restart alignment | 14×14 restart interior aligned with 12×12 history |
+| Restart IC candidate from restored raw FSD | PASS at mapping absolute tolerance 1e-10 |
+| Segment 1 versus continuous | 51 history pairs and two restart pairs, exact |
+| Segment 2 versus continuous | 75 history pairs and three restart pairs, exact |
+
+All three executables have the supplied SHA-256:
+
+~~~
+4c86d2a6af83d57ffdfc6f0c5e473f7f8382e77b989f28b0e0689fec7ffd421f
+~~~
+
+The final checker summary is:
+
+~~~
+PASS restart IC candidate independently reconstructed from raw FSD (atol=1e-10)
+PASS exact comparison dt_b64_seg1 51 histories + 2 restarts
+PASS exact comparison dt_b64_seg2 75 histories + 3 restarts
+PASS B6.4 diagnostic-only continuation: 126 history pairs and 5 restart pairs; atol=rtol=0
+Restart IC checked independently; mapped-feedback/halo validation remains pending.
+~~~
+
+Exact comparisons include candidates, applied coefficients, physical fields,
+stored values and masks, and the full restart arrays including halos.
+The continuation's additional IC is validated independently from restored
+aicen/raw FSD at the correct phase. It is not compared with the continuous
+path's earlier pre-EVP diagnostic at the same timestamp. Candidate mapping
+tolerance and exact-path comparison policy were not relaxed.
+
+The checked helper is available at repository revision
+33576d89cb1b01883bba46dc91fdb796e7b19985. The supplied output establishes
+executable equality but does not independently print its build source revision
+or compiler provenance; retain the b64-provenance directories with the outputs.
+The earlier restart_ext failure is resolved as a checker layout error.
+
+Next: B6.5 controlled native-bin fixtures and spatial adapter tests across global
+columns 6/7 and equivalent decompositions, followed by mapped-feedback
+integration and independently prescribed-coefficient equivalence. This accepted
+diagnostic path supplies no FSD-derived coefficient to momentum, so its PASS
+cannot establish the future mapped halo or feedback path.
