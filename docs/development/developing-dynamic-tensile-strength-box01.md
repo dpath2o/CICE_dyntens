@@ -287,6 +287,70 @@ message before execution; this did not prevent that run completing. These
 results are recorded from the supplied transcript; the four new NetCDF datasets
 were not independently inspected here.
 
+## B5 -- Restart continuation execution results
+
+Results supplied 5 October 2026 in `Pasted text(9).txt` confirm successful
+execution of both split-run segments and successful staging of the restart
+between them. **Execution has succeeded; the B5 numerical reproducibility gate
+remains open until the continuous-versus-split comparisons are supplied.**
+The rest of this document is retained unchanged.
+
+The agreed setup uses the accepted `dt_b6_m2` two-rank, one-column-band case:
+`box_tensile` forcing, `Ktens=0.2`, background g=1 and g=0.5 at global
+column 6. Three separate cases were prepared for a five-day continuous run,
+a two-day initial segment, and a three-day continuation. These are the intended
+settings from the preparation procedure; the new transcript does not print the
+actual run namelists or executable checksums.
+
+| Case | Intended experiment | Evidence supplied | Status |
+|---|---|---|---|
+| dt_b5_cont | Five days from internal initial conditions | No continuous-run completion report or comparison output in this transcript | Awaiting validation evidence |
+| dt_b5_seg1 | Two days from the same internal state | Job 180508707.gadi-pbs; CICE completed successfully; exit status 0 | Execution PASS |
+| dt_b5_seg2 | Three further days from the segment-1 restart | Job 180509882.gadi-pbs; CICE completed successfully; exit status 0 | Execution PASS |
+
+Both supplied job reports request two CPUs and 9 GB memory, with a 30-minute
+walltime limit. Segment 1 ran on 5 October 2026 from 14:19:58 to 14:20:11 AEDT
+(`cice.runlog.261005-141958`); segment 2 ran from 14:49:00 to 14:49:07 AEDT
+(`cice.runlog.261005-144900`). Each reports 0.01 service units.
+Both print the missing `/g/data/xp65/public/modules` directory message before
+execution, but subsequently report successful model completion.
+
+The segment-1 directory listing contains daily histories for 1–2 January,
+hourly histories through `iceh_inst.2005-01-03-00000.nc`, and restarts
+`iced.2005-01-02-00000.nc` and `iced.2005-01-03-00000.nc`.
+This inventory is consistent with the intended two-day segment; the restart
+header and step counter were not printed.
+
+The transcript shows the following restart transfer under
+`/g/data/gv90/da1339/cice-dirs/runs/`:
+
+- Source: `dt_b5_seg1/restart/iced.2005-01-03-00000.nc`.
+- Staged input: `dt_b5_seg2/input_restart/iced.2005-01-03-00000.nc`.
+- `cmp` completed successfully under `set -euo pipefail`, confirming that the
+  staged copy is byte-identical to the source.
+- The printed `dt_b5_seg2/ice.restart_file` points to that staged input by
+  absolute path. Segment 2 was then submitted and completed successfully.
+
+This establishes the successful job execution and restart-staging sequence.
+It does not by itself establish that the restart clock, reconstructed
+coefficients or subsequent physical trajectory match the continuous run.
+To close B5, retain and check:
+
+1. Matching executable hashes and actual namelists/launch settings for all three
+   cases; successful completion of the continuous case.
+2. Segment-2 startup evidence identifying the staged restart and resumption at
+   3 January 2005, step 48; final restart headers at 6 January, step 120.
+3. Exact comparison of the segment-1 and continuous restarts at the split time.
+4. Prescribed g and ktens_eff checks after restart, plus exact comparison of
+   aligned post-restart outputs: 72 hourly snapshots, three daily histories
+   with matching averaging intervals, and three restarts (78 pairs under the
+   intended schedule). Exclude the extra segment-2 IC snapshot from that
+   reference comparison.
+
+No coefficient-check or reference-comparison PASS output is present in this
+attachment. No new NetCDF files were independently inspected here, and no
+numerical tolerance has been relaxed.
+
 ## Remaining work: explicit acceptance gates
 
 ### B4 — close the matched controls (next)
