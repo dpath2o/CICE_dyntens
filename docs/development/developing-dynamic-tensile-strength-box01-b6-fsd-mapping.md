@@ -1021,3 +1021,31 @@ absolute tolerance 1e-10. All equivalent-path comparisons use zero tolerance.
 A final PASS establishes this diagnostic-only continuation gate. It does not
 close controlled native-bin spatial, mapped momentum, halo or feedback gates.
 Preserve the three runs, b64-provenance directories, job logs and analysis output.
+
+## B6.4 restart_ext IC reconstruction correction — 5 October 2026
+
+The supplied first analysis confirms matching executable SHA-256
+4c86d2a6af83d57ffdfc6f0c5e473f7f8382e77b989f28b0e0689fec7ffd421f,
+candidate/applied history PASS for 126/51/76 files, and all expected restart
+dates/counters through 6 January / step 120. The continuation job
+180538921 completed successfully. Analysis stopped at the independent IC
+reconstruction because the checker incorrectly required identical restart
+and history horizontal shapes. The printed dimension names were correct;
+the old error message omitted the shapes that actually failed.
+
+CICE's NetCDF restart writer uses nx_global+2*nghost and ny_global+2*nghost
+when restart_ext=T (ice_restart.F90, init_restart_write). The audited
+ice_blocks.F90 declares nghost=1. gather_global_ext offsets global i/j by
+nghost; thus the matching global interior is [1:-1,1:-1] in Python.
+The IC reconstruction now accepts either identical global shapes or exactly
+one extra halo cell on each restart edge, applying the same interior selection
+to aicen and all raw fsd bins. Unexpected shapes remain errors and are printed
+explicitly. This is not an arbitrary crop to force matching dimensions.
+
+All eleven synthetic workflow tests pass, including extended restart alignment,
+rejection of invalid occupied ocean FSD after alignment, and rejection of
+unsupported shape differences. No mapping tolerance changed. Exact split-run
+restart comparisons still include every stored cell, including extended halos.
+This is a checker-only correction: rerun analysis on the completed cases;
+no preparation, rebuild, staging or model submission is required.
+Full B6.4 continuation acceptance remains pending the final comparison output.

@@ -138,6 +138,43 @@ class RestartWorkflow(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'already staged'):
                 w.stage(args)
 
+    def extended_restart(self, path, extra=2):
+        source = self.root / w.CASES[2] / 'input_restart' / ('iced.' + w.SPLIT + '.nc')
+        with Dataset(source) as a, Dataset(path, 'w') as b:
+            for name, dim in a.dimensions.items():
+                b.createDimension(name, len(dim) + (extra if name in ('nj', 'ni') else 0))
+            for name in a.ncattrs():
+                b.setncattr(name, a.getncattr(name))
+            for name, var in a.variables.items():
+                v = b.createVariable(name, 'f8', var.dimensions)
+                # Invalid ghost state must not enter the owned-cell mapping.
+                v[:] = -1234.
+                v[:, 1:3, 1:3] = var[:]
+
+    def test_extended_restart_halo_alignment(self):
+        restart = self.root / 'extended.nc'
+        self.extended_restart(restart)
+        ic = self.root / w.CASES[2] / 'history' / ('iceh_ic.' + w.SPLIT + '.nc')
+        with contextlib.redirect_stdout(io.StringIO()):
+            w.ic_mapping(restart, ic)
+
+    def test_unsupported_grid_shape_rejected(self):
+        restart = self.root / 'unsupported.nc'
+        self.extended_restart(restart, extra=4)
+        ic = self.root / w.CASES[2] / 'history' / ('iceh_ic.' + w.SPLIT + '.nc')
+        with self.assertRaisesRegex(ValueError, 'unsupported restart/history grid shapes'):
+            w.ic_mapping(restart, ic)
+
+    def test_extended_restart_ocean_error_still_rejected(self):
+        restart = self.root / 'extended.nc'
+        self.extended_restart(restart)
+        with Dataset(restart, 'a') as d:
+            d['fsd007'][0, 1, 1] = .5
+        ic = self.root / w.CASES[2] / 'history' / ('iceh_ic.' + w.SPLIT + '.nc')
+        with contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaisesRegex(ValueError, 'raw FSD sum differs from one'):
+                w.ic_mapping(restart, ic)
+
 
 if __name__ == '__main__':
     unittest.main()

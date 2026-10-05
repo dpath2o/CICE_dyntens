@@ -202,14 +202,27 @@ def ic_mapping(restart, ic):
         ocean = (~np.ma.getmaskarray(grid)) & (grid.data == 1)
         area_var = r['aicen']
         # Restart convention: category, y, x; reject other layouts explicitly.
-        require(area_var.ndim == 3 and area_var.shape[-2:] == grid.shape,
+        require(area_var.dimensions == ('ncat', 'nj', 'ni'),
                 'unexpected restart aicen dimensions: ' + str(area_var.dimensions))
-        areas = np.ma.asarray(area_var[:])
+        shape = area_var.shape[-2:]
+        if shape == grid.shape:
+            interior = (slice(None), slice(None))
+        elif shape == tuple(n + 2 for n in grid.shape):
+            # restart_ext writes nx/ny_global+2*nghost. The audited build
+            # uses nghost=1 and gather_global_ext offsets global i/j by one.
+            interior = (slice(1, -1), slice(1, -1))
+            print('INFO restart_ext: use owned global interior from', shape,
+                  'for history grid', grid.shape, '(one halo cell per edge)')
+        else:
+            raise ValueError('unsupported restart/history grid shapes: aicen='
+                             + str(area_var.shape) + ', tmask=' + str(grid.shape))
+        selection = (slice(None),) + interior
+        areas = np.ma.asarray(area_var[selection])
         fsd = []
         for k in range(1, 13):
             v = r['fsd%03d' % k]
             require(v.dimensions == area_var.dimensions, 'restart FSD/area dimensions differ')
-            fsd.append(np.ma.asarray(v[:]))
+            fsd.append(np.ma.asarray(v[selection]))
         a = np.asarray(areas)
         f = np.asarray(np.ma.stack(fsd))
         require(not np.any(np.ma.getmaskarray(areas)[:, ocean]), 'masked restart ocean areas')
