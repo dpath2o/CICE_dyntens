@@ -122,7 +122,7 @@ def check_abort(text):
 
 class InvalidStateWorkflow(EvidenceWorkflow):
     gate = 'B6.6-entry'
-    pending = ('B6.5 inactive-fraction mask failure', 'B6.5-F mapped feedback',
+    pending = ('B6.5-F mapped feedback',
                'in-timestep injection', 'full B4 unity/null regression controls')
 
     def __init__(self,spec: WorkflowSpec):

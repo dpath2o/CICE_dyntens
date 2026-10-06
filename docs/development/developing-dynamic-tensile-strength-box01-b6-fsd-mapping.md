@@ -854,6 +854,60 @@ continuation input. Analyse the complete fresh matrix and archive its results.
 matrix is validated; B6.5-F mapped-feedback equivalence remains pending, and
 B6.6 jobs should wait.
 
+#### B6.5 diagnostic matrix acceptance — 6 October 2026
+
+**PASS for the diagnostic-only shadow-fixture matrix.** The latest user-supplied
+Gadi transcript supersedes the unresolved masking outcome above. All fourteen
+rows passed analytical/neutrality checks, including `dt_b65_zero_s1` with its
+hourly IC fraction mask. The continuation completed in
+`dt_b65_sp_b_m2/cice.runlog.261006-214427`.
+
+| Coverage | Accepted evidence |
+|---|---|
+| Twelve five-day cases | 126 history files and five restart clocks/inventories per case |
+| Two-day spatial segment, m2 | 51 history files; restarts at steps 24 and 48 |
+| Three-day spatial continuation, m2 | 76 history files; restarts at steps 72, 96 and 120 |
+| Uniform fixtures | All-small, all-large, equal mixture, unequal category area and dilution match analytical candidates |
+| Inactive fixture | Masked undefined fraction and neutral candidates; IC/hourly masking failure resolved |
+| Diagnostic neutrality | Exact decoded physical histories and restarts against corresponding layout controls; continuation IC has no same-phase physical control snapshot |
+| Decomposition | Control and spatial histories/restarts agree between s1, s2 and m2; only history blkmask ownership values excluded |
+| Spatial split continuation | 51 segment-one and 75 segment-two exact history pairs; matching restarts and unchanged staged input |
+
+The continuation's extra IC file is validated analytically but excluded from
+continuous history comparison because it represents restart initialization at a
+different sampling phase. All applied coefficients remain in the physical
+comparison; candidate fields remain in equivalent-layout/split comparisons.
+
+The supplied build/distribution transcript records these SHA-256 executable
+hashes, shared by every case within its layout:
+
+| Layout | Executable SHA-256 |
+|---|---|
+| s1: one serial block | `11f45d2da012ff9d3872371fa602c1a3badfbba281bb34e63c974fd755697379` |
+| s2: two local serial blocks | `a87b94b90b98d015725fb7bdca44697b2556ecd11b60018b50e50f6c565be448` |
+| m2: two MPI ranks | `9e71b2fd4e88d4050f5bb2bf55a9be5644027aabfc6c67700dfab7c91ad595b1` |
+
+The m2 build reports COMPILE SUCCESSFUL in `cice.bldlog.261006-161816`.
+The thirteen initial submissions were jobs 180599370–180599382. The history
+correction is repository commit `28a4a44be31b4343b39099462fcce06cb013ffb5`;
+archive the actual per-case source revision/local diff, build logs, namelists,
+launchers, hashes, restarts and full checker output. This acceptance is based on
+the supplied transcript, not independent access to the Gadi files. Retain the
+previous failed matrix archive alongside the accepted rerun.
+
+```text
+PASS B6.5 diagnostic shadow-fixture matrix: analytical, neutrality, decomposition, spatial continuation
+B6.5-F mapped-feedback equivalence and B6.6 live invalid-state tests remain pending.
+```
+
+The evidence files are `validation_report/box/evidence/b65-validation.json`,
+`validation_report/box/evidence/b65-analysis.txt` and
+`dt_b65_ctl_s1/b65-analysis.log`. Preserve them with this accepted matrix.
+B6.5-F has not been implemented/validated by this diagnostic-only result.
+Neither applied mapped-momentum halo exchange nor the global FSD adapter is
+certified by a shadow fixture. Keep `test_scripts` and `tools` until migration
+of their remaining workflows/tests is separately complete.
+
 ### B6.6 — invalid-state tests and regression checks
 
 Deliberately invalid occupied-category inputs must produce the expected
@@ -871,7 +925,7 @@ bin definitions, job logs and comparison output for every accepted result.
 `CICE_testing/scripts/b66_invalid_state_workflow.py` (`cice-test-invalid`).
 This is a diagnostic-only **restart-entry subset** of B6.6, not completion of
 all B6.6/B6 acceptance requirements. It can investigate the live failure path
-while the separate B6.5 inactive-history-mask issue remains open.
+following acceptance of the corrected B6.5 diagnostic matrix.
 
 It creates fresh cases using `dt_b65_ctl_s1` and `dt_b65_ctl_m2`, reusing each
 layout's existing executable, launcher and machine configuration. It first
@@ -910,8 +964,7 @@ Archive PBS output/accounting and verify all jobs have left the queue before
 analysis: the model-log check alone is not a general proof of absence of MPI
 hangs. No runtime results for these new cases have been supplied yet.
 
-**Still pending:** correction/revalidation of the B6.5 masking issue, B6.5-F
-mapped feedback, explicit in-timestep invalid-input injection, and the complete
+**Still pending:** B6.5-F mapped feedback, explicit in-timestep invalid-input injection, and the complete
 B4 unity/null and B5-style regression controls. The new evidence JSON names the
 gate `B6.6-entry` and records these pending requirements; a PASS is only for this
 restart-entry subset. Synthetic local tests of mutation isolation, area/volume
@@ -1008,9 +1061,10 @@ Do not mark the full B6.6 gate complete from this subset or discard B6.5 evidenc
 | Production Fortran routine matches analytical fixtures | PASS: 67 user-reported compiler fixtures, absolute tolerance 1e-12 |
 | Candidate-only diagnostics preserve control dynamics | PASS: 126 history files and exact decoded matched-control comparison |
 | Live-FSD diagnostic restart continuity | PASS: independent restart IC mapping; 126 exact history pairs and five exact restart pairs |
-| Controlled spatial/halo tests of the mapped coefficient | Pending |
+| Controlled shadow-fixture spatial/decomposition/restart tests | PASS: B6.5 exact s1/s2/m2 and spatial continuation checks |
+| Applied mapped-coefficient halo exchange | Pending mapped-feedback implementation |
 | Uniform mapped-feedback cases match prescribed controls | Pending |
-| Invalid/inactive inputs handled explicitly | Analytical routine/checker evidence passed; deliberate live/MPI failure tests pending |
+| Invalid/inactive inputs handled explicitly | PASS inactive shadow fixture and analytical routine; deliberate live/MPI failure tests pending |
 
 B6 is complete when the production mapping and its adapter have passed these
 checks in the controlled box environment. Passing B6 validates the implementation
