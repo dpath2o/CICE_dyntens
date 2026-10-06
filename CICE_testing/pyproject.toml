@@ -15,6 +15,7 @@ test = ["pytest", "nbclient"]
 
 [project.scripts]
 cice-test-restart = "CICE_testing.workflows.restart:main"
+cice-test-invalid = "CICE_testing.workflows.invalid_state:main"
 cice-test-box = "CICE_testing.workflows.box:main"
 cice-test-candidates = "CICE_testing.validation.candidates:main"
 cice-test-spatial = "CICE_testing.validation.spatial:main"

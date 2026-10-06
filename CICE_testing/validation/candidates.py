@@ -66,7 +66,7 @@ def check_dataset(ds, ktens, gmin, tol):
             raise ValueError('fraction unmasked outside coefficient mask')
         # Any inactive sample poisons the fraction interval, even if very rare.
         if np.any(valid & (np.asarray(status)>0) & ~fm):
-            raise ValueError('inactive interval has unmasked large fraction')
+            raise ValueError('inactive interval has unmasked large fraction: '+variables[0].name)
         if np.any(valid & (np.asarray(status)==0) & fm):
             raise ValueError('valid interval has masked large fraction')
         active = valid & ~fm

@@ -220,7 +220,10 @@ class BoxWorkflow(EvidenceWorkflow):
             for filename in sorted(names):
                 if row[0]!='ctl':
                     with Dataset(run/'history'/filename) as d:
-                        check_fixture(d,row[1])
+                        try:
+                            check_fixture(d,row[1])
+                        except ValueError as exc:
+                            raise ValueError(str(run/'history'/filename)+': '+str(exc)) from exc
                     # Continuation IC precedes forcing and has no same-phase control snapshot.
                     if not (row[0]=='sp_b' and filename.startswith('iceh_ic.')):
                         compare(run/'history'/filename, reference/'history'/filename, candidates=False)

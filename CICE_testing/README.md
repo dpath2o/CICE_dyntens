@@ -49,6 +49,7 @@ select a PyGMT release compatible with its installed GMT.
 |---|---|
 | `WorkflowSpec`, `TestingPaths` | Explicit model/run configuration; separate box/global figure and evidence paths |
 | `RestartWorkflow` | B6.4 preparation, restart staging and continuous/split validation |
+| `InvalidStateWorkflow` | B6.6 restart-entry subset: copied invalid/inactive inputs and serial/MPI abort evidence |
 | `BoxWorkflow` | B6.5 shadow-fixture preparation, executable distribution, staging and analytical/neutrality/decomposition checks |
 | `CandidateValidator` | Diagnostic-only FSD candidates, streams, masks, mapping bounds and unchanged applied coefficients |
 | `SpatialValidator` | Prescribed coefficients/winds and history/restart comparison |
@@ -78,6 +79,7 @@ plots.snapshot(Path('/path/to/runs/dt_b65_sp_s1/history/iceh.2005-01-01.nc'))
 | Installed command | Workflow script under `CICE_testing/scripts/` |
 |---|---|
 | `cice-test-restart` | `b64_restart_workflow.py` |
+| `cice-test-invalid` | `b66_invalid_state_workflow.py` |
 | `cice-test-box` | `b65_box_workflow.py` |
 | `cice-test-candidates` | `check_b63_candidates.py` |
 | `cice-test-spatial` | `check_box_spatial_g.py` |
@@ -148,3 +150,7 @@ The package workflow in `.github/workflows/cice-testing.yml` runs the numerical
 regressions, production Fortran fixtures, real PyGMT export checks and packaging.
 The figure smoke checks were exercised with PyGMT 0.16.0 / GMT 6.5.0; synthetic
 fixtures are labelled as such and are not committed as model-result figures.
+
+The B6.6 restart-entry subset and its phased Bash commands are documented in the
+[model development record](../docs/development/developing-dynamic-tensile-strength-box01-b6-fsd-mapping.md#b66--invalid-state-tests-and-regression-checks).
+It does not close the outstanding B6.5 mask/feedback gates or in-timestep tests.
