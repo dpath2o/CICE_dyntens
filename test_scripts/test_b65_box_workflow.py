@@ -50,6 +50,33 @@ class BoxWorkflow(unittest.TestCase):
             with Dataset(self.history(mode,mode+'.nc')) as d:
                 w.check_fixture(d,mode)
 
+    def test_inactive_hourly_ic_requires_netcdf_fill(self):
+        path=self.history('inactive','iceh_ic.nc')
+        with Dataset(path,'a') as d:
+            # The production accumulator uses a negative sentinel, distinct
+            # from the positive output fill value. It must be converted.
+            v=d['dtens_flarge_h']
+            v[:]=-1.e30
+        with Dataset(path) as d:
+            with self.assertRaisesRegex(ValueError,'unmasked large fraction: dtens_flarge_h'):
+                w.check_fixture(d,'inactive')
+        with Dataset(path,'a') as d:
+            d['dtens_flarge_h'][:]=np.ma.masked_all((1,12,12))
+        with Dataset(path) as d:
+            w.check_fixture(d,'inactive')
+
+    def test_initial_history_masks_nonprimary_fraction_streams(self):
+        repo=Path(__file__).resolve().parents[1]
+        source=(repo/'cicecore/cicedyn/analysis/ice_history.F90').read_text()
+        guard=source.index('if (write_ic .and. use_dyntens_diagnostics) then')
+        writer=source.index('call ice_write_hist (ns)',guard)
+        block=source[guard:source.index('! dpath2o: dyntens',guard)]
+        self.assertIn('do ns = 2, nstreams',block)
+        self.assertIn('n = n_dyntens_large_fraction(ns)',block)
+        self.assertIn('if (n > 0)',block)
+        self.assertIn('where (a2D(:,:,n,:) < c0) a2D(:,:,n,:) = spval_dbl',block)
+        self.assertLess(guard,writer)
+
     def test_spatial_rank_local_pattern_rejected(self):
         path=self.history('spatial','bad.nc')
         with Dataset(path,'a') as d:

@@ -3957,6 +3957,20 @@
       nstrm = nstreams
       if (write_ic) nstrm = 1
 
+! dpath2o: dyntens
+      ! IC writes every stream, although unit conversion below visits only
+      ! stream 1. Convert undefined fraction sentinels in the other IC copies
+      ! as well; do not alter their coefficients or unrelated history fields.
+      if (write_ic .and. use_dyntens_diagnostics) then
+         do ns = 2, nstreams
+            n = n_dyntens_large_fraction(ns)
+            if (n > 0) then
+               where (a2D(:,:,n,:) < c0) a2D(:,:,n,:) = spval_dbl
+            endif
+         enddo
+      endif
+! dpath2o: dyntens
+
       do ns = 1, nstrm
       if (write_history(ns) .or. write_ic) then
 
