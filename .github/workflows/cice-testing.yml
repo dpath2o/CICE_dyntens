@@ -1,0 +1,39 @@
+name: CICE_testing
+
+on:
+  pull_request:
+    paths:
+      - 'CICE_testing/**'
+      - 'test_scripts/**'
+      - 'cicecore/cicedyn/dynamics/ice_dyntens_mapping.F90'
+      - '.github/workflows/cice-testing.yml'
+  push:
+    branches: [dev]
+    paths:
+      - 'CICE_testing/**'
+      - 'test_scripts/**'
+      - 'cicecore/cicedyn/dynamics/ice_dyntens_mapping.F90'
+      - '.github/workflows/cice-testing.yml'
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install compiler and GMT export tools
+        run: sudo apt-get update && sudo apt-get install -y gfortran gmt libgmt-dev ghostscript
+      - name: Install package with compatible PyGMT
+        run: python -m pip install -e './CICE_testing[figures,test]' pygmt==0.16.0 build
+      - name: Existing numerical checker regressions
+        run: python -m unittest discover -s test_scripts -v
+      - name: Package and real PyGMT export regressions
+        run: python -m pytest CICE_testing/tests -q
+      - name: Compile production mapping fixtures
+        run: |
+          cice-test-mapping --repo "$GITHUB_WORKSPACE" --fc gfortran --fflags '-O0 -g -fcheck=all'
+          cice-test-fixtures --repo "$GITHUB_WORKSPACE" --fc gfortran --fflags '-O0 -g -fcheck=all'
+      - name: Build portable distributions
+        run: python -m build CICE_testing

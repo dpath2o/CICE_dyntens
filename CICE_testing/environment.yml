@@ -1,0 +1,16 @@
+name: cice-testing
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.10
+  - numpy
+  - netcdf4
+  - pygmt>=0.11
+  - gmt
+  - ghostscript
+  - xarray
+  - ipykernel
+  - nbformat
+  - nbclient
+  - pytest
+  - pip
