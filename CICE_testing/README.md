@@ -51,6 +51,7 @@ select a PyGMT release compatible with its installed GMT.
 | `RestartWorkflow` | B6.4 preparation, restart staging and continuous/split validation |
 | `InvalidStateWorkflow` | B6.6 restart-entry subset: copied invalid/inactive inputs and serial/MPI abort evidence |
 | `BoxWorkflow` | B6.5 shadow-fixture preparation, executable distribution, staging and analytical/neutrality/decomposition checks |
+| `FeedbackWorkflow` | B6.5-F controlled box feedback, independent prescribed controls and exact physical equivalence |
 | `CandidateValidator` | Diagnostic-only FSD candidates, streams, masks, mapping bounds and unchanged applied coefficients |
 | `SpatialValidator` | Prescribed coefficients/winds and history/restart comparison |
 | `RestartFSDDiagnostic` | Read-only global/hemispheric FSD classification and ice-area weighting |
@@ -81,6 +82,7 @@ plots.snapshot(Path('/path/to/runs/dt_b65_sp_s1/history/iceh.2005-01-01.nc'))
 | `cice-test-restart` | `b64_restart_workflow.py` |
 | `cice-test-invalid` | `b66_invalid_state_workflow.py` |
 | `cice-test-box` | `b65_box_workflow.py` |
+| `cice-test-feedback` | `b65_feedback_workflow.py` |
 | `cice-test-candidates` | `check_b63_candidates.py` |
 | `cice-test-spatial` | `check_box_spatial_g.py` |
 | `cice-test-fsd` | `diagnose_restart_fsd.py` |

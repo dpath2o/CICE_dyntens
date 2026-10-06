@@ -74,11 +74,11 @@
       use ice_domain_size, only: ncat, nfsd
       use ice_dyn_eap, only: init_eap
 ! dpath2o: dyntens
-      use ice_dyn_evp, only: update_dyntens_candidates
+      use ice_dyn_evp, only: update_dyntens_candidates, update_dyntens_coefficients
 ! dpath2o: dyntens
       use ice_dyn_evp, only: init_evp
       use ice_dyn_vp, only: init_vp
-      use ice_dyn_shared, only: kdyn
+      use ice_dyn_shared, only: kdyn, use_dyntens, dyntens_g_mode
       use ice_flux, only: init_coupler_flux, init_history_therm, &
           init_history_dyn, init_flux_atm, init_flux_ocn, alloc_flux
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
@@ -185,6 +185,7 @@
 ! dpath2o: dyntens
       ! FSD is populated by init_restart, including initial runs.
       call update_dyntens_candidates()
+      if (use_dyntens .and. trim(dyntens_g_mode) == 'box_fsd') call update_dyntens_coefficients()
 ! dpath2o: dyntens
       call init_diags           ! initialize diagnostic output points
       call init_history_therm   ! initialize thermo history variables

@@ -144,9 +144,9 @@
 
       !---------------------------------------------------------------------------------------------
       ! dynamic tensile strength
-      ! Prescribed tensile coefficient; box_band is a development test, not FSD feedback.
+      ! Prescribed paths and explicit box_fsd/box_constant development tests.
 ! dpath2o: dyntens
-      ! Candidate-only FSD mapping parameters (m, 1).
+      ! FSD candidate mapping parameters (m, 1); box_fsd can apply the candidate.
       logical (kind=log_kind), public :: use_dyntens_diagnostics = .false.
       character(len=16), public :: dyntens_box_fixture = 'none'
       real (kind=dbl_kind), public :: dyntens_diameter_threshold = 300._dbl_kind

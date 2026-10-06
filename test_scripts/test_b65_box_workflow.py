@@ -123,7 +123,8 @@ class BoxWorkflow(unittest.TestCase):
         self.assertIn("if (trim(dyntens_box_fixture)=='none') then",evp)
         self.assertIn('i_global(i,blocks_ice(iblk))',evp)
         self.assertIn('nx_global/=12 .or. ny_global/=12 .or. nfsd/=12',evp)
-        self.assertIn('Box FSD fixture requires diagnostics=T and feedback=F',init)
+        self.assertIn('Box FSD fixture requires diagnostics=T; feedback only in box_fsd',init)
+        self.assertIn("(use_dyntens .and. trim(dyntens_g_mode)/='box_fsd')",init)
 
 
 if __name__=='__main__':

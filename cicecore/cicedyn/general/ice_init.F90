@@ -1539,23 +1539,40 @@
       endif
 
 ! dpath2o: dyntens
-      ! Fixtures are explicit diagnostic-only shadow inputs, never global physics.
+      ! Explicit box shadow inputs; feedback is allowed only in B6.5-F box_fsd.
       select case(trim(dyntens_box_fixture))
       case('none','small','large','mixed','unequal','dilute','inactive','spatial')
       case default
          call abort_ice('Unknown dyntens_box_fixture')
       end select
       if (trim(dyntens_box_fixture)/='none') then
-         if (.not. use_dyntens_diagnostics .or. use_dyntens) &
-              call abort_ice('Box FSD fixture requires diagnostics=T and feedback=F')
+         if (.not. use_dyntens_diagnostics .or. &
+             (use_dyntens .and. trim(dyntens_g_mode)/='box_fsd')) &
+              call abort_ice('Box FSD fixture requires diagnostics=T; feedback only in box_fsd')
          if (trim(grid_type)/='rectangular' .or. trim(atm_data_type)/='box_tensile') &
               call abort_ice('Box FSD fixture requires rectangular box_tensile setup')
          if (dyntens_diameter_threshold/=300._dbl_kind .or. dyntens_g_min/=0.2_dbl_kind .or. Ktens/=0.2_dbl_kind) &
               call abort_ice('Box FSD fixture requires threshold=300, g_min=0.2, Ktens=0.2')
       endif
-      ! Diagnostic mode leaves the control momentum path unchanged.
+      if (trim(dyntens_g_mode)=='box_fsd' .or. trim(dyntens_g_mode)=='box_constant') then
+         if (.not. use_dyntens .or. trim(grid_type)/='rectangular' .or. &
+             trim(atm_data_type)/='box_tensile') call abort_ice('B6.5-F requires enabled rectangular box_tensile')
+         if (trim(dyntens_g_mode)=='box_fsd') then
+            if (.not. use_dyntens_diagnostics) call abort_ice('box_fsd requires candidate diagnostics')
+            select case(trim(dyntens_box_fixture))
+            case('small','large','mixed')
+            case default
+               call abort_ice('box_fsd requires small, large or mixed shadow fixture')
+            end select
+         else
+            if (use_dyntens_diagnostics .or. trim(dyntens_box_fixture)/='none') &
+                 call abort_ice('box_constant must not evaluate FSD candidates')
+         endif
+      endif
+      ! Diagnostics leave momentum unchanged except the explicit box_fsd test.
       if (use_dyntens_diagnostics) then
-         if (use_dyntens) call abort_ice('FSD diagnostics require use_dyntens=F')
+         if (use_dyntens .and. trim(dyntens_g_mode)/='box_fsd') &
+              call abort_ice('FSD diagnostics require use_dyntens=F except explicit box_fsd')
          if (kdyn /= 1 .or. grid_ice /= 'C' .or. evp_algorithm /= 'standard_2d' .or. &
              visc_method /= 'avg_zeta' .or. yield_curve /= 'ellipse' .or. revised_evp) &
               call abort_ice('FSD diagnostics require C-grid standard_2d EVP, avg_zeta, ellipse, revised_evp=F')
@@ -1571,8 +1588,11 @@
       ! Do not silently leave an enabled local coefficient unused.
       ! Other grids, solvers and U-point strength interpolation are not wired yet.
       if (use_dyntens) then
-         if (trim(dyntens_g_mode) /= 'constant' .and. trim(dyntens_g_mode) /= 'box_band') &
-            call abort_ice('dyntens_g_mode must be constant or box_band')
+         select case(trim(dyntens_g_mode))
+         case('constant','box_band','box_fsd','box_constant')
+         case default
+            call abort_ice('Unknown dyntens_g_mode')
+         end select
          if (trim(dyntens_g_mode) == 'box_band') then
             if (trim(grid_type) /= 'rectangular') call abort_ice('box_band requires rectangular grid')
             ! Domain dimensions are read later; upper bound checked in init_evp.
@@ -2410,7 +2430,11 @@
             write(nu_diag,*) ' use_dyntens_diagnostics = ', use_dyntens_diagnostics
             write(nu_diag,*) ' dyntens_box_fixture = ', trim(dyntens_box_fixture)
             if (use_dyntens_diagnostics) then
-               write(nu_diag,*) ' FSD candidate only: applied g=1; Ktens unchanged'
+               if (use_dyntens .and. trim(dyntens_g_mode)=='box_fsd') then
+                  write(nu_diag,*) ' Controlled box shadow-FSD momentum feedback; not global/live-FSD feedback'
+               else
+                  write(nu_diag,*) ' FSD candidate only: applied g=1; Ktens unchanged'
+               endif
                write(nu_diag,*) ' Diameter threshold, g_min = ', dyntens_diameter_threshold, dyntens_g_min
             endif
 ! dpath2o: dyntens

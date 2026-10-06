@@ -37,7 +37,7 @@ def ocean_cells(ds, variable):
         raise ValueError('no ocean cells in tmask')
     return np.broadcast_to(ocean, variable.shape)
 
-def check_dataset(ds, ktens, gmin, tol):
+def check_dataset(ds, ktens, gmin, tol, applied_g=1.):
     families = [{n[len(b):]: n for n in ds.variables
                  if re.fullmatch(re.escape(b)+r'(?:_\w+)?', n)} for b in BASES]
     if not families[0] or any(set(f)!=set(families[0]) for f in families):
@@ -76,7 +76,7 @@ def check_dataset(ds, ktens, gmin, tol):
         close(np.asarray(g)[active],gmin+(1-gmin)*fv,tol,'candidate mapping equation')
         inactive = valid & (np.asarray(status)==1)
         close(np.asarray(g)[inactive],1.,tol,'inactive g != 1')
-    for base,value in [('dyntens_g',1.),('ktens_eff',ktens)]:
+    for base,value in [('dyntens_g',applied_g),('ktens_eff',ktens*applied_g)]:
         names=[n for n in ds.variables if re.fullmatch(re.escape(base)+r'(?:_\w+)?',n) and not is_candidate(n)]
         if not names:
             raise ValueError(f'missing applied coefficient {base}')

@@ -908,6 +908,160 @@ Neither applied mapped-momentum halo exchange nor the global FSD adapter is
 certified by a shadow fixture. Keep `test_scripts` and `tools` until migration
 of their remaining workflows/tests is separately complete.
 
+#### B6.5-F implementation and execution — 6 October 2026
+
+`FeedbackWorkflow` / `CICE_testing/scripts/b65_feedback_workflow.py` implements
+controlled **shadow-fixture momentum feedback** in fresh `dt_b65f_*` cases.
+This implementation has local Python regression evidence, not a Gadi runtime
+PASS. Preserve accepted `dt_b65_*` outputs and executables. A fresh full model
+build is required for each of s1, s2 and m2; do not reuse the B6.5 executable.
+
+The new explicit `dyntens_g_mode='box_fsd'` requires `use_dyntens=T`,
+`use_dyntens_diagnostics=T`, a small/large/mixed shadow fixture, rectangular
+`box_tensile` forcing and a 12x12 grid. Existing constant/box_band modes and
+feedback-disabled diagnostic defaults retain their behaviour. This is not a
+production evolving-FSD mode: it does not overwrite live tracer inputs and
+cannot enable live/global feedback by setting the fixture to none.
+
+After initialization/restoration, before IC output, and at each EVP entry,
+the production mapper evaluates the controlled input on owned ocean cells.
+Every rank completes the invalid-state reduction before the applied coefficient
+is copied or exchanged. The applied array starts at neutral one, receives the
+candidate on owned ocean, exchanges T-centred scalar halos with fillValue=1,
+and then forms Ktens_eff=Ktens*g. The branch returns before prescribed settings
+can overwrite it. It is held fixed through EVP subcycles.
+
+An independent `box_constant` reference mode assigns the prescribed scalar to
+owned ocean directly without calculating FSD candidates. It uses the same
+neutral land/physical-boundary policy and halo exchange. This controlled
+reference intentionally differs from the legacy constant mode's constant fill
+on land/unconnected boundaries: boundary treatment must match to isolate the
+mapping comparison. Both new modes are guarded to the small box.
+
+| Fixture | Mapped expected F_L | Independently prescribed g literal | Ocean Ktens_eff |
+|---|---:|---|---:|
+| small | 0 | 0.2 | 0.04 (binary64 product) |
+| large | 1 | 1.0 | 0.2 |
+| mixed | 0.5 | 0.6000000000000001 | 0.12 (binary64 product) |
+
+The mixed literal deliberately preserves the binary64 result of
+`0.2 + (1.0 - 0.2)*0.5`; the exact physical comparison does not substitute a
+rounded 0.6. Field analytical checks retain 1e-10 tolerance, while mapped versus
+prescribed histories and restarts require exact decoded values and masks.
+
+There are seven five-day cases per layout (21 total): small/large/mixed
+`map`/`ref` pairs and `large_off`. Names are
+`dt_b65f_<small|large|mixed>_<map|ref>_<s1|s2|m2>` plus
+`dt_b65f_large_off_<layout>`. The off case has use_dyntens=F and g=1.
+All use the existing B6.5 dates, FSD configuration, forcing, mapping parameters
+and domain decomposition. Preparation copies each accepted B6.5 control's
+machine environment and records source state, namelist/launcher/environment
+hashes. It refuses existing destination cases/runs. Inspect PBS settings before
+submission. Build one new executable per layout, then distribute it to all
+seven cases in that layout; hashes must match during analysis.
+
+Analysis requires one successful model log, 126 histories and five daily
+restarts per case (2–6 January, steps 24–120), correct candidate and applied
+fields on every stream, and exact mapped/reference physical histories and
+restarts. Only candidate diagnostic families are excluded from that pair
+comparison. Applied coefficients stay included. The large reference must also
+match feedback-off histories/restarts exactly. Small versus large references
+must differ in at least one ocean velocity/ice-state output after IC; a change
+only in a coefficient diagnostic does not demonstrate momentum response.
+Equivalent layouts compare all fields (including candidates) and restarts
+exactly, excluding only history blkmask ownership values.
+
+##### Prepare and build the new B6.5-F cases
+
+```bash
+(
+set -euo pipefail
+cd /g/data/gv90/da1339/src/CICE_dyntens
+git pull --ff-only origin dev
+load_modules
+python -c 'import sys; assert sys.version_info >= (3, 10), "Activate Python 3.10+"'
+runs=/g/data/gv90/da1339/cice-dirs/runs
+
+python -m unittest discover -s CICE_testing/tests -p 'test_feedback.py' -v
+python CICE_testing/scripts/b65_feedback_workflow.py prepare \
+    --repo "$PWD" --runs "$runs"
+
+for layout in s1 s2 m2; do
+    (
+        cd "dt_b65f_large_ref_$layout"
+        ./cice.build 2>&1 | tee b65f-build.log
+    )
+done
+
+python CICE_testing/scripts/b65_feedback_workflow.py distribute \
+    --repo "$PWD" --runs "$runs"
+)
+```
+
+##### Submit all 21 independent five-day runs
+
+No split restart needs staging for this equivalence gate. The initial controls
+are the independently prescribed references prepared above, not the archived
+feedback-disabled B6.5 controls.
+
+```bash
+(
+set -euo pipefail
+cd /g/data/gv90/da1339/src/CICE_dyntens
+for layout in s1 s2 m2; do
+    for fixture in small large mixed; do
+        for kind in map ref; do
+            (
+                cd "dt_b65f_${fixture}_${kind}_${layout}"
+                qsub ./cice.run | tee b65f-job-id.txt
+            )
+        done
+    done
+    (
+        cd "dt_b65f_large_off_$layout"
+        qsub ./cice.run | tee b65f-job-id.txt
+    )
+done
+)
+```
+
+##### Analyse after every job has finished
+
+Check the submitted job IDs with `qstat -u da1339`. All 21 jobs must complete
+successfully; expected-abort tests belong to B6.6, not this gate.
+
+```bash
+(
+set -euo pipefail
+cd /g/data/gv90/da1339/src/CICE_dyntens
+load_modules
+runs=/g/data/gv90/da1339/cice-dirs/runs
+
+for layout in s1 s2 m2; do
+    for fixture in small large mixed; do
+        for kind in map ref; do
+            rg -l 'CICE COMPLETED SUCCESSFULLY' \
+                "$runs/dt_b65f_${fixture}_${kind}_${layout}"/cice.runlog.*
+        done
+    done
+    rg -l 'CICE COMPLETED SUCCESSFULLY' \
+        "$runs/dt_b65f_large_off_$layout"/cice.runlog.*
+done
+
+python -u CICE_testing/scripts/b65_feedback_workflow.py analyse \
+    --repo "$PWD" --runs "$runs" \
+    --evidence validation_report/box/evidence \
+    2>&1 | tee dt_b65f_large_ref_s1/b65f-analysis.log
+)
+```
+
+Archive `b65f-validation.json`, `b65f-analysis.txt`, all 21 provenance manifests,
+per-layout build logs/hashes, namelists, PBS logs/accounting and full checker
+output. A PASS closes the controlled shadow-feedback equivalence gate only.
+It does not validate spatially varying mapped feedback, live FSD adapter
+feedback, in-timestep invalid-state handling or global-grid behaviour. B6.6 and
+subsequent live/global tests remain separate acceptance requirements.
+
 ### B6.6 — invalid-state tests and regression checks
 
 Deliberately invalid occupied-category inputs must produce the expected

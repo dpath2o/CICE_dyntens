@@ -6,6 +6,10 @@ on:
       - 'CICE_testing/**'
       - 'test_scripts/**'
       - 'cicecore/cicedyn/dynamics/ice_dyntens_mapping.F90'
+      - 'cicecore/cicedyn/dynamics/ice_dyn_evp.F90'
+      - 'cicecore/cicedyn/dynamics/ice_dyn_shared.F90'
+      - 'cicecore/cicedyn/general/ice_init.F90'
+      - 'cicecore/drivers/standalone/cice/CICE_InitMod.F90'
       - '.github/workflows/cice-testing.yml'
   push:
     branches: [dev]
@@ -13,6 +17,10 @@ on:
       - 'CICE_testing/**'
       - 'test_scripts/**'
       - 'cicecore/cicedyn/dynamics/ice_dyntens_mapping.F90'
+      - 'cicecore/cicedyn/dynamics/ice_dyn_evp.F90'
+      - 'cicecore/cicedyn/dynamics/ice_dyn_shared.F90'
+      - 'cicecore/cicedyn/general/ice_init.F90'
+      - 'cicecore/drivers/standalone/cice/CICE_InitMod.F90'
       - '.github/workflows/cice-testing.yml'
 
 jobs:

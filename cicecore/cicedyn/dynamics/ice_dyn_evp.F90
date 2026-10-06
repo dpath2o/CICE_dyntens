@@ -125,14 +125,14 @@
 
       ! Dynamic tensile strength coefficients
       real (kind=dbl_kind), allocatable, public :: &
-           dyntens_gT(:,:,:), & ! prescribed multiplier g at T points (units: 1)
+           dyntens_gT(:,:,:), & ! applied multiplier g at T points (units: 1)
            ktens_effT(:,:,:)    ! effective coefficient Ktens*g at T points (units: 1)
 
 ! dpath2o: dyntens
-      ! Candidate fields are diagnostics only (all units: 1).
+      ! Candidate fields (all units: 1); box_fsd explicitly enables feedback.
       real (kind=dbl_kind), allocatable, public :: dyntens_large_fractionT(:,:,:), &
            dyntens_g_candidateT(:,:,:), ktens_eff_candidateT(:,:,:), dyntens_mapping_statusT(:,:,:)
-      public :: update_dyntens_candidates
+      public :: update_dyntens_candidates, update_dyntens_coefficients
 ! dpath2o: dyntens
       public :: evp, init_evp
 
@@ -147,8 +147,33 @@
         use ice_blocks, only: block, get_block, i_global
         use ice_domain, only: nblocks, blocks_ice, halo_info
         use ice_boundary, only: ice_HaloUpdate
+        use ice_grid, only: tmask
         type(block) :: b
         integer(kind=int_kind) :: iblk, i, j, ig
+        if (trim(dyntens_g_mode) == 'box_fsd' .or. trim(dyntens_g_mode) == 'box_constant') then
+           ! B6.5-F: same neutral land/boundary policy in both independent paths.
+           ! Candidate validation/reduction must finish before this exchange.
+           dyntens_gT = c1
+           if (trim(dyntens_g_mode) == 'box_fsd') then
+              if (.not. allocated(dyntens_g_candidateT)) call abort_ice('Mapped candidates unavailable')
+           endif
+           do iblk = 1, nblocks
+              b = get_block(blocks_ice(iblk), iblk)
+              do j = b%jlo, b%jhi
+                 do i = b%ilo, b%ihi
+                    if (.not. tmask(i,j,iblk)) cycle
+                    if (trim(dyntens_g_mode) == 'box_fsd') then
+                       dyntens_gT(i,j,iblk) = dyntens_g_candidateT(i,j,iblk)
+                    else
+                       dyntens_gT(i,j,iblk) = dyntens_g_const
+                    endif
+                 enddo
+              enddo
+           enddo
+           call ice_HaloUpdate(dyntens_gT, halo_info, field_loc_center, field_type_scalar, fillValue = c1)
+           ktens_effT = Ktens*dyntens_gT
+           return
+        endif
         dyntens_gT = dyntens_g_const
         if (trim(dyntens_g_mode) == 'box_band') then
            do iblk = 1, nblocks
@@ -247,7 +272,7 @@
 ! dpath2o: dyntens
       subroutine init_evp
         use ice_blocks, only: get_block, nx_block, ny_block, nghost, block
-        use ice_domain_size, only: max_blocks, nx_global
+        use ice_domain_size, only: max_blocks, nx_global, ny_global
         use ice_domain, only: nblocks, blocks_ice
         use ice_grid, only: grid_ice, dyT, dxT, uarear, tmask, G_HTE, G_HTN, dxN, dyE, &
              load_F2_form_factors
@@ -285,7 +310,16 @@
         if (use_dyntens) then
            allocate(ktens_effT(nx_block,ny_block,max_blocks), dyntens_gT(nx_block,ny_block,max_blocks), stat=ierr)
            if (ierr /= 0) call abort_ice(subname//' ERROR: Out of memory ktens_effT')
-           call update_dyntens_coefficients()
+           if (trim(dyntens_g_mode) == 'box_fsd' .or. trim(dyntens_g_mode) == 'box_constant') then
+              if (nx_global /= 12 .or. ny_global /= 12) call abort_ice('B6.5-F modes require 12x12 box')
+           endif
+           if (trim(dyntens_g_mode) == 'box_fsd') then
+              ! FSD initialization and collective validation occur after init_restart.
+              dyntens_gT = c1
+              ktens_effT = Ktens
+           else
+              call update_dyntens_coefficients()
+           endif
         endif
 
         !------------------------------------------------
