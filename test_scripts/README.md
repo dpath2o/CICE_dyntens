@@ -1,3 +1,11 @@
+# Testing entry points
+
+Implementation now lives in [CICE_testing](../CICE_testing/README.md). This
+folder retains compatibility entry points and the existing regression tests.
+Use the [workflow scripts](../CICE_testing/scripts/) or installed `cice-test-*`
+commands for new work. All report figures use PyGMT; see the
+[figure notebook](../CICE_testing/notebooks/validation_figures.ipynb).
+
 # Restart FSD diagnosis
 
 `diagnose_restart_fsd.py` is read-only and needs Python, numpy and netCDF4.

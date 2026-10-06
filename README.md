@@ -6,6 +6,17 @@ The aim is to test whether an evolving floe size distribution (FSD) can provide 
 
 **Status (4 October 2026):** prescribed constant/spatial g is implemented for the supported C-grid EVP box setup. Six decomposition cases pass their history checks and four history/restart comparisons match exactly at zero tolerance (excluding history block-ownership IDs). FSD-derived g and feedback are not yet implemented/validated. See the [single box-to-global development record](docs/development/developing-dynamic-tensile-strength-box01.md) for evidence, limitations and the next tasks.
 
+## Testing toolbox and figures
+
+[CICE_testing](CICE_testing/README.md) contains reusable object-oriented validation
+workflows, explicit specifications/paths, and PyGMT figure generation. Existing
+`test_scripts` commands remain compatible. The
+[figure notebook](CICE_testing/notebooks/validation_figures.ipynb) and
+[report handoff plan](CICE_testing/docs/development_reports.md) prepare evidence
+for the consolidated `box_tensile_dev_procedure_results_validation_notes.md`
+after B6.6, followed by a separate global-grid validation record. The existing
+stage documents remain authoritative until that consolidation is complete.
+
 ## Why develop dynamic tensile strength?
 
 A prescribed tensile-strength coefficient does not, by itself, distinguish coherent ice from a fragmented floe field. Wave-induced fracture can change the FSD without an explicit corresponding reduction in the tensile cohesion used by the continuum momentum solver.
