@@ -132,7 +132,7 @@ runs are read one file/variable at a time; figure provenance hashes the inputs.
 
 The [report handoff plan](docs/development_reports.md) maps evidence to the planned
 `box_tensile_dev_procedure_results_validation_notes.md` and a parallel global
-record. Consolidation is deferred until B6.6 is complete. Existing development
+record. The active record is now split into [box01 case documents](../docs/development/box01_dev_dynamic_tensile_strength.md) and [global case documents](../docs/development/global_dev_dynamic_tensile_strength.md); B6.6 remains open. Historical development
 notes remain the authoritative stage-by-stage record in the meantime.
 
 ## Verification
@@ -154,5 +154,11 @@ The figure smoke checks were exercised with PyGMT 0.16.0 / GMT 6.5.0; synthetic
 fixtures are labelled as such and are not committed as model-result figures.
 
 The B6.6 restart-entry subset and its phased Bash commands are documented in the
-[model development record](../docs/development/developing-dynamic-tensile-strength-box01-b6-fsd-mapping.md#b66--invalid-state-tests-and-regression-checks).
+[model development record](../docs/development/B6.6.md).
 It does not close the outstanding B6.5 mask/feedback gates or in-timestep tests.
+
+## Organised cases and per-stage figures
+
+[Case organisation](../docs/development/case_organisation.md) defines stable run IDs, case directory migration, backup/provenance and Git inclusion. `organise_test_cases.py plan|apply` moves only configurations and legacy caselists; completed runs stay fixed. Workflows resolve root or nested configurations and preserve input-hash checks through a reproducible relocation ledger.
+
+`notebooks/B0.ipynb` through `B6.6.ipynb`, including `B6.5-F.ipynb`, and `G0.ipynb`–`G2.ipynb` generate conceptual PyGMT diagrams and expose optional actual-history plotting. Recreate all designs with `python -m CICE_testing.plotting.development --case all --output docs/development/figures`. No conceptual figure is labelled as measured output or a validation PASS.

@@ -1,0 +1,13 @@
+{
+  "case": "B2",
+  "kind": "conceptual design / analytical expectation",
+  "backend": "PyGMT",
+  "measured_model_data": false,
+  "band": null,
+  "gate_status": "PASS: 126 histories and five restarts, exact decoded equality on a common executable.",
+  "code_sha256": "d6aecb0eee860da964fba250d07b97c5ab5ee60280842245b0c741e8c17383ba",
+  "outputs": {
+    "B2.png": "03f663ef00a9d882dfe517eb27b4ec3c9e486366811f2a5375f63424e9eba619",
+    "B2.pdf": "c9c4fa28e74ac65358a6d054c673694c4b51b864074aae6b73b7e3931ea65fda"
+  }
+}

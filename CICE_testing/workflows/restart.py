@@ -14,6 +14,7 @@ from pathlib import Path
 from ..core.types import WorkflowSpec
 from ..core.reporting import EvidenceWorkflow
 from ..core.paths import model_repo, run_root
+from ..core.cases import case_path, diagnostic_cases, verify_input_hash
 
 CASES = ('dt_b64_cont', 'dt_b64_seg1', 'dt_b64_seg2')
 SPLIT = '2005-01-03-00000'
@@ -184,7 +185,7 @@ class RestartWorkflow(EvidenceWorkflow):
         repo = spec.repo.resolve()
         base = spec.base_case
         if base is None:
-            matches = [f.parent for f in repo.glob('dt_b63*/ice_in')
+            matches = [f.parent for f in diagnostic_cases(repo)
                        if re.search(r'(?mi)^\s*use_dyntens_diagnostics\s*=\s*\.true\.', f.read_text())]
             require(len(matches) == 1, 'specify base_case; diagnostic cases=' + str(matches))
             base = matches[0]
@@ -222,14 +223,15 @@ class RestartWorkflow(EvidenceWorkflow):
                     'f_dyntens_g_candidate', 'f_ktens_eff_candidate', 'f_dyntens_mapping_status']:
             require(entry(namelist, key).strip("'\"") == 'dh', 'requires dh output for ' + key)
         require(list((oldrun / 'history').glob('iceh*.nc')), 'accepted history missing')
-        cases = [repo / name for name in CASES]
+        cases = [case_path(repo,name) for name in CASES]
         runs = [spec.runs.resolve() / name for name in CASES]
         for path in cases + runs:
             require(not path.exists(), 'refusing existing path: ' + str(path))
         require(oldcase == base, 'base case differs from ICE_CASEDIR; use the original accepted case')
         for case, run, days in zip(cases, runs, [5, 2, 3]):
+            case.parent.mkdir(parents=True,exist_ok=True)
             shutil.copytree(base, case, symlinks=True,
-                            ignore=shutil.ignore_patterns('logs', 'history', 'restart', 'compile',
+                            ignore=shutil.ignore_patterns('case-migration','case-configuration.json','logs', 'history', 'restart', 'compile',
                                                          'input_restart', 'cice.runlog.*', '*.o', '*.mod'))
             # Retarget generated case scripts; retain machine environment and macros.
             for path in case.rglob('*'):
@@ -282,7 +284,7 @@ class RestartWorkflow(EvidenceWorkflow):
         shutil.copy2(source, target)
         require(sha(source) == sha(target), 'staged restart checksum differs')
         (run / 'ice.restart_file').write_text(str(target) + '\n')
-        (spec.repo.resolve() / CASES[2] / 'b64-provenance' / 'input-restart.sha256').write_text(sha(target) + '\n')
+        (case_path(spec.repo.resolve(),CASES[2]) / 'b64-provenance' / 'input-restart.sha256').write_text(sha(target) + '\n')
         print('PASS staged byte-identical restart', target)
         print('Pointer:', run / 'ice.restart_file')
 
@@ -351,7 +353,7 @@ def main():
     try:
         if args.action == 'prepare' and args.base_case is None:
             matches = []
-            for path in args.repo.resolve().glob('dt_b63*/ice_in'):
+            for path in diagnostic_cases(args.repo.resolve()):
                 if re.search(r'(?mi)^\s*use_dyntens_diagnostics\s*=\s*\.true\.', path.read_text()):
                     matches.append(path.parent)
             require(len(matches) == 1, 'specify --base-case: found diagnostic cases ' + str(matches))

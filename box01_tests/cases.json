@@ -1,0 +1,477 @@
+{
+  "schema_version": 1,
+  "configuration_only": true,
+  "run_archives_move": false,
+  "supplied_settings_sha256": "323721c6bbdb4031c9013677365d543bd39fe6ad04d7f1bc60a3efff6347f433",
+  "cases": [
+    {
+      "case_id": "dt_b4_half",
+      "canonical_name": "dt_b4_half",
+      "stage": "B4",
+      "path": "box01_tests/B4/dt_b4_half",
+      "run_archive_id": "dt_b4_half"
+    },
+    {
+      "case_id": "dt_b4_null",
+      "canonical_name": "dt_b4_null",
+      "stage": "B4",
+      "path": "box01_tests/B4/dt_b4_null",
+      "run_archive_id": "dt_b4_null"
+    },
+    {
+      "case_id": "dt_b4_off",
+      "canonical_name": "dt_b4_off",
+      "stage": "B4",
+      "path": "box01_tests/B4/dt_b4_off",
+      "run_archive_id": "dt_b4_off"
+    },
+    {
+      "case_id": "dt_b4_one",
+      "canonical_name": "dt_b4_one",
+      "stage": "B4",
+      "path": "box01_tests/B4/dt_b4_one",
+      "run_archive_id": "dt_b4_one"
+    },
+    {
+      "case_id": "dt_b5_cont",
+      "canonical_name": "dt_b5_cont",
+      "stage": "B5",
+      "path": "box01_tests/B5/dt_b5_cont",
+      "run_archive_id": "dt_b5_cont"
+    },
+    {
+      "case_id": "dt_b5_seg1",
+      "canonical_name": "dt_b5_seg1",
+      "stage": "B5",
+      "path": "box01_tests/B5/dt_b5_seg1",
+      "run_archive_id": "dt_b5_seg1"
+    },
+    {
+      "case_id": "dt_b5_seg2",
+      "canonical_name": "dt_b5_seg2",
+      "stage": "B5",
+      "path": "box01_tests/B5/dt_b5_seg2",
+      "run_archive_id": "dt_b5_seg2"
+    },
+    {
+      "case_id": "dt_b63_ctrl",
+      "canonical_name": "dt_b63_ctrl",
+      "stage": "B6.3",
+      "path": "box01_tests/B6.3/dt_b63_ctrl",
+      "run_archive_id": "dt_b63_ctrl"
+    },
+    {
+      "case_id": "dt_b63_diag",
+      "canonical_name": "dt_b63_diag",
+      "stage": "B6.3",
+      "path": "box01_tests/B6.3/dt_b63_diag",
+      "run_archive_id": "dt_b63_diag"
+    },
+    {
+      "case_id": "dt_b64_cont",
+      "canonical_name": "dt_b64_cont",
+      "stage": "B6.4",
+      "path": "box01_tests/B6.4/dt_b64_cont",
+      "run_archive_id": "dt_b64_cont"
+    },
+    {
+      "case_id": "dt_b64_seg1",
+      "canonical_name": "dt_b64_seg1",
+      "stage": "B6.4",
+      "path": "box01_tests/B6.4/dt_b64_seg1",
+      "run_archive_id": "dt_b64_seg1"
+    },
+    {
+      "case_id": "dt_b64_seg2",
+      "canonical_name": "dt_b64_seg2",
+      "stage": "B6.4",
+      "path": "box01_tests/B6.4/dt_b64_seg2",
+      "run_archive_id": "dt_b64_seg2"
+    },
+    {
+      "case_id": "dt_b65_ctl_m2",
+      "canonical_name": "dt_b65_ctl_m2",
+      "stage": "B6.5",
+      "path": "box01_tests/B6.5/dt_b65_ctl_m2",
+      "run_archive_id": "dt_b65_ctl_m2"
+    },
+    {
+      "case_id": "dt_b65_ctl_s1",
+      "canonical_name": "dt_b65_ctl_s1",
+      "stage": "B6.5",
+      "path": "box01_tests/B6.5/dt_b65_ctl_s1",
+      "run_archive_id": "dt_b65_ctl_s1"
+    },
+    {
+      "case_id": "dt_b65_ctl_s2",
+      "canonical_name": "dt_b65_ctl_s2",
+      "stage": "B6.5",
+      "path": "box01_tests/B6.5/dt_b65_ctl_s2",
+      "run_archive_id": "dt_b65_ctl_s2"
+    },
+    {
+      "case_id": "dt_b65_dil_s1",
+      "canonical_name": "dt_b65_dil_s1",
+      "stage": "B6.5",
+      "path": "box01_tests/B6.5/dt_b65_dil_s1",
+      "run_archive_id": "dt_b65_dil_s1"
+    },
+    {
+      "case_id": "dt_b65f_large_map_m2",
+      "canonical_name": "dt_b65f_large_map_m2",
+      "stage": "B6.5-F",
+      "path": "box01_tests/B6.5-F/dt_b65f_large_map_m2",
+      "run_archive_id": "dt_b65f_large_map_m2"
+    },
+    {
+      "case_id": "dt_b65f_large_map_s1",
+      "canonical_name": "dt_b65f_large_map_s1",
+      "stage": "B6.5-F",
+      "path": "box01_tests/B6.5-F/dt_b65f_large_map_s1",
+      "run_archive_id": "dt_b65f_large_map_s1"
+    },
+    {
+      "case_id": "dt_b65f_large_map_s2",
+      "canonical_name": "dt_b65f_large_map_s2",
+      "stage": "B6.5-F",
+      "path": "box01_tests/B6.5-F/dt_b65f_large_map_s2",
+      "run_archive_id": "dt_b65f_large_map_s2"
+    },
+    {
+      "case_id": "dt_b65f_large_off_m2",
+      "canonical_name": "dt_b65f_large_off_m2",
+      "stage": "B6.5-F",
+      "path": "box01_tests/B6.5-F/dt_b65f_large_off_m2",
+      "run_archive_id": "dt_b65f_large_off_m2"
+    },
+    {
+      "case_id": "dt_b65f_large_off_s1",
+      "canonical_name": "dt_b65f_large_off_s1",
+      "stage": "B6.5-F",
+      "path": "box01_tests/B6.5-F/dt_b65f_large_off_s1",
+      "run_archive_id": "dt_b65f_large_off_s1"
+    },
+    {
+      "case_id": "dt_b65f_large_off_s2",
+      "canonical_name": "dt_b65f_large_off_s2",
+      "stage": "B6.5-F",
+      "path": "box01_tests/B6.5-F/dt_b65f_large_off_s2",
+      "run_archive_id": "dt_b65f_large_off_s2"
+    },
+    {
+      "case_id": "dt_b65f_large_ref_m2",
+      "canonical_name": "dt_b65f_large_ref_m2",
+      "stage": "B6.5-F",
+      "path": "box01_tests/B6.5-F/dt_b65f_large_ref_m2",
+      "run_archive_id": "dt_b65f_large_ref_m2"
+    },
+    {
+      "case_id": "dt_b65f_large_ref_s1",
+      "canonical_name": "dt_b65f_large_ref_s1",
+      "stage": "B6.5-F",
+      "path": "box01_tests/B6.5-F/dt_b65f_large_ref_s1",
+      "run_archive_id": "dt_b65f_large_ref_s1"
+    },
+    {
+      "case_id": "dt_b65f_large_ref_s2",
+      "canonical_name": "dt_b65f_large_ref_s2",
+      "stage": "B6.5-F",
+      "path": "box01_tests/B6.5-F/dt_b65f_large_ref_s2",
+      "run_archive_id": "dt_b65f_large_ref_s2"
+    },
+    {
+      "case_id": "dt_b65f_mixed_map_m2",
+      "canonical_name": "dt_b65f_mixed_map_m2",
+      "stage": "B6.5-F",
+      "path": "box01_tests/B6.5-F/dt_b65f_mixed_map_m2",
+      "run_archive_id": "dt_b65f_mixed_map_m2"
+    },
+    {
+      "case_id": "dt_b65f_mixed_map_s1",
+      "canonical_name": "dt_b65f_mixed_map_s1",
+      "stage": "B6.5-F",
+      "path": "box01_tests/B6.5-F/dt_b65f_mixed_map_s1",
+      "run_archive_id": "dt_b65f_mixed_map_s1"
+    },
+    {
+      "case_id": "dt_b65f_mixed_map_s2",
+      "canonical_name": "dt_b65f_mixed_map_s2",
+      "stage": "B6.5-F",
+      "path": "box01_tests/B6.5-F/dt_b65f_mixed_map_s2",
+      "run_archive_id": "dt_b65f_mixed_map_s2"
+    },
+    {
+      "case_id": "dt_b65f_mixed_ref_m2",
+      "canonical_name": "dt_b65f_mixed_ref_m2",
+      "stage": "B6.5-F",
+      "path": "box01_tests/B6.5-F/dt_b65f_mixed_ref_m2",
+      "run_archive_id": "dt_b65f_mixed_ref_m2"
+    },
+    {
+      "case_id": "dt_b65f_mixed_ref_s1",
+      "canonical_name": "dt_b65f_mixed_ref_s1",
+      "stage": "B6.5-F",
+      "path": "box01_tests/B6.5-F/dt_b65f_mixed_ref_s1",
+      "run_archive_id": "dt_b65f_mixed_ref_s1"
+    },
+    {
+      "case_id": "dt_b65f_mixed_ref_s2",
+      "canonical_name": "dt_b65f_mixed_ref_s2",
+      "stage": "B6.5-F",
+      "path": "box01_tests/B6.5-F/dt_b65f_mixed_ref_s2",
+      "run_archive_id": "dt_b65f_mixed_ref_s2"
+    },
+    {
+      "case_id": "dt_b65f_small_map_m2",
+      "canonical_name": "dt_b65f_small_map_m2",
+      "stage": "B6.5-F",
+      "path": "box01_tests/B6.5-F/dt_b65f_small_map_m2",
+      "run_archive_id": "dt_b65f_small_map_m2"
+    },
+    {
+      "case_id": "dt_b65f_small_map_s1",
+      "canonical_name": "dt_b65f_small_map_s1",
+      "stage": "B6.5-F",
+      "path": "box01_tests/B6.5-F/dt_b65f_small_map_s1",
+      "run_archive_id": "dt_b65f_small_map_s1"
+    },
+    {
+      "case_id": "dt_b65f_small_map_s2",
+      "canonical_name": "dt_b65f_small_map_s2",
+      "stage": "B6.5-F",
+      "path": "box01_tests/B6.5-F/dt_b65f_small_map_s2",
+      "run_archive_id": "dt_b65f_small_map_s2"
+    },
+    {
+      "case_id": "dt_b65f_small_ref_m2",
+      "canonical_name": "dt_b65f_small_ref_m2",
+      "stage": "B6.5-F",
+      "path": "box01_tests/B6.5-F/dt_b65f_small_ref_m2",
+      "run_archive_id": "dt_b65f_small_ref_m2"
+    },
+    {
+      "case_id": "dt_b65f_small_ref_s1",
+      "canonical_name": "dt_b65f_small_ref_s1",
+      "stage": "B6.5-F",
+      "path": "box01_tests/B6.5-F/dt_b65f_small_ref_s1",
+      "run_archive_id": "dt_b65f_small_ref_s1"
+    },
+    {
+      "case_id": "dt_b65f_small_ref_s2",
+      "canonical_name": "dt_b65f_small_ref_s2",
+      "stage": "B6.5-F",
+      "path": "box01_tests/B6.5-F/dt_b65f_small_ref_s2",
+      "run_archive_id": "dt_b65f_small_ref_s2"
+    },
+    {
+      "case_id": "dt_b65_large_s1",
+      "canonical_name": "dt_b65_large_s1",
+      "stage": "B6.5",
+      "path": "box01_tests/B6.5/dt_b65_large_s1",
+      "run_archive_id": "dt_b65_large_s1"
+    },
+    {
+      "case_id": "dt_b65_mix_s1",
+      "canonical_name": "dt_b65_mix_s1",
+      "stage": "B6.5",
+      "path": "box01_tests/B6.5/dt_b65_mix_s1",
+      "run_archive_id": "dt_b65_mix_s1"
+    },
+    {
+      "case_id": "dt_b65_small_s1",
+      "canonical_name": "dt_b65_small_s1",
+      "stage": "B6.5",
+      "path": "box01_tests/B6.5/dt_b65_small_s1",
+      "run_archive_id": "dt_b65_small_s1"
+    },
+    {
+      "case_id": "dt_b65_sp_a_m2",
+      "canonical_name": "dt_b65_sp_a_m2",
+      "stage": "B6.5",
+      "path": "box01_tests/B6.5/dt_b65_sp_a_m2",
+      "run_archive_id": "dt_b65_sp_a_m2"
+    },
+    {
+      "case_id": "dt_b65_sp_b_m2",
+      "canonical_name": "dt_b65_sp_b_m2",
+      "stage": "B6.5",
+      "path": "box01_tests/B6.5/dt_b65_sp_b_m2",
+      "run_archive_id": "dt_b65_sp_b_m2"
+    },
+    {
+      "case_id": "dt_b65_sp_m2",
+      "canonical_name": "dt_b65_sp_m2",
+      "stage": "B6.5",
+      "path": "box01_tests/B6.5/dt_b65_sp_m2",
+      "run_archive_id": "dt_b65_sp_m2"
+    },
+    {
+      "case_id": "dt_b65_sp_s1",
+      "canonical_name": "dt_b65_sp_s1",
+      "stage": "B6.5",
+      "path": "box01_tests/B6.5/dt_b65_sp_s1",
+      "run_archive_id": "dt_b65_sp_s1"
+    },
+    {
+      "case_id": "dt_b65_sp_s2",
+      "canonical_name": "dt_b65_sp_s2",
+      "stage": "B6.5",
+      "path": "box01_tests/B6.5/dt_b65_sp_s2",
+      "run_archive_id": "dt_b65_sp_s2"
+    },
+    {
+      "case_id": "dt_b65_uneq_s1",
+      "canonical_name": "dt_b65_uneq_s1",
+      "stage": "B6.5",
+      "path": "box01_tests/B6.5/dt_b65_uneq_s1",
+      "run_archive_id": "dt_b65_uneq_s1"
+    },
+    {
+      "case_id": "dt_b65_zero_s1",
+      "canonical_name": "dt_b65_zero_s1",
+      "stage": "B6.5",
+      "path": "box01_tests/B6.5/dt_b65_zero_s1",
+      "run_archive_id": "dt_b65_zero_s1"
+    },
+    {
+      "case_id": "dt_b66_bad_sum_m2",
+      "canonical_name": "dt_b66_bad_sum_m2",
+      "stage": "B6.6",
+      "path": "box01_tests/B6.6/dt_b66_bad_sum_m2",
+      "run_archive_id": "dt_b66_bad_sum_m2"
+    },
+    {
+      "case_id": "dt_b66_bad_sum_s1",
+      "canonical_name": "dt_b66_bad_sum_s1",
+      "stage": "B6.6",
+      "path": "box01_tests/B6.6/dt_b66_bad_sum_s1",
+      "run_archive_id": "dt_b66_bad_sum_s1"
+    },
+    {
+      "case_id": "dt_b66_negative_m2",
+      "canonical_name": "dt_b66_negative_m2",
+      "stage": "B6.6",
+      "path": "box01_tests/B6.6/dt_b66_negative_m2",
+      "run_archive_id": "dt_b66_negative_m2"
+    },
+    {
+      "case_id": "dt_b66_negative_s1",
+      "canonical_name": "dt_b66_negative_s1",
+      "stage": "B6.6",
+      "path": "box01_tests/B6.6/dt_b66_negative_s1",
+      "run_archive_id": "dt_b66_negative_s1"
+    },
+    {
+      "case_id": "dt_b66_negligible_area_m2",
+      "canonical_name": "dt_b66_negligible_area_m2",
+      "stage": "B6.6",
+      "path": "box01_tests/B6.6/dt_b66_negligible_area_m2",
+      "run_archive_id": "dt_b66_negligible_area_m2"
+    },
+    {
+      "case_id": "dt_b66_negligible_area_s1",
+      "canonical_name": "dt_b66_negligible_area_s1",
+      "stage": "B6.6",
+      "path": "box01_tests/B6.6/dt_b66_negligible_area_s1",
+      "run_archive_id": "dt_b66_negligible_area_s1"
+    },
+    {
+      "case_id": "dt_b66_nonfinite_m2",
+      "canonical_name": "dt_b66_nonfinite_m2",
+      "stage": "B6.6",
+      "path": "box01_tests/B6.6/dt_b66_nonfinite_m2",
+      "run_archive_id": "dt_b66_nonfinite_m2"
+    },
+    {
+      "case_id": "dt_b66_nonfinite_s1",
+      "canonical_name": "dt_b66_nonfinite_s1",
+      "stage": "B6.6",
+      "path": "box01_tests/B6.6/dt_b66_nonfinite_s1",
+      "run_archive_id": "dt_b66_nonfinite_s1"
+    },
+    {
+      "case_id": "dt_b66_trace_negligible_area_s1",
+      "canonical_name": "dt_b66_trace_negligible_area_s1",
+      "stage": "B6.6",
+      "path": "box01_tests/B6.6/dt_b66_trace_negligible_area_s1",
+      "run_archive_id": "dt_b66_trace_negligible_area_s1"
+    },
+    {
+      "case_id": "dt_b66_valid_m2",
+      "canonical_name": "dt_b66_valid_m2",
+      "stage": "B6.6",
+      "path": "box01_tests/B6.6/dt_b66_valid_m2",
+      "run_archive_id": "dt_b66_valid_m2"
+    },
+    {
+      "case_id": "dt_b66_valid_s1",
+      "canonical_name": "dt_b66_valid_s1",
+      "stage": "B6.6",
+      "path": "box01_tests/B6.6/dt_b66_valid_s1",
+      "run_archive_id": "dt_b66_valid_s1"
+    },
+    {
+      "case_id": "dt_b66_zero_area_m2",
+      "canonical_name": "dt_b66_zero_area_m2",
+      "stage": "B6.6",
+      "path": "box01_tests/B6.6/dt_b66_zero_area_m2",
+      "run_archive_id": "dt_b66_zero_area_m2"
+    },
+    {
+      "case_id": "dt_b66_zero_area_s1",
+      "canonical_name": "dt_b66_zero_area_s1",
+      "stage": "B6.6",
+      "path": "box01_tests/B6.6/dt_b66_zero_area_s1",
+      "run_archive_id": "dt_b66_zero_area_s1"
+    },
+    {
+      "case_id": "dt_b67_m2",
+      "canonical_name": "dt_b3_band67_m2",
+      "stage": "B3",
+      "path": "box01_tests/B3/dt_b3_band67_m2",
+      "run_archive_id": "dt_b67_m2"
+    },
+    {
+      "case_id": "dt_b67_s1",
+      "canonical_name": "dt_b3_band67_s1",
+      "stage": "B3",
+      "path": "box01_tests/B3/dt_b3_band67_s1",
+      "run_archive_id": "dt_b67_s1"
+    },
+    {
+      "case_id": "dt_b67_s2",
+      "canonical_name": "dt_b3_band67_s2",
+      "stage": "B3",
+      "path": "box01_tests/B3/dt_b3_band67_s2",
+      "run_archive_id": "dt_b67_s2"
+    },
+    {
+      "case_id": "dt_b6_m2",
+      "canonical_name": "dt_b3_band6_m2",
+      "stage": "B3",
+      "path": "box01_tests/B3/dt_b3_band6_m2",
+      "run_archive_id": "dt_b6_m2"
+    },
+    {
+      "case_id": "dt_b6_s1",
+      "canonical_name": "dt_b3_band6_s1",
+      "stage": "B3",
+      "path": "box01_tests/B3/dt_b3_band6_s1",
+      "run_archive_id": "dt_b6_s1"
+    },
+    {
+      "case_id": "dt_b6_s2",
+      "canonical_name": "dt_b3_band6_s2",
+      "stage": "B3",
+      "path": "box01_tests/B3/dt_b3_band6_s2",
+      "run_archive_id": "dt_b6_s2"
+    },
+    {
+      "case_id": "dyntens_box01",
+      "canonical_name": "dyntens_box01",
+      "stage": "B0",
+      "path": "box01_tests/B0/dyntens_box01",
+      "run_archive_id": "dyntens_box01"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "case": "G0",
+  "kind": "conceptual design / analytical expectation",
+  "backend": "PyGMT",
+  "measured_model_data": false,
+  "band": null,
+  "gate_status": "PLANNED: inherited global evidence is context, not acceptance of this new gate.",
+  "code_sha256": "d6aecb0eee860da964fba250d07b97c5ab5ee60280842245b0c741e8c17383ba",
+  "outputs": {
+    "G0.png": "db2baf6f275bc17bb6e285872af5cab8b14e02f270f56095a0b5fc24c0fc703e",
+    "G0.pdf": "a1a86544f20baac58950f03ab81e2583da05ecc10802b024e4b838cdb6b6423e"
+  }
+}

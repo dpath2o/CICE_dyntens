@@ -1,13 +1,18 @@
-# Box01 step 3 — consolidated record
+# Development record reorganised
 
-The results, implementation notes and reproducibility instructions have been
-consolidated into [Developing dynamic tensile strength on box01: results and route to the global grid](developing-dynamic-tensile-strength-box01.md).
+Use [B3.md](B3.md) for the active record. The original text is preserved in [the historical archive](archive/developing-dynamic-tensile-strength-box01-step3.md).
 
-Use that document for current status and the B0–B6 / G0–G2 roadmap. This page
-is retained only to preserve existing links; it is not a second analysis record.
-
-## Decomposition check
-
-The six cases and four exact comparisons have passed in the supplied transcript.
-See the [consolidated decomposition recipe](developing-dynamic-tensile-strength-box01.md#decomposition-check)
-and [remaining acceptance gates](developing-dynamic-tensile-strength-box01.md#remaining-work-explicit-acceptance-gates).
+- [B0: Mechanics baseline with zero tensile factor](B0.md)
+- [B1: Unity multiplier identity](B1.md)
+- [B2: Constant multiplier equivalence](B2.md)
+- [B3: Spatial tensile loading and decomposition](B3.md)
+- [B4: Matched controls on the accepted spatial build](B4.md)
+- [B5: Prescribed spatial coefficient restart continuation](B5.md)
+- [B6: Controlled FSD mapping: definition and acceptance](B6.md)
+- [B6.1: Icepack FSD interface and bin audit](B6.1.md)
+- [B6.2: Production arithmetic and analytical fixtures](B6.2.md)
+- [B6.3: Candidate diagnostics with momentum feedback disabled](B6.3.md)
+- [B6.4: Live-FSD diagnostic restart reconstruction](B6.4.md)
+- [B6.5: Diagnostic shadow-fixture matrix](B6.5.md)
+- [B6.5-F: Mapped-feedback equivalence to independent controls](B6.5-F.md)
+- [B6.6: Live invalid-state tests and regression checks](B6.6.md)

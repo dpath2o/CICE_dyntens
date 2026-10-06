@@ -1,0 +1,13 @@
+{
+  "case": "B5",
+  "kind": "conceptual design / analytical expectation",
+  "backend": "PyGMT",
+  "measured_model_data": false,
+  "band": null,
+  "gate_status": "PASS: exact 2+3-day prescribed spatial restart continuation (5 October 2026).",
+  "code_sha256": "d6aecb0eee860da964fba250d07b97c5ab5ee60280842245b0c741e8c17383ba",
+  "outputs": {
+    "B5.png": "d760426ca1d6cf27d1772d3469c7177fcd0275d50894d501d9bd80cd37f60466",
+    "B5.pdf": "8f433123810d324bd2c467787176175ec57a53ece19ab8b1163f92436b7dbf9a"
+  }
+}

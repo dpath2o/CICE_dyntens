@@ -1,0 +1,13 @@
+{
+  "case": "B6.6",
+  "kind": "conceptual design / analytical expectation",
+  "backend": "PyGMT",
+  "measured_model_data": false,
+  "band": null,
+  "gate_status": "OPEN / partial FAIL: corrected negligible-area serial and MPI continuations abort with status 6; trace pending.",
+  "code_sha256": "d6aecb0eee860da964fba250d07b97c5ab5ee60280842245b0c741e8c17383ba",
+  "outputs": {
+    "B6.6.png": "b9790ec371d143938ab416eb2953619304ca7024181f6ed41e0bf3e3c9443047",
+    "B6.6.pdf": "9815f7eb21c357bf92768411c53aebb3d1cbbfe3050fc9770b504ad0ab738a48"
+  }
+}

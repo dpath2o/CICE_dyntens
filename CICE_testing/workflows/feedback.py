@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 from ..core.types import WorkflowSpec
 from ..core.paths import model_repo, run_root
+from ..core.cases import case_path, diagnostic_cases, verify_input_hash
 from ..core.reporting import EvidenceWorkflow, source_state
 from .restart import require, entry, set_entry, setting, sha, clock, expected_history, exact
 from .box import LAYOUTS, compare
@@ -90,7 +91,7 @@ class FeedbackWorkflow(EvidenceWorkflow):
         repo, runs = self.spec.repo.resolve(), self.spec.runs.resolve()
         templates = {}
         for layout in LAYOUTS:
-            base = repo/('dt_b65_ctl_'+layout)
+            base = case_path(repo,'dt_b65_ctl_'+layout)
             text = (base/'ice_in').read_text()
             require(Path(setting((base/'cice.settings').read_text(), 'ICE_CASEDIR')) == base,
                     'use original accepted B6.5 controls')
@@ -107,15 +108,16 @@ class FeedbackWorkflow(EvidenceWorkflow):
                 require((base/filename).is_file(), 'missing build environment '+filename)
             templates[layout] = (base, text)
         for row in ROWS:
-            require(not (repo/name(row)).exists() and not (runs/name(row)).exists(),
+            require(not (case_path(repo,name(row))).exists() and not (runs/name(row)).exists(),
                     'refusing existing case/run '+name(row))
         domain = re.compile(r'(?ms)^\s*&domain_nml\b.*?^\s*/\s*$')
         state = source_state(repo)
         for row in ROWS:
             fixture, kind, layout = row
-            case = repo/name(row)
+            case = case_path(repo,name(row))
             base, text = templates[layout]
-            subprocess.run(['./cice.setup', '-c', case.name, '-m', 'gadi1', '-e', 'intel',
+            case.parent.mkdir(parents=True,exist_ok=True)
+            subprocess.run(['./cice.setup', '-c', str(case), '-m', 'gadi1', '-e', 'intel',
                             '-g', 'gbox12', '-p', LAYOUTS[layout],
                             '-s', 'boxforcee,boxclosed,buildclean'], cwd=repo, check=True)
             settings = (case/'cice.settings').read_text()
@@ -168,7 +170,7 @@ class FeedbackWorkflow(EvidenceWorkflow):
             if run/'cice' != source:
                 require(not (run/'cice').exists(), 'executable already distributed '+str(run))
                 shutil.copy2(source, run/'cice')
-            (repo/name(row)/'b65f-provenance'/'executable.sha256').write_text(sha(run/'cice')+'\n')
+            (case_path(repo,name(row))/'b65f-provenance'/'executable.sha256').write_text(sha(run/'cice')+'\n')
             print('EXECUTABLE', name(row), sha(run/'cice'))
 
     def analyse(self):
@@ -180,10 +182,10 @@ class FeedbackWorkflow(EvidenceWorkflow):
         for row in ROWS:
             fixture, kind, layout = row
             run = runs/name(row)
-            evidence = repo/name(row)/'b65f-provenance'
+            evidence = case_path(repo,name(row))/'b65f-provenance'
             manifest = json.loads((evidence/'input.json').read_text())
             for filename, digest in manifest['inputs'].items():
-                require(sha(repo/name(row)/filename) == digest, 'input changed '+name(row)+'/'+filename)
+                require(verify_input_hash(case_path(repo,name(row)),filename,digest), 'input changed '+name(row)+'/'+filename)
             digest = sha(run/'cice')
             require(digest == (evidence/'executable.sha256').read_text().strip(), 'executable provenance mismatch')
             require(digest == sha(runs/name(('large','ref',layout))/'cice'), 'layout executable mismatch')

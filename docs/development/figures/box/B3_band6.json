@@ -1,0 +1,15 @@
+{
+  "case": "B3",
+  "kind": "conceptual design / analytical expectation",
+  "backend": "PyGMT",
+  "measured_model_data": false,
+  "band": [
+    6
+  ],
+  "gate_status": "PASS: six layout checks and four exact 131-file comparisons for prescribed bands.",
+  "code_sha256": "d6aecb0eee860da964fba250d07b97c5ab5ee60280842245b0c741e8c17383ba",
+  "outputs": {
+    "B3_band6.png": "095a9db207545f926bb17ad46ee4322969325d983e23f9e31820588ed4833fe2",
+    "B3_band6.pdf": "923675a5646bcd3d1815901fc47a0d551dea876f6c9a9d45c4138ef4d7927a30"
+  }
+}

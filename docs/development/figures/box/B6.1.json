@@ -1,0 +1,13 @@
+{
+  "case": "B6.1",
+  "kind": "conceptual design / analytical expectation",
+  "backend": "PyGMT",
+  "measured_model_data": false,
+  "band": null,
+  "gate_status": "Source audit complete at c7c8770; adapter integration is tested in the later stages.",
+  "code_sha256": "d6aecb0eee860da964fba250d07b97c5ab5ee60280842245b0c741e8c17383ba",
+  "outputs": {
+    "B6.1.png": "d7f41ffda55f7320aef2f85c23636d640abbe03cef543b415e96e1ef884f5057",
+    "B6.1.pdf": "d4d00c9b00773f926767a3eb5b3d4c914359c162f38069075ff237c2364a50ab"
+  }
+}

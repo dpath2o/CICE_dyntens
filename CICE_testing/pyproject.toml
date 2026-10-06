@@ -14,6 +14,8 @@ figures = ["pygmt>=0.11", "xarray", "nbformat", "ipykernel"]
 test = ["pytest", "nbclient"]
 
 [project.scripts]
+cice-test-organise = "CICE_testing.workflows.case_layout:main"
+cice-test-designs = "CICE_testing.plotting.development:main"
 cice-test-restart = "CICE_testing.workflows.restart:main"
 cice-test-invalid = "CICE_testing.workflows.invalid_state:main"
 cice-test-box = "CICE_testing.workflows.box:main"
@@ -30,4 +32,4 @@ package-dir = {"CICE_testing" = "."}
 packages = ["CICE_testing", "CICE_testing.core", "CICE_testing.validation", "CICE_testing.workflows", "CICE_testing.plotting", "CICE_testing.resources"]
 
 [tool.setuptools.package-data]
-CICE_testing = ["resources/*.F90"]
+CICE_testing = ["resources/*.F90", "resources/*.json", "resources/*.csv"]

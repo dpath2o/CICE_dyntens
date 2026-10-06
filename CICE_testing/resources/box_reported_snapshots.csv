@@ -1,0 +1,17 @@
+case,label,hour,minimum,maximum,field,units
+B0,baseline,0,0.9,0.9,aice,1
+B0,baseline,1,0.887405,0.910943,aice,1
+B0,baseline,120,0.678257,0.958043,aice,1
+B3,A unity,1,11.547084,11.547084,central divergence,%/day
+B3,B half,1,15.001759,15.001759,central divergence,%/day
+B3,C band67,1,14.825436,14.825436,central divergence,%/day
+B3,A unity,120,0.138509,0.138509,central divergence,%/day
+B3,B half,120,0.143498,0.143498,central divergence,%/day
+B3,C band67,120,0.142564,0.142564,central divergence,%/day
+B4,off / unity / null,1,11.547084,11.547084,central divergence,%/day
+B4,half,1,15.001759,15.001759,central divergence,%/day
+B4,off / unity / null,120,0.1385088,0.1385088,central divergence,%/day
+B4,half,120,0.14349826,0.14349826,central divergence,%/day
+B5,split boundary,48,0.0049842222,0.38701003,central divergence,%/day
+B5,first restart hour,49,0.0049583075,0.38524518,central divergence,%/day
+B5,final output,120,0.0035674161,0.30690565,central divergence,%/day

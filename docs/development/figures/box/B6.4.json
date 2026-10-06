@@ -1,0 +1,13 @@
+{
+  "case": "B6.4",
+  "kind": "conceptual design / analytical expectation",
+  "backend": "PyGMT",
+  "measured_model_data": false,
+  "band": null,
+  "gate_status": "PASS: independently reconstructed restart IC plus 126 exact histories and five restarts.",
+  "code_sha256": "d6aecb0eee860da964fba250d07b97c5ab5ee60280842245b0c741e8c17383ba",
+  "outputs": {
+    "B6.4.png": "6e3e54ff93dc6fa9f08c35b18524ae6585ef264d32bca0db10fca7f2caf861a5",
+    "B6.4.pdf": "1667f53ea9fb8e4a08483092c065514579273f85744874818023b51055e14af3"
+  }
+}

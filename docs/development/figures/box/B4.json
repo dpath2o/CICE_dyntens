@@ -1,0 +1,13 @@
+{
+  "case": "B4",
+  "kind": "conceptual design / analytical expectation",
+  "backend": "PyGMT",
+  "measured_model_data": false,
+  "band": null,
+  "gate_status": "PASS: unity/off, spatial-null and half-g matched controls (4 October 2026).",
+  "code_sha256": "d6aecb0eee860da964fba250d07b97c5ab5ee60280842245b0c741e8c17383ba",
+  "outputs": {
+    "B4.png": "6ab53cc3a6caec2c12f41ccbcf6696a90ad18d314a556a9a97dd7752dd3e8604",
+    "B4.pdf": "c75832adfbcf29130d02e1252ddf9b237887c7ea2696d0db64c989ecfeb46c70"
+  }
+}

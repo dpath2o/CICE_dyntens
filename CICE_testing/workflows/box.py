@@ -14,6 +14,7 @@ from pathlib import Path
 from ..core.types import WorkflowSpec
 from ..core.reporting import EvidenceWorkflow
 from ..core.paths import model_repo, run_root
+from ..core.cases import case_path, diagnostic_cases, verify_input_hash
 from .restart import require, entry, set_entry, setting, sha, clock, expected_history, exact
 
 LAYOUTS = {'s1': '1x1x12x12x1', 's2': '1x1x6x12x2', 'm2': '2x1x6x12x1'}
@@ -100,7 +101,7 @@ class BoxWorkflow(EvidenceWorkflow):
         repo, runs = spec.repo.resolve(), spec.runs.resolve()
         base = spec.base_case
         if base is None:
-            matches = [p.parent for p in repo.glob('dt_b63*/ice_in')
+            matches = [p.parent for p in diagnostic_cases(repo)
                        if re.search(r'(?mi)^\s*use_dyntens_diagnostics\s*=\s*\.true\.', p.read_text())]
             require(len(matches) == 1, 'specify --base-case; diagnostic cases=' + str(matches))
             base = matches[0]
@@ -117,16 +118,17 @@ class BoxWorkflow(EvidenceWorkflow):
                           ('dyntens_diameter_threshold', 300.)]:
             require(float(entry(template, key)) == want, 'unexpected template ' + key)
         for row in ROWS:
-            require(not (repo/name(row)).exists() and not (runs/name(row)).exists(),
+            require(not (case_path(repo,name(row))).exists() and not (runs/name(row)).exists(),
                     'refusing existing case/run: ' + name(row))
         domain = re.compile(r'(?ms)^\s*&domain_nml\b.*?^\s*/\s*$')
         require(len(domain.findall(template)) == 1, 'expected exactly one template domain_nml')
         for row in ROWS:
             casename = name(row)
-            subprocess.run(['./cice.setup', '-c', casename, '-m', 'gadi1', '-e', 'intel',
+            case_path(repo,casename).parent.mkdir(parents=True,exist_ok=True)
+            subprocess.run(['./cice.setup', '-c', str(case_path(repo,casename)), '-m', 'gadi1', '-e', 'intel',
                             '-g', 'gbox12', '-p', LAYOUTS[row[2]], '-s', 'boxforcee,boxclosed,buildclean'],
                            cwd=repo, check=True)
-            case = repo/casename
+            case = case_path(repo,casename)
             settings = (case/'cice.settings').read_text()
             require(Path(setting(settings, 'ICE_RUNDIR')) == runs/casename, 'unexpected generated run directory')
             generated = (case/'ice_in').read_text()
@@ -184,7 +186,7 @@ class BoxWorkflow(EvidenceWorkflow):
             if source != run/'cice':
                 require(not (run/'cice').exists(), 'executable already distributed: '+str(run))
                 shutil.copy2(source, run/'cice')
-            (repo/name(row)/'b65-provenance'/'executable.sha256').write_text(sha(run/'cice')+'\n')
+            (case_path(repo,name(row))/'b65-provenance'/'executable.sha256').write_text(sha(run/'cice')+'\n')
             print('EXECUTABLE', name(row), sha(run/'cice'))
 
 
@@ -202,7 +204,7 @@ class BoxWorkflow(EvidenceWorkflow):
         shutil.copy2(source, target)
         require(sha(source) == sha(target), 'restart copy differs')
         (run/'ice.restart_file').write_text(str(target)+'\n')
-        (repo/'dt_b65_sp_b_m2'/'b65-provenance'/'input-restart.sha256').write_text(sha(target)+'\n')
+        (case_path(repo,'dt_b65_sp_b_m2')/'b65-provenance'/'input-restart.sha256').write_text(sha(target)+'\n')
         print('PASS staged spatial restart', target)
 
 

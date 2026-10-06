@@ -2,6 +2,8 @@
 from contextlib import redirect_stdout
 import io
 from pathlib import Path
+import shutil
+from CICE_testing.core.cases import case_path
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -90,12 +92,19 @@ class Feedback(unittest.TestCase):
             (case/'ice_in').write_text('&domain_nml\n /\n')
             (case/'cice.settings').write_text('setenv ICE_RUNDIR '+str(runs/case.name)+'\n')
             (case/'cice.run').write_text('#PBS -l ncpus=999\n#PBS -l mem=1gb\n#PBS -l walltime=01:00:00\n')
+        # Exercise the organised creation path using migrated control templates.
+        (repo/'box01_tests').mkdir();(repo/'box01_tests/cases.json').write_text('{}')
+        for layout in w.LAYOUTS:
+            old=repo/('dt_b65_ctl_'+layout)
+            new=repo/'box01_tests/B6.5'/old.name;new.parent.mkdir(parents=True,exist_ok=True)
+            shutil.move(old,new)
+            (new/'cice.settings').write_text('setenv ICE_CASEDIR '+str(new)+'\n')
         workflow=w.FeedbackWorkflow(WorkflowSpec(repo,runs))
         with patch.object(w.subprocess,'run',side_effect=setup), patch.object(w,'source_state',return_value={}), redirect_stdout(io.StringIO()):
             workflow.prepare()
         self.assertEqual(len(w.ROWS),21)
         for row in w.ROWS:
-            text=(repo/w.name(row)/'ice_in').read_text()
+            text=(case_path(repo,w.name(row))/'ice_in').read_text()
             self.assertEqual(w.entry(text,'use_dyntens'),'.false.' if row[1]=='off' else '.true.')
             if row[1]=='map':
                 self.assertEqual(w.entry(text,'dyntens_g_mode'),"'box_fsd'")
@@ -112,7 +121,7 @@ class Feedback(unittest.TestCase):
         for row in w.ROWS:
             self.assertEqual((runs/w.name(row)/'cice').read_bytes(),row[2].encode())
         for layout in w.LAYOUTS:
-            self.assertEqual((repo/('dt_b65_ctl_'+layout)/'ice_in').read_text(),original)
+            self.assertEqual((case_path(repo,'dt_b65_ctl_'+layout)/'ice_in').read_text(),original)
         with self.assertRaisesRegex(ValueError,'refusing existing'):
             workflow.prepare()
 

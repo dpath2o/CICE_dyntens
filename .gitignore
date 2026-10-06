@@ -57,3 +57,13 @@ __pycache__/
 dist/
 validation_report/
 .pytest_cache/
+
+# Generated case runtimes; retain configuration and provenance only
+box01_tests/**/cice
+global_tests/**/cice
+compile/
+history/
+restart/
+input_restart/
+*.gadi-pbs.*
+*-job-id.txt

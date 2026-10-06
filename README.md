@@ -4,7 +4,7 @@ Development of FSD-dependent dynamic tensile strength in standalone CICE6, deriv
 
 The aim is to test whether an evolving floe size distribution (FSD) can provide a physically interpretable control on effective tensile cohesion and Antarctic landfast sea-ice stability. We retain the inherited free-slip, grounded-iceberg and lateral-drag framework, and introduce a local tensile-strength coefficient that responds to floe fragmentation and subsequent FSD evolution.
 
-**Status (4 October 2026):** prescribed constant/spatial g is implemented for the supported C-grid EVP box setup. Six decomposition cases pass their history checks and four history/restart comparisons match exactly at zero tolerance (excluding history block-ownership IDs). FSD-derived g and feedback are not yet implemented/validated. See the [single box-to-global development record](docs/development/developing-dynamic-tensile-strength-box01.md) for evidence, limitations and the next tasks.
+**Status (7 October 2026):** prescribed box controls, restart checks, diagnostic FSD tests and controlled B6.5-F mapped-feedback equivalence have passed their stated gates. B6.6 remains open: corrected negligible-area live continuations abort with status 6 and a diagnostic trace is pending. See [box01 test contents](docs/development/box01_dev_dynamic_tensile_strength.md) and the separate [global test contents](docs/development/global_dev_dynamic_tensile_strength.md). Box tests do not establish global mechanical or thermodynamic fidelity.
 
 ## Testing toolbox and figures
 
@@ -97,7 +97,7 @@ Changing $k_{T,0}$, ellipse ratio or compressive-strength parameters belongs in 
 | 4. Activate FSD feedback | Supply the diagnosed coefficient to the momentum solver | Stable short runs; consistent stress terms; successful restart and decomposition checks |
 | 5. Evaluate fast-ice response | Run controlled seasonal experiments and selected sensitivities | Attributable changes in breakup, persistence and dynamics, with numerical checks satisfied |
 
-**Numbering:** these are repository stages R0–R5. Historical “box step 3” means prescribed spatial-g/halo testing within R1, not R3. The [consolidated roadmap](docs/development/developing-dynamic-tensile-strength-box01.md#one-numbering-scheme-for-the-work) uses B0–B6 for box tasks and G0–G2 for global work. Next are B4 matched controls and B5 split-restart verification, then B6 mapping tests and G0 global controls. G1 returns to ERA5/ORAS/WHACS with evolving FSD and candidate g diagnosed but feedback disabled: that is the R3 milestone. The passed constant-g test does not itself satisfy R2's diameter-to-g mapping.
+**Numbering:** R0–R5 are repository development stages; B0–B6.6 are the controlled box tests, including B6.5-F. Historical `dt_b67_*` means a B3 band in columns 6–7, not B6.7. [Box01 contents](docs/development/box01_dev_dynamic_tensile_strength.md) and [global contents](docs/development/global_dev_dynamic_tensile_strength.md) keep their evidence and pending gates separate. G1 is the global evolving-FSD diagnostic milestone with momentum feedback disabled (R3).
 
 Each stage should be a small, reviewable change. Long integrations follow successful short tests, not the introduction of a new option.
 
@@ -161,4 +161,4 @@ A change in fast-ice extent alone does not establish improved physics. Assess wh
 
 Preserve source history and record the exact inherited baseline before changing model code. Keep experiment-specific forcing, restarts, executables and output separate from source control. Every experiment should identify its source commit and complete configuration.
 
-Development uses the controlled 12×12 C-grid box case. The [consolidated box01 record and route to global testing](docs/development/developing-dynamic-tensile-strength-box01.md) is the authoritative run/status document. Current modes are prescribed `constant` and `box_band`; `dyntens_g_const` defaults to 1. FSD feedback is a later development stage.
+Development uses the controlled 12×12 C-grid box case. [Box01 stage documents](docs/development/box01_dev_dynamic_tensile_strength.md) are the active procedure/results record. Prescribed `constant`/`box_band` and guarded `box_fsd`/`box_constant` controlled-feedback modes are available; supported live/global FSD feedback remains future work. [Case organisation](docs/development/case_organisation.md) moves configuration under `box01_tests` and `global_tests` with an external backup and immutable run archives.

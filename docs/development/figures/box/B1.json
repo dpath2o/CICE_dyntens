@@ -1,0 +1,13 @@
+{
+  "case": "B1",
+  "kind": "conceptual design / analytical expectation",
+  "backend": "PyGMT",
+  "measured_model_data": false,
+  "band": null,
+  "gate_status": "Three historical snapshots match; full unity identity subsequently passes under B4.",
+  "code_sha256": "d6aecb0eee860da964fba250d07b97c5ab5ee60280842245b0c741e8c17383ba",
+  "outputs": {
+    "B1.png": "8094433e659e9803f54c891f36a185b560251e65ef904089f7cce07312d3281c",
+    "B1.pdf": "36e398782701dea7b5a0627bddba1bf18796a2e20a65ea8946b2d6342a83c0a1"
+  }
+}

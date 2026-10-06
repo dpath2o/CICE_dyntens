@@ -1,0 +1,12 @@
+{
+  "case": "B3",
+  "backend": "PyGMT",
+  "kind": "user-reported snapshot values transcribed from stage records",
+  "raw_NetCDF_inspected": false,
+  "source_csv_sha256": "f0c28d35f78381930c01ed690d84de62e2361adcd06cf2790e7a25d781d18f02",
+  "notes": "Bars show reported spatial minima/maxima, not confidence intervals. B3 C used a different executable; retain that attribution limit.",
+  "outputs": {
+    "B3_reported.png": "bb0bfbbba3833f3e250696422e01be40eba5fd0c3c6b63de773e617e0d4b987a",
+    "B3_reported.pdf": "9ada423728b750bc0232107c894161920453cf34640b1e5c285f10ae3d00e0c1"
+  }
+}

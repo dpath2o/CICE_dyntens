@@ -1,0 +1,13 @@
+{
+  "case": "G2",
+  "kind": "conceptual design / analytical expectation",
+  "backend": "PyGMT",
+  "measured_model_data": false,
+  "band": null,
+  "gate_status": "PLANNED: live global feedback is not enabled by the box-only mapped mode.",
+  "code_sha256": "d6aecb0eee860da964fba250d07b97c5ab5ee60280842245b0c741e8c17383ba",
+  "outputs": {
+    "G2.png": "e86b5e4ca8d141e7fd1da55cf4526e75e3673c0dce92c87659e638a306dc1c99",
+    "G2.pdf": "f2778c9beb5d2702c8cc2333ae0e9e5eceaf928d6ab3fe34ef5c3812755512ba"
+  }
+}

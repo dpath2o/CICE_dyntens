@@ -1,12 +1,6 @@
 # Evidence handoff: box validation followed by global validation
 
-This is a reporting plan, not a consolidated results document. Complete B6.5-F
-and B6.6, collect actual model outputs and checker evidence, then consolidate
-`docs/development/developing-dynamic-tensile-strength-box01*.md` into
-`docs/development/box_tensile_dev_procedure_results_validation_notes.md`.
-Update the model README to link that completed document. Preserve links to the
-stage notes until their procedures, findings and limitations have been carried
-across; do not replace pending tasks with inferred PASS statements.
+The active record is organised as [box01 contents and case documents](../../docs/development/box01_dev_dynamic_tensile_strength.md) and [global contents and case documents](../../docs/development/global_dev_dynamic_tensile_strength.md). Each stage has a PyGMT notebook. Original consolidated records are preserved in `docs/development/archive`. B6.6 is still open; a later single technical report must preserve that boundary until the remaining gates pass.
 
 ## Proposed box report
 

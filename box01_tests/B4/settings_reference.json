@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "note": "Supplied settings only; symbolic-root reference, not runnable csh. Actual ice_in/env/Macros must be retained by migration.",
+  "cases": [
+    {
+      "case_id": "dt_b4_half",
+      "canonical_name": "dt_b4_half",
+      "stage": "B4",
+      "path": "box01_tests/B4/dt_b4_half",
+      "run_archive_id": "dt_b4_half",
+      "settings_sha256": "fb99fcd16c510cc8e7a8b390954b585ceb36db5c35c312fdb455fd85a9816134",
+      "settings_reference": "#!/bin/csh -f\n\nsetenv ICE_CASENAME  dt_b4_half  \nsetenv ICE_SANDBOX  ${CICE_MODEL_REPO}  \nsetenv ICE_MACHINE  gadi1  \nsetenv ICE_ENVNAME  intel  \nsetenv ICE_MACHCOMP  gadi1_intel  \nsetenv ICE_SCRIPTS  ${CICE_MODEL_REPO}/configuration/scripts  \nsetenv ICE_CASEDIR  ${CICE_MODEL_REPO}/dt_b4_half  \nsetenv ICE_RUNDIR  ${CICE_TEST_RUNS}/dt_b4_half  \nsetenv ICE_OBJDIR     ${ICE_RUNDIR}/compile\nsetenv ICE_RSTDIR     ${ICE_RUNDIR}/restart\nsetenv ICE_HSTDIR     ${ICE_RUNDIR}/history\nsetenv ICE_LOGDIR     ${ICE_CASEDIR}/logs\nsetenv ICE_DRVOPT     standalone/cice\nsetenv ICE_TARGET     cice\nsetenv ICE_IOTYPE     netcdf    # binary, netcdf, pio1, pio2\nsetenv ICE_CLEANBUILD  true  \nsetenv ICE_CPPDEFS    \nsetenv ICE_QUIETMODE  false  \nsetenv ICE_GRID  gbox12  \nsetenv ICE_NTASKS  1  \nsetenv ICE_NTHRDS  1  \nsetenv ICE_OMPSCHED   \"static,1\"\nsetenv ICE_TEST  UnDeFiNeD  \nsetenv ICE_TESTNAME  UnDeFiNeD  \nsetenv ICE_TESTID  UnDeFiNeD  \nsetenv ICE_BASELINE  ${CICE_TEST_BASELINE}  \nsetenv ICE_BASEGEN  UnDeFiNeD  \nsetenv ICE_BASECOM  UnDeFiNeD  \nsetenv ICE_BFBCOMP  UnDeFiNeD  \nsetenv ICE_BFBTYPE    restart\nsetenv ICE_SPVAL  UnDeFiNeD  \nsetenv ICE_RUNLENGTH  -1\nsetenv ICE_MEMUSE     -1\nsetenv ICE_ACCOUNT  da1339  \nsetenv ICE_QUEUE  normalbw  \n\n#======================================================\n\nsetenv ICE_THREADED   false\nif (${ICE_NTHRDS} > 1) setenv ICE_THREADED  true\nsetenv ICE_COMMDIR mpi\nif (${ICE_NTASKS} == 1) setenv ICE_COMMDIR serial\n\n### Specialty code\nsetenv ICE_SNICARHC  false  # compile with big hardcoded snicar table\nsetenv ICE_BLDDEBUG  false  # build debug flags\nsetenv ICE_COVERAGE  false  # build coverage flags\n\n",
+      "source": "box01_dt_cice_settings.txt; not a full case namelist or build provenance"
+    },
+    {
+      "case_id": "dt_b4_null",
+      "canonical_name": "dt_b4_null",
+      "stage": "B4",
+      "path": "box01_tests/B4/dt_b4_null",
+      "run_archive_id": "dt_b4_null",
+      "settings_sha256": "6eb08e7846573268108df80883be9f57d8f47b3ddd79fdaf3279f86b3739adef",
+      "settings_reference": "#!/bin/csh -f\n\nsetenv ICE_CASENAME  dt_b4_null  \nsetenv ICE_SANDBOX  ${CICE_MODEL_REPO}  \nsetenv ICE_MACHINE  gadi1  \nsetenv ICE_ENVNAME  intel  \nsetenv ICE_MACHCOMP  gadi1_intel  \nsetenv ICE_SCRIPTS  ${CICE_MODEL_REPO}/configuration/scripts  \nsetenv ICE_CASEDIR  ${CICE_MODEL_REPO}/dt_b4_null  \nsetenv ICE_RUNDIR  ${CICE_TEST_RUNS}/dt_b4_null  \nsetenv ICE_OBJDIR     ${ICE_RUNDIR}/compile\nsetenv ICE_RSTDIR     ${ICE_RUNDIR}/restart\nsetenv ICE_HSTDIR     ${ICE_RUNDIR}/history\nsetenv ICE_LOGDIR     ${ICE_CASEDIR}/logs\nsetenv ICE_DRVOPT     standalone/cice\nsetenv ICE_TARGET     cice\nsetenv ICE_IOTYPE     netcdf    # binary, netcdf, pio1, pio2\nsetenv ICE_CLEANBUILD  true  \nsetenv ICE_CPPDEFS    \nsetenv ICE_QUIETMODE  false  \nsetenv ICE_GRID  gbox12  \nsetenv ICE_NTASKS  1  \nsetenv ICE_NTHRDS  1  \nsetenv ICE_OMPSCHED   \"static,1\"\nsetenv ICE_TEST  UnDeFiNeD  \nsetenv ICE_TESTNAME  UnDeFiNeD  \nsetenv ICE_TESTID  UnDeFiNeD  \nsetenv ICE_BASELINE  ${CICE_TEST_BASELINE}  \nsetenv ICE_BASEGEN  UnDeFiNeD  \nsetenv ICE_BASECOM  UnDeFiNeD  \nsetenv ICE_BFBCOMP  UnDeFiNeD  \nsetenv ICE_BFBTYPE    restart\nsetenv ICE_SPVAL  UnDeFiNeD  \nsetenv ICE_RUNLENGTH  -1\nsetenv ICE_MEMUSE     -1\nsetenv ICE_ACCOUNT  da1339  \nsetenv ICE_QUEUE  normalbw  \n\n#======================================================\n\nsetenv ICE_THREADED   false\nif (${ICE_NTHRDS} > 1) setenv ICE_THREADED  true\nsetenv ICE_COMMDIR mpi\nif (${ICE_NTASKS} == 1) setenv ICE_COMMDIR serial\n\n### Specialty code\nsetenv ICE_SNICARHC  false  # compile with big hardcoded snicar table\nsetenv ICE_BLDDEBUG  false  # build debug flags\nsetenv ICE_COVERAGE  false  # build coverage flags\n\n",
+      "source": "box01_dt_cice_settings.txt; not a full case namelist or build provenance"
+    },
+    {
+      "case_id": "dt_b4_off",
+      "canonical_name": "dt_b4_off",
+      "stage": "B4",
+      "path": "box01_tests/B4/dt_b4_off",
+      "run_archive_id": "dt_b4_off",
+      "settings_sha256": "9a22e63971521f36ab73aaef726c4013f5045183c3c16c0014b9514d6d307d98",
+      "settings_reference": "#!/bin/csh -f\n\nsetenv ICE_CASENAME  dt_b4_off  \nsetenv ICE_SANDBOX  ${CICE_MODEL_REPO}  \nsetenv ICE_MACHINE  gadi1  \nsetenv ICE_ENVNAME  intel  \nsetenv ICE_MACHCOMP  gadi1_intel  \nsetenv ICE_SCRIPTS  ${CICE_MODEL_REPO}/configuration/scripts  \nsetenv ICE_CASEDIR  ${CICE_MODEL_REPO}/dt_b4_off  \nsetenv ICE_RUNDIR  ${CICE_TEST_RUNS}/dt_b4_off  \nsetenv ICE_OBJDIR     ${ICE_RUNDIR}/compile\nsetenv ICE_RSTDIR     ${ICE_RUNDIR}/restart\nsetenv ICE_HSTDIR     ${ICE_RUNDIR}/history\nsetenv ICE_LOGDIR     ${ICE_CASEDIR}/logs\nsetenv ICE_DRVOPT     standalone/cice\nsetenv ICE_TARGET     cice\nsetenv ICE_IOTYPE     netcdf    # binary, netcdf, pio1, pio2\nsetenv ICE_CLEANBUILD  true  \nsetenv ICE_CPPDEFS    \nsetenv ICE_QUIETMODE  false  \nsetenv ICE_GRID  gbox12  \nsetenv ICE_NTASKS  1  \nsetenv ICE_NTHRDS  1  \nsetenv ICE_OMPSCHED   \"static,1\"\nsetenv ICE_TEST  UnDeFiNeD  \nsetenv ICE_TESTNAME  UnDeFiNeD  \nsetenv ICE_TESTID  UnDeFiNeD  \nsetenv ICE_BASELINE  ${CICE_TEST_BASELINE}  \nsetenv ICE_BASEGEN  UnDeFiNeD  \nsetenv ICE_BASECOM  UnDeFiNeD  \nsetenv ICE_BFBCOMP  UnDeFiNeD  \nsetenv ICE_BFBTYPE    restart\nsetenv ICE_SPVAL  UnDeFiNeD  \nsetenv ICE_RUNLENGTH  -1\nsetenv ICE_MEMUSE     -1\nsetenv ICE_ACCOUNT  da1339  \nsetenv ICE_QUEUE  normalbw  \n\n#======================================================\n\nsetenv ICE_THREADED   false\nif (${ICE_NTHRDS} > 1) setenv ICE_THREADED  true\nsetenv ICE_COMMDIR mpi\nif (${ICE_NTASKS} == 1) setenv ICE_COMMDIR serial\n\n### Specialty code\nsetenv ICE_SNICARHC  false  # compile with big hardcoded snicar table\nsetenv ICE_BLDDEBUG  false  # build debug flags\nsetenv ICE_COVERAGE  false  # build coverage flags\n\n",
+      "source": "box01_dt_cice_settings.txt; not a full case namelist or build provenance"
+    },
+    {
+      "case_id": "dt_b4_one",
+      "canonical_name": "dt_b4_one",
+      "stage": "B4",
+      "path": "box01_tests/B4/dt_b4_one",
+      "run_archive_id": "dt_b4_one",
+      "settings_sha256": "e949e541fafbdc8136d2df0ea5db97bef0760d50de5af253fbc9689b9f49babe",
+      "settings_reference": "#!/bin/csh -f\n\nsetenv ICE_CASENAME  dt_b4_one  \nsetenv ICE_SANDBOX  ${CICE_MODEL_REPO}  \nsetenv ICE_MACHINE  gadi1  \nsetenv ICE_ENVNAME  intel  \nsetenv ICE_MACHCOMP  gadi1_intel  \nsetenv ICE_SCRIPTS  ${CICE_MODEL_REPO}/configuration/scripts  \nsetenv ICE_CASEDIR  ${CICE_MODEL_REPO}/dt_b4_one  \nsetenv ICE_RUNDIR  ${CICE_TEST_RUNS}/dt_b4_one  \nsetenv ICE_OBJDIR     ${ICE_RUNDIR}/compile\nsetenv ICE_RSTDIR     ${ICE_RUNDIR}/restart\nsetenv ICE_HSTDIR     ${ICE_RUNDIR}/history\nsetenv ICE_LOGDIR     ${ICE_CASEDIR}/logs\nsetenv ICE_DRVOPT     standalone/cice\nsetenv ICE_TARGET     cice\nsetenv ICE_IOTYPE     netcdf    # binary, netcdf, pio1, pio2\nsetenv ICE_CLEANBUILD  true  \nsetenv ICE_CPPDEFS    \nsetenv ICE_QUIETMODE  false  \nsetenv ICE_GRID  gbox12  \nsetenv ICE_NTASKS  1  \nsetenv ICE_NTHRDS  1  \nsetenv ICE_OMPSCHED   \"static,1\"\nsetenv ICE_TEST  UnDeFiNeD  \nsetenv ICE_TESTNAME  UnDeFiNeD  \nsetenv ICE_TESTID  UnDeFiNeD  \nsetenv ICE_BASELINE  ${CICE_TEST_BASELINE}  \nsetenv ICE_BASEGEN  UnDeFiNeD  \nsetenv ICE_BASECOM  UnDeFiNeD  \nsetenv ICE_BFBCOMP  UnDeFiNeD  \nsetenv ICE_BFBTYPE    restart\nsetenv ICE_SPVAL  UnDeFiNeD  \nsetenv ICE_RUNLENGTH  -1\nsetenv ICE_MEMUSE     -1\nsetenv ICE_ACCOUNT  da1339  \nsetenv ICE_QUEUE  normalbw  \n\n#======================================================\n\nsetenv ICE_THREADED   false\nif (${ICE_NTHRDS} > 1) setenv ICE_THREADED  true\nsetenv ICE_COMMDIR mpi\nif (${ICE_NTASKS} == 1) setenv ICE_COMMDIR serial\n\n### Specialty code\nsetenv ICE_SNICARHC  false  # compile with big hardcoded snicar table\nsetenv ICE_BLDDEBUG  false  # build debug flags\nsetenv ICE_COVERAGE  false  # build coverage flags\n\n",
+      "source": "box01_dt_cice_settings.txt; not a full case namelist or build provenance"
+    }
+  ]
+}

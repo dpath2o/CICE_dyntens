@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "configuration_only": true,
+  "run_archives_move": false,
+  "supplied_settings_sha256": "323721c6bbdb4031c9013677365d543bd39fe6ad04d7f1bc60a3efff6347f433",
+  "cases": [
+    {
+      "case_id": "dyntens01",
+      "canonical_name": "dyntens01",
+      "stage": "G0",
+      "path": "global_tests/G0/dyntens01",
+      "run_archive_id": "dyntens01"
+    }
+  ]
+}

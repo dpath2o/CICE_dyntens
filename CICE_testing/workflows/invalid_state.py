@@ -12,6 +12,7 @@ import numpy as np
 from netCDF4 import Dataset
 from ..core.types import WorkflowSpec
 from ..core.paths import model_repo, run_root
+from ..core.cases import case_path, diagnostic_cases, verify_input_hash
 from ..core.reporting import EvidenceWorkflow, sha256, source_state
 from .restart import require, entry, setting, set_entry, clock, expected_history, exact, ic_mapping
 from .box import compare
@@ -142,7 +143,7 @@ class InvalidStateWorkflow(EvidenceWorkflow):
     def prepare(self):
         repo,runs = self.spec.repo,self.spec.runs
         for layout in LAYOUTS:
-            base = repo/base_name(layout)
+            base = case_path(repo,base_name(layout))
             oldrun = runs/base.name
             require(Path(setting((base/'cice.settings').read_text(),'ICE_CASEDIR')) == base, 'use original B6.5 case')
             require(Path(setting((base/'cice.settings').read_text(),'ICE_RUNDIR')) == oldrun, 'base run path mismatch')
@@ -157,14 +158,15 @@ class InvalidStateWorkflow(EvidenceWorkflow):
             logs = list(oldrun.glob('cice.runlog.*'))
             require(any('CICE COMPLETED SUCCESSFULLY' in p.read_text(errors='replace') for p in logs), 'accepted control completion absent')
             for mode in self.modes:
-                require(not (repo/case_name(mode,layout)).exists() and not (runs/case_name(mode,layout)).exists(), 'refusing existing case/run')
+                require(not (case_path(repo,case_name(mode,layout))).exists() and not (runs/case_name(mode,layout)).exists(), 'refusing existing case/run')
         # All destination checks above precede writes.
         for layout in LAYOUTS:
-            base = repo/base_name(layout); oldrun = runs/base.name
+            base = case_path(repo,base_name(layout)); oldrun = runs/base.name
             for mode in self.modes:
-                case = repo/case_name(mode,layout); run = runs/case.name
+                case = case_path(repo,case_name(mode,layout)); run = runs/case.name
+                case.parent.mkdir(parents=True,exist_ok=True)
                 shutil.copytree(base,case,symlinks=True,ignore=shutil.ignore_patterns(
-                    'b65-provenance','b65f-provenance','logs','history','restart','compile','input_restart',
+                    'case-migration','case-configuration.json','b65-provenance','b65f-provenance','logs','history','restart','compile','input_restart',
                     '*-job-id.txt','*.gadi-pbs.*','*.log','*.o','*.mod'))
                 for path in case.rglob('*'):
                     if path.is_file() and not path.is_symlink() and (path.suffix=='.csh' or path.name in ('cice.settings','cice.run','cice.submit','cice.build')):
@@ -199,9 +201,9 @@ class InvalidStateWorkflow(EvidenceWorkflow):
         """Clone a failed tiny-area input for a separate diagnostic build/run."""
         require(layout in LAYOUTS, 'unsupported trace layout')
         repo,runs=self.spec.repo,self.spec.runs
-        original=repo/case_name('negligible_area',layout)
+        original=case_path(repo,case_name('negligible_area',layout))
         oldrun=runs/original.name
-        case=repo/('dt_b66_trace_negligible_area_'+layout); run=runs/case.name
+        case=case_path(repo,'dt_b66_trace_negligible_area_'+layout); run=runs/case.name
         require(not case.exists() and not run.exists(), 'refusing existing trace case/run')
         record=json.loads((original/'b66-provenance/input.json').read_text())
         source=oldrun/'input_restart'/SOURCE
@@ -209,8 +211,9 @@ class InvalidStateWorkflow(EvidenceWorkflow):
         require(sha256(source)==record['after_sha256'], 'trace input hash mismatch')
         require(Path(setting((original/'cice.settings').read_text(),'ICE_RUNDIR'))==oldrun,
                 'original run path mismatch')
+        case.parent.mkdir(parents=True,exist_ok=True)
         shutil.copytree(original,case,symlinks=True,ignore=shutil.ignore_patterns(
-            'logs','history','restart','compile','input_restart','b66-provenance',
+            'case-migration','case-configuration.json','logs','history','restart','compile','input_restart','b66-provenance',
             '*-job-id.txt','*.gadi-pbs.*','*.log','*.o','*.mod'))
         for path in case.rglob('*'):
             if path.is_file() and not path.is_symlink() and (path.suffix=='.csh' or path.name in
@@ -242,7 +245,7 @@ class InvalidStateWorkflow(EvidenceWorkflow):
             reference=runs/base_name(layout)
             for mode in MODES:
                 name=case_name(mode,layout); run=runs/name
-                record=json.loads((repo/name/'b66-provenance/input.json').read_text())
+                record=json.loads((case_path(repo,name)/'b66-provenance/input.json').read_text())
                 require(sha256(run/'cice')==record['executable_sha256']==sha256(reference/'cice'),'executable changed')
                 require(sha256(run/'input_restart'/SOURCE)==record['after_sha256'],'test input changed')
                 logs=sorted(run.glob('cice.runlog.*'))

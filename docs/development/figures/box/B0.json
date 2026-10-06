@@ -1,0 +1,13 @@
+{
+  "case": "B0",
+  "kind": "conceptual design / analytical expectation",
+  "backend": "PyGMT",
+  "measured_model_data": false,
+  "band": null,
+  "gate_status": "Limited baseline evidence: completion and three snapshots; full archive unavailable.",
+  "code_sha256": "d6aecb0eee860da964fba250d07b97c5ab5ee60280842245b0c741e8c17383ba",
+  "outputs": {
+    "B0.png": "aaa77ed87271cd83edebae745307410b9fb113d429e8903e004ebd72eda3da66",
+    "B0.pdf": "0c249eeeb35ac6af1cb505bd2ed86ce646749317e6c39674d4255f53e3c1b108"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "case": "B6.5",
+  "kind": "conceptual design / analytical expectation",
+  "backend": "PyGMT",
+  "measured_model_data": false,
+  "band": null,
+  "gate_status": "PASS: 14 diagnostic shadow-fixture cases, analytical, neutrality, decomposition and continuation.",
+  "code_sha256": "d6aecb0eee860da964fba250d07b97c5ab5ee60280842245b0c741e8c17383ba",
+  "outputs": {
+    "B6.5.png": "3866fe6b1cd3b9ff7564522be02d1ada78b8c5d7595fcc18f5d285f7b62d599c",
+    "B6.5.pdf": "cc10e2f9a994e0b0ef92bb5c84b6659a114fe9b0baf5e3f0911979ef33d3b77c"
+  }
+}

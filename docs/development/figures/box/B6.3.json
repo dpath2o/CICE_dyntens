@@ -1,0 +1,13 @@
+{
+  "case": "B6.3",
+  "kind": "conceptual design / analytical expectation",
+  "backend": "PyGMT",
+  "measured_model_data": false,
+  "band": null,
+  "gate_status": "PASS: 126 candidate histories and exact matched physical-control agreement.",
+  "code_sha256": "d6aecb0eee860da964fba250d07b97c5ab5ee60280842245b0c741e8c17383ba",
+  "outputs": {
+    "B6.3.png": "bf723bf2e3a6ddee9a0a61490d432ee8d7d539b1029a2c7bba20b8c61447e52e",
+    "B6.3.pdf": "86a1f55d6f44c99b0479681c0d88e6c3e123176aeaf93235d3847def28adf77c"
+  }
+}

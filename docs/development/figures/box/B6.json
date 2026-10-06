@@ -1,0 +1,13 @@
+{
+  "case": "B6",
+  "kind": "conceptual design / analytical expectation",
+  "backend": "PyGMT",
+  "measured_model_data": false,
+  "band": null,
+  "gate_status": "OPEN: B6.1\u2013B6.5-F have the recorded successes below; B6.6 is unresolved.",
+  "code_sha256": "d6aecb0eee860da964fba250d07b97c5ab5ee60280842245b0c741e8c17383ba",
+  "outputs": {
+    "B6.png": "e526baca2ccce34241a39c3dd840c63340aea8e6c478a06df6f8b436b89c68bb",
+    "B6.pdf": "9023409f51bdd906ba58242792470479dc8dc12336966e2ffa41c1a544a57220"
+  }
+}

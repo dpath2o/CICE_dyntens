@@ -1,0 +1,13 @@
+{
+  "case": "G1",
+  "kind": "conceptual design / analytical expectation",
+  "backend": "PyGMT",
+  "measured_model_data": false,
+  "band": null,
+  "gate_status": "PLANNED: global diagnostics and the invalid-FSD policy remain to be established.",
+  "code_sha256": "d6aecb0eee860da964fba250d07b97c5ab5ee60280842245b0c741e8c17383ba",
+  "outputs": {
+    "G1.png": "c0081d1dec98e412723b33dfb9226196b47d558a181c92b1ca4ddbaa5a5e47bd",
+    "G1.pdf": "bd4421d1ef6c169dd00e20fe79bae49d3f93d90e8940027c83cfe4db19a36d71"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "case": "B6.5-F",
+  "kind": "conceptual design / analytical expectation",
+  "backend": "PyGMT",
+  "measured_model_data": false,
+  "band": null,
+  "gate_status": "PASS: 21 controlled cases; nine exact map/reference pairs, three unity/off pairs and layout agreement.",
+  "code_sha256": "d6aecb0eee860da964fba250d07b97c5ab5ee60280842245b0c741e8c17383ba",
+  "outputs": {
+    "B6.5-F.png": "15ab455caa981d7fbb21caffc67a76c5dfbca50ab03d89f32669da9bf3e56748",
+    "B6.5-F.pdf": "f6df26d8bc1adbed2bdd833019697090ae82345b57d1d8776110feaed26e214a"
+  }
+}
