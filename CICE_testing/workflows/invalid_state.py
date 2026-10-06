@@ -195,6 +195,47 @@ class InvalidStateWorkflow(EvidenceWorkflow):
                 print('PREPARED',case.name,mode,'column',record['global_i'],'category',record['category'])
         print('No build required: reuse the accepted per-layout B6.5-F feedback-off executable. Inspect PBS/launcher before submission.')
 
+    def trace(self, layout='s1'):
+        """Clone a failed tiny-area input for a separate diagnostic build/run."""
+        require(layout in LAYOUTS, 'unsupported trace layout')
+        repo,runs=self.spec.repo,self.spec.runs
+        original=repo/case_name('negligible_area',layout)
+        oldrun=runs/original.name
+        case=repo/('dt_b66_trace_negligible_area_'+layout); run=runs/case.name
+        require(not case.exists() and not run.exists(), 'refusing existing trace case/run')
+        record=json.loads((original/'b66-provenance/input.json').read_text())
+        source=oldrun/'input_restart'/SOURCE
+        require(record.get('fsd_policy')=='preserve_source', 'trace requires corrected input')
+        require(sha256(source)==record['after_sha256'], 'trace input hash mismatch')
+        require(Path(setting((original/'cice.settings').read_text(),'ICE_RUNDIR'))==oldrun,
+                'original run path mismatch')
+        shutil.copytree(original,case,symlinks=True,ignore=shutil.ignore_patterns(
+            'logs','history','restart','compile','input_restart','b66-provenance',
+            '*-job-id.txt','*.gadi-pbs.*','*.log','*.o','*.mod'))
+        for path in case.rglob('*'):
+            if path.is_file() and not path.is_symlink() and (path.suffix=='.csh' or path.name in
+                    ('cice.settings','cice.run','cice.submit','cice.build')):
+                path.write_text(path.read_text().replace(str(oldrun),str(run))
+                                .replace(str(original),str(case)).replace(original.name,case.name))
+        settings=case/'cice.settings'; text=settings.read_text()
+        # Force independent build/output directories even if the copied case
+        # inherited absolute paths from the accepted feedback-off control.
+        for key,value in [('ICE_CASENAME',case.name),('ICE_CASEDIR',str(case)),
+                          ('ICE_RUNDIR',str(run)),('ICE_OBJDIR',str(run/'compile')),
+                          ('ICE_LOGDIR',str(case/'logs')),('ICE_HSTDIR',str(run/'history')),
+                          ('ICE_RSTDIR',str(run/'restart'))]:
+            text,count=re.subn(r'(?m)^(\s*setenv\s+'+key+r'\s+)[^\n]*$',
+                              lambda m:m[1]+value,text)
+            require(count==1,'expected one trace setting '+key)
+        settings.write_text(text)
+        (run/'input_restart').mkdir(parents=True)
+        target=run/'input_restart'/SOURCE; shutil.copy2(source,target)
+        (run/'ice.restart_file').write_text(str(target)+'\n')
+        (case/'trace-input.json').write_text(json.dumps(dict(
+            original_case=str(original),input_sha256=sha256(target),
+            source=source_state(repo),purpose='diagnostic only; excluded from B6.6 acceptance'),indent=2)+'\n')
+        print('PREPARED diagnostic-only',case.name,'build ./cice.build, then submit ./cice.run')
+
     def analyse(self):
         repo,runs=self.spec.repo,self.spec.runs
         for layout in LAYOUTS:
@@ -240,16 +281,20 @@ class InvalidStateWorkflow(EvidenceWorkflow):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('action',choices=('prepare','analyse'))
+    p.add_argument('action',choices=('prepare','analyse','trace'))
     p.add_argument('--repo',type=Path)
     p.add_argument('--runs',type=Path,default=run_root())
     p.add_argument('--evidence',type=Path)
+    p.add_argument('--layout',choices=LAYOUTS,help='trace layout (default s1)')
     p.add_argument('--modes',nargs='+',choices=MODES,help='prepare only selected fresh modes; analyse always checks all twelve cases')
     args=p.parse_args()
     if args.modes and args.action != 'prepare': p.error('--modes applies only to prepare')
+    if args.layout and args.action != 'trace': p.error('--layout applies only to trace')
+    if args.evidence and args.action == 'trace': p.error('trace is diagnostic only; omit --evidence')
     try:
         workflow=InvalidStateWorkflow(WorkflowSpec(args.repo or model_repo(),args.runs), args.modes or MODES)
-        if args.evidence: workflow.run_with_evidence(args.action,args.evidence)
+        if args.action=='trace': workflow.trace(args.layout or 's1')
+        elif args.evidence: workflow.run_with_evidence(args.action,args.evidence)
         else: getattr(workflow,args.action)()
     except (ValueError,OSError,KeyError) as exc: p.exit(1,'FAIL: '+str(exc)+'\n')
 

@@ -207,7 +207,7 @@
         use ice_dyntens_mapping, only: dyntens_map_fsd, dyntens_box_inputs, dyntens_ok, dyntens_inactive
         type(block) :: b
         integer (kind=int_kind) :: nt_fsd, iblk, i, j, ierr, bad, total_bad
-        integer :: status
+        integer :: status, diagnostic_category
         logical (kind=log_kind) :: tr_fsd
         real (kind=dbl_kind) :: fraction, g, effective
         real (kind=dbl_kind) :: fixture_area(ncat), fixture_fsd(nfsd,ncat)
@@ -254,8 +254,20 @@
                          dyntens_diameter_threshold, dyntens_g_min, Ktens, fraction, g, effective, status)
                  endif
                  if (status /= dyntens_ok .and. status /= dyntens_inactive) then
-                    if (bad == 0) write(nu_diag,*) 'dyntens invalid: rank, block, i, j, status=', &
-                         my_task, blocks_ice(iblk), i, j, status
+                    if (bad == 0) then
+                       write(nu_diag,*) 'dyntens invalid: rank, block, i, j, status=', &
+                            my_task, blocks_ice(iblk), i, j, status
+                       if (trim(dyntens_box_fixture)=='none') then
+                          write(nu_diag,*) 'dyntens invalid total area=', sum(aicen(i,j,:,iblk))
+                          do diagnostic_category=1,ncat
+                             write(nu_diag,*) 'dyntens invalid category, area, fsd sum=', &
+                                  diagnostic_category, aicen(i,j,diagnostic_category,iblk), &
+                                  sum(trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,diagnostic_category,iblk))
+                             write(nu_diag,*) 'dyntens invalid fsd bins=', &
+                                  trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,diagnostic_category,iblk)
+                          enddo
+                       endif
+                    endif
                     bad=bad+1
                  endif
                  dyntens_large_fractionT(i,j,iblk)=fraction
@@ -2703,4 +2715,3 @@
       end module ice_dyn_evp
 
 !=======================================================================
-

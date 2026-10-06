@@ -1400,6 +1400,53 @@ python -u CICE_testing/scripts/b66_invalid_state_workflow.py analyse \
 )
 ```
 
+#### B6.6-entry corrected tiny-area continuation still fails — 7 October 2026
+
+`Pasted text(20261006-205631).txt` (SHA-256
+`43fc1a7d9fa1b6a23e4e459a273b0ba7e8c662571d89831c071a178905226bdd`)
+confirms preparation at commit `3a7fedf` with `fsd_policy=preserve_source`.
+Serial job 180650518 and MPI job 180650519 still exit 255. Both input restarts
+have SHA-256 `9c14d3c7fa54810a7efa8d85ef5241bf04e490d3fbf8347eb963ff06f9cf78df`.
+The serial executable hash is
+`89d58ebbd489701430d2f59a946de33f3e28951a94b1ddeb8b744578e36161a5`;
+the MPI executable hash is
+`e5ab4a3d914461bb5592167be3097e53c0f27e7ad96f44512d667ad61c1fd3c6`.
+
+Both logs write IC and the first hourly history before rejecting the same
+modified global cell (i=7,j=3), status 6. Serial reports rank 0/block 1/local
+(i=8,j=4); MPI reports rank 1/block 2/local (i=2,j=4). Preserving restart bins
+has therefore not resolved continuation. The exact offending category/bin
+state is absent from these logs. A transport/thermodynamic tracer change is a
+possible explanation, not an established cause. No normalization, category
+occupancy rule, tolerance or inactive threshold is changed on this evidence.
+
+The first invalid live cell on each reporting task now logs total area, every
+category area/FSD sum, and all raw FSD bins before the existing collective
+abort. This logging requires a new build. The `trace` action clones the existing
+corrected input into a separate `dt_b66_trace_negligible_area_<layout>` case,
+forces independent object/output paths and preserves the original failed
+cases and accepted control executables. Trace runs are diagnostic only and
+cannot close B6.6-entry or be mixed into the accepted executable matrix.
+Start with serial; inspect its detailed model log before further fixture or
+production changes. Both B6.6-entry and full B6.6 remain open.
+
+```bash
+(
+set -euo pipefail
+cd /g/data/gv90/da1339/src/CICE_dyntens
+git pull --ff-only origin dev
+load_modules
+python CICE_testing/scripts/b66_invalid_state_workflow.py trace \
+    --repo "$PWD" --runs /g/data/gv90/da1339/cice-dirs/runs --layout s1
+cd dt_b66_trace_negligible_area_s1
+./cice.build
+qsub ./cice.run | tee trace-job-id.txt
+)
+```
+
+After the job finishes, return `tail -n 180` of the trace run's
+`cice.runlog.*`. Do not run the acceptance analyser on this diagnostic build.
+
 ## 6. Acceptance and scope of the conclusion
 
 | Gate | Current status |

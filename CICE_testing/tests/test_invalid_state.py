@@ -112,6 +112,24 @@ f_dyntens_mapping_status = 'x'
                 self.assertEqual(record['mode'],mode)
                 self.assertEqual(record['source_case'],base_name(layout))
         self.assertEqual(self.source.read_bytes(),source_bytes)
+        original=repo/case_name('negligible_area','s1')
+        settings=original/'cice.settings'
+        with settings.open('a') as f:
+            for key in ('ICE_OBJDIR','ICE_LOGDIR','ICE_HSTDIR','ICE_RSTDIR'):
+                f.write(f'setenv {key} /accepted/control/{key}\n')
+        old_settings=settings.read_bytes()
+        old_record=(original/'b66-provenance/input.json').read_bytes()
+        with redirect_stdout(io.StringIO()):workflow.trace('s1')
+        trace=repo/'dt_b66_trace_negligible_area_s1'; trace_run=runs/trace.name
+        self.assertEqual(settings.read_bytes(),old_settings)
+        self.assertEqual((original/'b66-provenance/input.json').read_bytes(),old_record)
+        self.assertEqual((trace_run/'input_restart/iced.2005-01-03-00000.nc').read_bytes(),
+                         (runs/original.name/'input_restart/iced.2005-01-03-00000.nc').read_bytes())
+        self.assertIn(str(trace_run/'compile'),(trace/'cice.settings').read_text())
+        self.assertNotIn('/accepted/control/',(trace/'cice.settings').read_text())
+        self.assertFalse((trace_run/'cice').exists())
+        self.assertFalse((trace/'b66-provenance').exists())
+        with self.assertRaisesRegex(ValueError,'existing trace'):workflow.trace('s1')
         with self.assertRaisesRegex(ValueError,'existing'):workflow.prepare()
         # Recreate only failed modes after archival; accepted cases stay intact.
         for layout in ('s1','m2'):
