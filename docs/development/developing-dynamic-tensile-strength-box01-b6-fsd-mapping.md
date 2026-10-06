@@ -1152,7 +1152,7 @@ All tests use `use_dyntens=F`, `use_dyntens_diagnostics=T`,
 | nonfinite | One occupied fsd001 value = NaN | Same expected status/abort; a generic floating-point or scheduler failure is not sufficient |
 | bad_sum | All twelve bins in one occupied category = 0 | Same expected status/abort; no hidden repair |
 | zero_area | All category areas/ice/snow volumes at selected cell scaled to zero; FSD bins zeroed | Inactive IC status 1, masked large fraction, neutral candidates and one-day completion |
-| negligible_area | Areas/volumes scaled to total 5e-13; FSD bins zeroed | Same inactive IC outcome; later evolution is allowed and checked separately |
+| negligible_area | Areas/volumes scaled to total 5e-13; normalized source FSD retained | Same inactive IC outcome; later evolution is allowed and checked separately |
 
 The valid case checks 26 histories (one IC, one daily and 24 hourly), one final
 restart (4 January / step 72), 25 aligned non-IC physical history comparisons,
@@ -1304,6 +1304,101 @@ missing xp65 modules-directory message previously observed in successful
 B6.5-F runs; the current evidence does not identify it as the failure cause.
 No mapping tolerance, masking contract or model physics has been changed in
 response to this partial result. B6.6-entry and the full B6.6 gate remain open.
+
+#### B6.6-entry negligible-area fixture correction — 6 October 2026
+
+The follow-up model-log tails in `Pasted text(20261006-120806).txt` (SHA-256
+`751cee8a2355c15d0499a67681ab886faceadcc295c3324aac18a3b8b18671b4`) identify both failures after successful IC output and the first
+instantaneous history, `iceh_inst.2005-01-03-03600.nc`. Both then reject the
+modified cell with status 6 and the named collective mapping abort. The serial
+log reports rank 0/block 1/local i=8,j=4; MPI reports rank 1/block 2/local i=2,j=4.
+The MPI stack traces the abort through update_dyntens_candidates, evp and
+step_dyn_horiz. Thus restart initialization was reached successfully, and the
+failure occurs on a subsequent EVP evaluation rather than before IC output.
+
+The original test fixture retained a total category area of 5e-13 but replaced
+all its raw FSD bins with zero. The production mapping intentionally ignores
+FSD bins at total area <=1e-12. Status 6 later proves that the cell has entered
+the occupied-FSD validation branch. The planted zero-bin state is unsuitable
+for a one-day inactive-entry **success** test if the cell becomes active.
+The log does not print the exact area/bin values at rejection, so those values
+are not inferred here. No production threshold or normalization rule is relaxed.
+
+The workflow correction scales area/ice/snow volumes to 5e-13 while preserving
+the already validated source FSD tracers exactly. It still requires inactive
+IC status 1, a masked undefined fraction, neutral candidates, and candidate
+validation at every later output. Dedicated negative/nonfinite/bad-sum cases
+remain malformed occupied-FSD tests; zero_area retains zero area/volume/bins.
+This changes a copied test input only, not the model or accepted archives.
+The corrected case may reactivate, but a runtime success has not yet been
+reported. The original failures remain useful evidence of post-IC live/MPI
+rejection, not successful negligible-area continuations or completion of the
+full in-timestep injection gate.
+
+Four local regression tests pass, including exact FSD preservation, synthetic
+reactivation validity, mutation isolation and selective re-preparation without
+changing accepted cases. `prepare --modes negligible_area` recreates only these
+two destinations after their failed cases/runs and FAIL evidence are archived.
+`analyse` still checks all twelve cases; it cannot certify only a selected mode.
+No new model build is required.
+
+##### Archive and recreate only the failed negligible-area cases
+
+```bash
+(
+set -euo pipefail
+cd /g/data/gv90/da1339/src/CICE_dyntens
+git pull --ff-only origin dev
+load_modules
+runs=/g/data/gv90/da1339/cice-dirs/runs
+stamp=$(date +%Y%m%d-%H%M%S)
+archive="$runs/b66-negligible-archive/$stamp"
+
+for layout in s1 m2; do
+    name="dt_b66_negligible_area_$layout"
+    [[ -d "$PWD/$name" && -d "$runs/$name" ]]
+done
+mkdir -p "$archive/cases" "$archive/runs"
+if [[ -d validation_report/box/evidence ]]; then
+    cp -a validation_report/box/evidence "$archive/evidence"
+fi
+for layout in s1 m2; do
+    name="dt_b66_negligible_area_$layout"
+    mv "$PWD/$name" "$archive/cases/"
+    mv "$runs/$name" "$archive/runs/"
+done
+echo "Archived failed cases: $archive"
+
+python -m unittest discover -s CICE_testing/tests -p 'test_invalid_state.py' -v
+python CICE_testing/scripts/b66_invalid_state_workflow.py prepare \
+    --repo "$PWD" --runs "$runs" --modes negligible_area
+for layout in s1 m2; do
+    (
+        cd "dt_b66_negligible_area_$layout"
+        qsub ./cice.run | tee b66-job-id.txt
+    )
+done
+)
+```
+
+##### After the two replacement jobs finish, rerun the full analysis
+
+```bash
+(
+set -euo pipefail
+cd /g/data/gv90/da1339/src/CICE_dyntens
+load_modules
+runs=/g/data/gv90/da1339/cice-dirs/runs
+for layout in s1 m2; do
+    rg -l 'CICE COMPLETED SUCCESSFULLY' \
+        "$runs/dt_b66_negligible_area_$layout"/cice.runlog.*
+done
+python -u CICE_testing/scripts/b66_invalid_state_workflow.py analyse \
+    --repo "$PWD" --runs "$runs" \
+    --evidence validation_report/box/evidence \
+    2>&1 | tee dt_b66_valid_s1/b66-entry-analysis.log
+)
+```
 
 ## 6. Acceptance and scope of the conclusion
 

@@ -41,7 +41,20 @@ class RestartEntry(unittest.TestCase):
             with Dataset(target) as d:
                 self.assertAlmostEqual(float(d['aicen'][:,j,i].sum()),total,delta=1e-25)
                 np.testing.assert_allclose(d['vicen'][:,j,i],d['aicen'][:,j,i],rtol=0,atol=0)
+                with Dataset(self.source) as original:
+                    for k in range(1,13):
+                        if mode == 'negligible_area':
+                            np.testing.assert_array_equal(d[f'fsd{k:03d}'][:],original[f'fsd{k:03d}'][:])
+                        else:
+                            np.testing.assert_array_equal(d[f'fsd{k:03d}'][:,j,i],0.)
             validate_source(target,self.history)
+            if mode == 'negligible_area':
+                # Once the same cell becomes occupied, valid tracers must
+                # remain valid. This rejects the former zero-bin fixture.
+                with Dataset(target,'a') as d:
+                    d['aicen'][:,j,i] = .05
+                validate_source(target,self.history)
+                self.assertEqual(record['fsd_policy'],'preserve_source')
 
     def test_prepare_preserves_sources_layouts_and_refuses_repeat(self):
         repo=self.root/'model';runs=self.root/'runs';repo.mkdir();runs.mkdir()
@@ -100,6 +113,18 @@ f_dyntens_mapping_status = 'x'
                 self.assertEqual(record['source_case'],base_name(layout))
         self.assertEqual(self.source.read_bytes(),source_bytes)
         with self.assertRaisesRegex(ValueError,'existing'):workflow.prepare()
+        # Recreate only failed modes after archival; accepted cases stay intact.
+        for layout in ('s1','m2'):
+            name=case_name('negligible_area',layout)
+            shutil.move(repo/name,repo/(name+'_archive'))
+            shutil.move(runs/name,runs/(name+'_archive'))
+        accepted=(repo/case_name('valid','s1')/'b66-provenance/input.json').read_bytes()
+        with redirect_stdout(io.StringIO()):
+            InvalidStateWorkflow(WorkflowSpec(repo,runs),('negligible_area',)).prepare()
+        self.assertEqual((repo/case_name('valid','s1')/'b66-provenance/input.json').read_bytes(),accepted)
+        for layout in ('s1','m2'):
+            record=json.loads((repo/case_name('negligible_area',layout)/'b66-provenance/input.json').read_text())
+            self.assertEqual(record['fsd_policy'],'preserve_source')
 
     def test_abort_requires_specific_status_and_no_success(self):
         text='dyntens invalid: rank, block, i, j, status= 1 2 3 4 6\n'+ABORT

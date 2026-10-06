@@ -110,9 +110,14 @@ def perturb_restart(path, history, mode):
             for key in ('vicen','vsnon'):
                 require(key in r.variables and r[key].dimensions == a.dimensions, 'missing compatible '+key)
                 r[key][:,j,i] = r[key][:,j,i]*factor
-            for k in range(1,13): r[f'fsd{k:03d}'][:,j,i] = 0.
+            # Tiny positive ice may become active during the continuation.
+            # Keep its valid normalized source tracers; zero bins would plant
+            # an unrelated future occupied-FSD failure in a success test.
+            if mode == 'zero_area':
+                for k in range(1,13): r[f'fsd{k:03d}'][:,j,i] = 0.
     return {'mode':mode,'category':n+1,'global_j':gj,'global_i':gi,
-            'restart_j':j+1,'restart_i':i+1,'before_sha256':before,'after_sha256':sha256(path)}
+            'restart_j':j+1,'restart_i':i+1,'before_sha256':before,'after_sha256':sha256(path),
+            'fsd_policy':'preserve_source' if mode == 'negligible_area' else 'perturbed_or_zero_area'}
 
 
 def check_abort(text):
@@ -128,8 +133,11 @@ class InvalidStateWorkflow(EvidenceWorkflow):
     gate = 'B6.6-entry'
     pending = ('in-timestep injection', 'new-build B4 null and full B5 restart regression controls')
 
-    def __init__(self,spec: WorkflowSpec):
+    def __init__(self,spec: WorkflowSpec, modes=MODES):
         self.spec = spec
+        require(modes and len(set(modes)) == len(modes) and all(m in MODES for m in modes),
+                'invalid/duplicate preparation modes')
+        self.modes = tuple(modes)
 
     def prepare(self):
         repo,runs = self.spec.repo,self.spec.runs
@@ -148,12 +156,12 @@ class InvalidStateWorkflow(EvidenceWorkflow):
                 require(float(entry(template,key)) == want, 'unexpected template '+key)
             logs = list(oldrun.glob('cice.runlog.*'))
             require(any('CICE COMPLETED SUCCESSFULLY' in p.read_text(errors='replace') for p in logs), 'accepted control completion absent')
-            for mode in MODES:
+            for mode in self.modes:
                 require(not (repo/case_name(mode,layout)).exists() and not (runs/case_name(mode,layout)).exists(), 'refusing existing case/run')
         # All destination checks above precede writes.
         for layout in LAYOUTS:
             base = repo/base_name(layout); oldrun = runs/base.name
-            for mode in MODES:
+            for mode in self.modes:
                 case = repo/case_name(mode,layout); run = runs/case.name
                 shutil.copytree(base,case,symlinks=True,ignore=shutil.ignore_patterns(
                     'b65-provenance','b65f-provenance','logs','history','restart','compile','input_restart',
@@ -236,9 +244,11 @@ def main():
     p.add_argument('--repo',type=Path)
     p.add_argument('--runs',type=Path,default=run_root())
     p.add_argument('--evidence',type=Path)
+    p.add_argument('--modes',nargs='+',choices=MODES,help='prepare only selected fresh modes; analyse always checks all twelve cases')
     args=p.parse_args()
+    if args.modes and args.action != 'prepare': p.error('--modes applies only to prepare')
     try:
-        workflow=InvalidStateWorkflow(WorkflowSpec(args.repo or model_repo(),args.runs))
+        workflow=InvalidStateWorkflow(WorkflowSpec(args.repo or model_repo(),args.runs), args.modes or MODES)
         if args.evidence: workflow.run_with_evidence(args.action,args.evidence)
         else: getattr(workflow,args.action)()
     except (ValueError,OSError,KeyError) as exc: p.exit(1,'FAIL: '+str(exc)+'\n')
