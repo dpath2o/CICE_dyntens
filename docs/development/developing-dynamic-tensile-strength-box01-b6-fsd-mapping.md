@@ -1166,7 +1166,7 @@ exactly one reporting task; the status log identifies the injected task. Cases
 that complete, merely time out, or omit the expected reason fail the checker.
 Archive PBS output/accounting and verify all jobs have left the queue before
 analysis: the model-log check alone is not a general proof of absence of MPI
-hangs. No runtime results for these new cases have been supplied yet.
+hangs. The first runtime attempt is recorded below; the subset remains FAIL.
 
 **Still pending:** explicit in-timestep invalid-input injection, a new-build B4
 null regression, and the full B5-style restart regression controls. New-build
@@ -1255,6 +1255,55 @@ python CICE_testing/scripts/b66_invalid_state_workflow.py analyse \
 Archive `b66-entry-validation.json`, `b66-entry-analysis.txt`, the twelve
 `b66-provenance/input.json` manifests, PBS logs/accounting and analysis output.
 Do not mark the full B6.6 gate complete from this subset or discard B6.5 evidence.
+
+#### B6.6-entry first runtime attempt — 6 October 2026
+
+**FAIL/unresolved for the complete restart-entry subset.** User-supplied
+`Pasted text(20261006-120355).txt` has SHA-256
+`1196a365edddfe49279864eee1abd06cb152a0498f291ce8ac61c0aef7307c42`.
+The analysis reports:
+
+```text
+PASS live diagnostic control continuity dt_b66_valid_s1 25 history pairs + one restart; IC independently reconstructed
+PASS expected restart-entry abort dt_b66_negative_s1 status=6; rank/block/local indices= [('0', '1', '8', '4', '6')]
+PASS expected restart-entry abort dt_b66_nonfinite_s1 status=6; rank/block/local indices= [('0', '1', '8', '4', '6')]
+PASS expected restart-entry abort dt_b66_bad_sum_s1 status=6; rank/block/local indices= [('0', '1', '8', '4', '6')]
+PASS inactive restart-entry IC and one-day completion dt_b66_zero_area_s1 not a physical-control equivalence test
+FAIL: completion absent dt_b66_negligible_area_s1
+```
+
+The valid serial IC mapping is independently reconstructed at tolerance 1e-10
+from the owned global interior of the 14x14 extended restart; its final clock
+is 4 January / step 72. Serial negative/nonfinite/bad-sum checks identify rank
+0, block 1, local i=8, j=4 and status 6, and satisfy the named expected-abort
+checker. The serial zero-area case meets its inactive IC and completion checks.
+
+| Case group | PBS evidence | Validation status |
+|---|---|---|
+| valid s1/m2 | Jobs 180647913/180647914, exit 0 | Serial continuity PASS; MPI scientific comparison not reached |
+| zero_area s1/m2 | Jobs 180648216/180648221, exit 0 | Serial inactive IC/completion PASS; MPI check not reached |
+| negative/nonfinite/bad_sum s1 | Jobs 180648213–180648215, exit 255 | Expected-abort checker PASS with status 6 and named mapping reason |
+| negative/nonfinite/bad_sum m2 | Jobs 180648218–180648220, exit 255 | Jobs terminated; exact mapping reason/status not supplied or validated yet |
+| negligible_area s1 | Job 180648217, exit 255; log cice.runlog.261006-230134 | Unexpected failure; success is required |
+| negligible_area m2 | Job 180648222, exit 255; log cice.runlog.261006-230118 | Unexpected failure; success is required |
+
+The two negligible-area jobs used 6 s and 4 s walltime respectively, out of a
+30-minute allocation. These are recorded failures rather than evidence of a
+walltime overrun. Their PBS summaries give no model abort reason, mapping status
+or failing timestep. Do not infer the cause from the generic completion error
+or relabel negligible-area failures as expected invalid-FSD aborts. Obtain both
+model-log tails, status/abort messages and, if present, IC history to distinguish
+restart initialization from subsequent evolution. Preserve the prepared restart,
+provenance, logs and FAIL evidence before modifying or rerunning anything.
+
+Analysis stops at the serial negligible-area row, so none of the MPI validation
+rows have been completed by this transcript. Successful PBS exit alone does not
+establish continuity/mask correctness, and exit 255 alone does not establish an
+expected collective mapping abort. All twelve PBS summaries include the same
+missing xp65 modules-directory message previously observed in successful
+B6.5-F runs; the current evidence does not identify it as the failure cause.
+No mapping tolerance, masking contract or model physics has been changed in
+response to this partial result. B6.6-entry and the full B6.6 gate remain open.
 
 ## 6. Acceptance and scope of the conclusion
 
