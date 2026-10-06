@@ -912,8 +912,7 @@ of their remaining workflows/tests is separately complete.
 
 `FeedbackWorkflow` / `CICE_testing/scripts/b65_feedback_workflow.py` implements
 controlled **shadow-fixture momentum feedback** in fresh `dt_b65f_*` cases.
-This implementation has local Python regression evidence, not a Gadi runtime
-PASS. Preserve accepted `dt_b65_*` outputs and executables. A fresh full model
+Local regressions preceded the accepted Gadi results recorded below. Preserve accepted `dt_b65_*` outputs and executables. A fresh full model
 build is required for each of s1, s2 and m2; do not reuse the B6.5 executable.
 
 The new explicit `dyntens_g_mode='box_fsd'` requires `use_dyntens=T`,
@@ -1062,6 +1061,55 @@ It does not validate spatially varying mapped feedback, live FSD adapter
 feedback, in-timestep invalid-state handling or global-grid behaviour. B6.6 and
 subsequent live/global tests remain separate acceptance requirements.
 
+#### B6.5-F acceptance — 6 October 2026
+
+**PASS for controlled box shadow-feedback equivalence.** The user-supplied
+`Pasted text(20261006-115105).txt` contains PBS output/accounting for all 21
+`dt_b65f_*` cases and the complete successful analysis transcript. Its SHA-256 is
+`ecf886ad99b23294ef1c370d385ead7b5b56bd9a484213bae0064fe362839198`.
+Jobs 180647109–180647129 all report CICE COMPLETED SUCCESSFULLY and PBS exit
+status 0. The run-log timestamps span 261006-224256 through 261006-224319;
+accounting records show completion on 6 October 2026.
+
+| Check | Accepted reported evidence |
+|---|---|
+| Candidate/applied fields and coverage | All 21 cases pass; 126 histories and five restart clocks/inventories each |
+| Mapped versus independent prescribed controls | All nine small/large/mixed pairs pass exact physical history and restart comparisons across s1/s2/m2 |
+| Unity versus feedback off | All three layout comparisons pass |
+| Physical response to g=0.2 versus g=1 | Each layout detects a difference in `hi` in `iceh.2005-01-01.nc`; this is a response check, not a quantified magnitude or attribution |
+| Decomposition | All seven case types pass s2 versus s1 and m2 versus s1 (14 comparisons); only history blkmask ownership values excluded |
+
+```text
+PASS exact mapped/prescribed small s1
+PASS exact mapped/prescribed large s1
+PASS exact mapped/prescribed mixed s1
+PASS unity/off s1
+PASS physical response s1 ('iceh.2005-01-01.nc', 'hi')
+PASS B6.5F controlled shadow-feedback equivalence; not live/global FSD validation
+```
+
+Corresponding mapped/prescribed, unity/off and response lines are present for
+s2 and m2. No tolerance or mask rule was relaxed. Repository implementation
+commit is `6865d5d5f3edad82947beb8fdab66321595f3776`; preserve the actual per-case
+source/build provenance and executable hashes rather than inferring them from
+this document. The uploaded transcript does not contain those build/hash
+records or the contents/checksums of the generated evidence JSON.
+
+PBS output contains the message
+`ERROR: Directory '/g/data/xp65/public/modules' not found` once per job. This
+message did not prevent these jobs completing with exit status 0 and passing
+validation; its underlying environment configuration is not diagnosed here.
+Retain the original PBS logs with the accepted evidence.
+
+Archive `validation_report/box/evidence/b65f-validation.json`,
+`validation_report/box/evidence/b65f-analysis.txt`,
+`dt_b65f_large_ref_s1/b65f-analysis.log` and all 21 `b65f-provenance` directories.
+This closes B6.5-F's controlled uniform shadow-feedback equivalence requirement,
+in addition to the accepted diagnostic matrix. It does not certify live/global
+FSD feedback, a spatially varying applied mapped coefficient, or deliberate
+invalid-state handling. The B6.5-F unity/off checks supply new-build unity
+regression evidence; the remaining B6.6 controls are identified below.
+
 ### B6.6 — invalid-state tests and regression checks
 
 Deliberately invalid occupied-category inputs must produce the expected
@@ -1079,10 +1127,12 @@ bin definitions, job logs and comparison output for every accepted result.
 `CICE_testing/scripts/b66_invalid_state_workflow.py` (`cice-test-invalid`).
 This is a diagnostic-only **restart-entry subset** of B6.6, not completion of
 all B6.6/B6 acceptance requirements. It can investigate the live failure path
-following acceptance of the corrected B6.5 diagnostic matrix.
+following acceptance of the corrected B6.5 diagnostic matrix and B6.5-F feedback equivalence.
 
-It creates fresh cases using `dt_b65_ctl_s1` and `dt_b65_ctl_m2`, reusing each
-layout's existing executable, launcher and machine configuration. It first
+It creates fresh cases using `dt_b65f_large_off_s1` and
+`dt_b65f_large_off_m2`, reusing each layout's accepted **B6.5-F build**, launcher
+and machine configuration. These are feedback-off controls from the newly
+validated matrix, rather than the earlier B6.5 executables. It first
 requires a valid owned-ocean raw FSD source throughout the copied 3 January /
 step 48 restart, accepting only the audited 12x12 or 14x14 extended-halo layout.
 If that source check fails, stop and diagnose it rather than normalising it.
@@ -1097,7 +1147,7 @@ All tests use `use_dyntens=F`, `use_dyntens_diagnostics=T`,
 
 | Mode (each on s1 and m2) | Copied restart change | Required outcome |
 |---|---|---|
-| valid | None | One-day completion; independent restart IC mapping; exact physical continuity against B6.5 control |
+| valid | None | One-day completion; independent restart IC mapping; exact physical continuity against B6.5-F feedback-off control |
 | negative | One occupied fsd001 value = -0.1 | Logged mapping status 6 and explicit collective mapping abort; no successful completion/output restart |
 | nonfinite | One occupied fsd001 value = NaN | Same expected status/abort; a generic floating-point or scheduler failure is not sufficient |
 | bad_sum | All twelve bins in one occupied category = 0 | Same expected status/abort; no hidden repair |
@@ -1118,8 +1168,9 @@ Archive PBS output/accounting and verify all jobs have left the queue before
 analysis: the model-log check alone is not a general proof of absence of MPI
 hangs. No runtime results for these new cases have been supplied yet.
 
-**Still pending:** B6.5-F mapped feedback, explicit in-timestep invalid-input injection, and the complete
-B4 unity/null and B5-style regression controls. The new evidence JSON names the
+**Still pending:** explicit in-timestep invalid-input injection, a new-build B4
+null regression, and the full B5-style restart regression controls. New-build
+unity/off equivalence has passed in B6.5-F. The new evidence JSON names the
 gate `B6.6-entry` and records these pending requirements; a PASS is only for this
 restart-entry subset. Synthetic local tests of mutation isolation, area/volume
 scaling and expected-abort recognition passed, but are not Gadi runtime evidence.
@@ -1127,7 +1178,7 @@ scaling and expected-abort recognition passed, but are not Gadi runtime evidence
 ##### Prepare fresh B6.6-entry cases
 
 No new model build is required for this Python-only restart perturbation
-workflow. Use the existing B6.5 executables by layout. Preparation refuses
+workflow. Use the accepted B6.5-F feedback-off executables by layout. Preparation refuses
 existing destination cases/runs and records source/executable/input hashes,
 source revision/diff and copies of the namelist/launcher/environment.
 
@@ -1217,7 +1268,7 @@ Do not mark the full B6.6 gate complete from this subset or discard B6.5 evidenc
 | Live-FSD diagnostic restart continuity | PASS: independent restart IC mapping; 126 exact history pairs and five exact restart pairs |
 | Controlled shadow-fixture spatial/decomposition/restart tests | PASS: B6.5 exact s1/s2/m2 and spatial continuation checks |
 | Applied mapped-coefficient halo exchange | Pending mapped-feedback implementation |
-| Uniform mapped-feedback cases match prescribed controls | Pending |
+| Uniform mapped-feedback cases match prescribed controls | PASS B6.5-F: nine exact pairs, three unity/off controls, physical response and layout agreement |
 | Invalid/inactive inputs handled explicitly | PASS inactive shadow fixture and analytical routine; deliberate live/MPI failure tests pending |
 
 B6 is complete when the production mapping and its adapter have passed these
@@ -1546,10 +1597,9 @@ cannot establish the future mapped halo or feedback path.
 
 ## B6.5 diagnostic shadow-fixture implementation and Bash workflow
 
-Added 5 October 2026. **Implementation and local syntax/checker tests are complete;
-Gadi runtime evidence is now partially reported above: all jobs completed, but
-the matrix failed the inactive-fraction mask check. B6.5-F feedback
-equivalence remains a separate implementation/run gate.**
+Added 5 October 2026. **The corrected diagnostic matrix and B6.5-F controlled
+feedback equivalence now have user-reported Gadi acceptance PASS entries above.
+The earlier inactive IC masking failure is retained as historical evidence.**
 
 An explicit dynamics_nml option, dyntens_box_fixture, supplies controlled
 diagnostic inputs: none (default live adapter), small, large, mixed, unequal,

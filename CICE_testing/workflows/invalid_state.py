@@ -1,6 +1,6 @@
 """B6.6 restart-entry tests of the live FSD adapter, serial and two-rank MPI.
 
-Copies accepted B6.5 controls into fresh cases. Only copied input restarts are
+Copies accepted B6.5-F feedback-off controls into fresh cases. Only copied input restarts are
 perturbed. No model source changes, live timestep injection or mapped feedback.
 """
 import argparse
@@ -27,6 +27,10 @@ ABORT = 'Invalid occupied FSD in dyntens candidate mapping; see status log'
 
 def case_name(mode, layout):
     return 'dt_b66_' + mode + '_' + layout
+
+
+def base_name(layout):
+    return 'dt_b65f_large_off_' + layout
 
 
 def restart_cell(restart, history):
@@ -122,8 +126,7 @@ def check_abort(text):
 
 class InvalidStateWorkflow(EvidenceWorkflow):
     gate = 'B6.6-entry'
-    pending = ('B6.5-F mapped feedback',
-               'in-timestep injection', 'full B4 unity/null regression controls')
+    pending = ('in-timestep injection', 'new-build B4 null and full B5 restart regression controls')
 
     def __init__(self,spec: WorkflowSpec):
         self.spec = spec
@@ -131,7 +134,7 @@ class InvalidStateWorkflow(EvidenceWorkflow):
     def prepare(self):
         repo,runs = self.spec.repo,self.spec.runs
         for layout in LAYOUTS:
-            base = repo/('dt_b65_ctl_'+layout)
+            base = repo/base_name(layout)
             oldrun = runs/base.name
             require(Path(setting((base/'cice.settings').read_text(),'ICE_CASEDIR')) == base, 'use original B6.5 case')
             require(Path(setting((base/'cice.settings').read_text(),'ICE_RUNDIR')) == oldrun, 'base run path mismatch')
@@ -149,11 +152,12 @@ class InvalidStateWorkflow(EvidenceWorkflow):
                 require(not (repo/case_name(mode,layout)).exists() and not (runs/case_name(mode,layout)).exists(), 'refusing existing case/run')
         # All destination checks above precede writes.
         for layout in LAYOUTS:
-            base = repo/('dt_b65_ctl_'+layout); oldrun = runs/base.name
+            base = repo/base_name(layout); oldrun = runs/base.name
             for mode in MODES:
                 case = repo/case_name(mode,layout); run = runs/case.name
                 shutil.copytree(base,case,symlinks=True,ignore=shutil.ignore_patterns(
-                    'b65-provenance','logs','history','restart','compile','input_restart','*.log','*.o','*.mod'))
+                    'b65-provenance','b65f-provenance','logs','history','restart','compile','input_restart',
+                    '*-job-id.txt','*.gadi-pbs.*','*.log','*.o','*.mod'))
                 for path in case.rglob('*'):
                     if path.is_file() and not path.is_symlink() and (path.suffix=='.csh' or path.name in ('cice.settings','cice.run','cice.submit','cice.build')):
                         text=path.read_text().replace(str(oldrun),str(run)).replace(str(base),str(case))
@@ -175,17 +179,18 @@ class InvalidStateWorkflow(EvidenceWorkflow):
                 require(record['before_sha256']==sha256(oldrun/'restart'/SOURCE), 'source restart copy mismatch')
                 (run/'ice.restart_file').write_text(str(target)+'\n')
                 provenance=case/'b66-provenance';provenance.mkdir()
-                record.update(source_restart=str(oldrun/'restart'/SOURCE), executable_sha256=sha256(run/'cice'), source=source_state(repo))
+                record.update(source_case=base.name, source_restart=str(oldrun/'restart'/SOURCE),
+                              executable_sha256=sha256(run/'cice'), source=source_state(repo))
                 (provenance/'input.json').write_text(json.dumps(record,indent=2)+'\n')
                 for key in ('ice_in','cice.settings','cice.run','env.gadi1_intel','Macros.gadi1_intel'):
                     shutil.copy2(case/key,provenance/key)
                 print('PREPARED',case.name,mode,'column',record['global_i'],'category',record['category'])
-        print('No build required: reuse the accepted per-layout B6.5 executable. Inspect PBS/launcher before submission.')
+        print('No build required: reuse the accepted per-layout B6.5-F feedback-off executable. Inspect PBS/launcher before submission.')
 
     def analyse(self):
         repo,runs=self.spec.repo,self.spec.runs
         for layout in LAYOUTS:
-            reference=runs/('dt_b65_ctl_'+layout)
+            reference=runs/base_name(layout)
             for mode in MODES:
                 name=case_name(mode,layout); run=runs/name
                 record=json.loads((repo/name/'b66-provenance/input.json').read_text())

@@ -5,7 +5,7 @@ import tempfile
 import unittest
 import numpy as np
 from netCDF4 import Dataset
-from CICE_testing.workflows.invalid_state import perturb_restart, validate_source, check_abort, ABORT, InvalidStateWorkflow, MODES, case_name
+from CICE_testing.workflows.invalid_state import perturb_restart, validate_source, check_abort, ABORT, InvalidStateWorkflow, MODES, case_name, base_name
 from CICE_testing import WorkflowSpec
 from contextlib import redirect_stdout
 import io
@@ -66,12 +66,16 @@ f_dyntens_mapping_status = 'x'
 """
         source_bytes=self.source.read_bytes()
         for layout in ('s1','m2'):
-            case=repo/('dt_b65_ctl_'+layout);run=runs/case.name;case.mkdir()
+            case=repo/base_name(layout);run=runs/case.name;case.mkdir()
             (run/'restart').mkdir(parents=True);(run/'history').mkdir()
             (case/'ice_in').write_text(template)
             (case/'cice.settings').write_text(f'setenv ICE_CASEDIR {case}\nsetenv ICE_RUNDIR {run}\nsetenv ICE_CASENAME {case.name}\n')
             (case/'cice.run').write_text(f'#PBS -N {case.name}\ncd {run}\n')
             for key in ('env.gadi1_intel','Macros.gadi1_intel'):(case/key).write_text('test environment')
+            (case/'b65f-provenance').mkdir()
+            (case/'b65f-provenance/input.json').write_text('{}')
+            (case/'180000.gadi-pbs.OU').write_text('old scheduler output')
+            (case/'b65f-job-id.txt').write_text('old job id')
             (run/'cice').write_text('layout '+layout)
             (run/'cice.runlog.test').write_text('CICE COMPLETED SUCCESSFULLY')
             shutil.copy2(self.history,run/'history/iceh.2005-01-02.nc')
@@ -86,10 +90,14 @@ f_dyntens_mapping_status = 'x'
                 self.assertEqual((runs/name/'cice').read_text(),'layout '+layout)
                 text=(repo/name/'cice.settings').read_text()
                 self.assertIn(str(runs/name),text)
-                self.assertNotIn('dt_b65_ctl',text)
+                self.assertNotIn('dt_b65f_large_off',text)
+                self.assertFalse((repo/name/'b65f-provenance').exists())
+                self.assertFalse((repo/name/'180000.gadi-pbs.OU').exists())
+                self.assertFalse((repo/name/'b65f-job-id.txt').exists())
                 record=json.loads((repo/name/'b66-provenance/input.json').read_text())
                 self.assertEqual(record['global_i'],7)
                 self.assertEqual(record['mode'],mode)
+                self.assertEqual(record['source_case'],base_name(layout))
         self.assertEqual(self.source.read_bytes(),source_bytes)
         with self.assertRaisesRegex(ValueError,'existing'):workflow.prepare()
 
