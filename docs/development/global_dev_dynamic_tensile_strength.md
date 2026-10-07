@@ -14,4 +14,4 @@ Use ERA5 atmosphere, ORAS ocean and the selected WHACS/wave/FSD pathway with act
 
 G0 can verify inherited forcing while box development continues. G1 requires a supported diagnostic adapter and explicit policy for inherited invalid FSD. G2 requires G0/G1 and supported live/global feedback; the current `box_fsd` guard must not be bypassed. Neither a mechanical opening plot nor a successful process exit demonstrates a closed thermodynamic budget.
 
-Configuration records live under [global_tests](../../global_tests/README.md). Every stage has a PyGMT notebook for its conceptual design and optional real-output figures. No global PASS or invented numerical acceptance bound is added here. See [box01 contents](box01_dev_dynamic_tensile_strength.md) for the current B6.6 limitation.
+Configuration records live under [global_tests](../../global_tests/README.md). Every stage has a PyGMT notebook for its conceptual design and optional real-output figures. No global PASS or invented numerical acceptance bound is added here. See [box01 contents](box01_dev_dynamic_tensile_strength.md) for the completed B6.6 review and the FSD checking work carried into G1.

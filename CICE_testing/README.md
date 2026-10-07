@@ -132,7 +132,7 @@ runs are read one file/variable at a time; figure provenance hashes the inputs.
 
 The [report handoff plan](docs/development_reports.md) maps evidence to the planned
 `box_tensile_dev_procedure_results_validation_notes.md` and a parallel global
-record. The active record is now split into [box01 case documents](../docs/development/box01_dev_dynamic_tensile_strength.md) and [global case documents](../docs/development/global_dev_dynamic_tensile_strength.md); B6.6 remains open. Historical development
+record. The active record is now split into [box01 case documents](../docs/development/box01_dev_dynamic_tensile_strength.md) and [global case documents](../docs/development/global_dev_dynamic_tensile_strength.md); B6.6 is complete as the agreed box review; the original restart-entry matrix remains failed on the tiny-area case. Historical development
 notes remain the authoritative stage-by-stage record in the meantime.
 
 ## Verification
@@ -145,8 +145,8 @@ cice-test-fixtures --repo "$CICE_MODEL_REPO" --fc ifort --fflags '-O0 -g -check 
 ```
 
 Synthetic and compiler fixture results validate checker behaviour and production
-mapping routines, not full CICE runtime results. B6.5-F feedback equivalence and
-B6.6 live invalid-state tests remain pending in the current source procedure.
+mapping routines, not full CICE runtime results. B6.5-F has passed its controlled
+feedback comparisons. B6.6 records the completed review and retained runtime limitations.
 
 The package workflow in `.github/workflows/cice-testing.yml` runs the numerical
 regressions, production Fortran fixtures, real PyGMT export checks and packaging.
@@ -155,7 +155,9 @@ fixtures are labelled as such and are not committed as model-result figures.
 
 The B6.6 restart-entry subset and its phased Bash commands are documented in the
 [model development record](../docs/development/B6.6.md).
-It does not close the outstanding B6.5 mask/feedback gates or in-timestep tests.
+Its analyser retains the original twelve-case criteria and still fails on the
+tiny-area continuation. Completing the revised B6.6 review does not override
+that runtime result or certify unverified MPI comparisons.
 
 ## Organised cases and per-stage figures
 

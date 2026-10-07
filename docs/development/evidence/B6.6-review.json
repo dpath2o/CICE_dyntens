@@ -1,0 +1,45 @@
+{
+  "record_type": "scope_review_not_runtime_validation",
+  "stage": "B6.6",
+  "date": "2026-10-08",
+  "review_status": "complete",
+  "runtime_matrix_status": "incomplete_failed_negligible_area",
+  "authority": "User agreed to focus the final box review and return to global testing; instructed completion of B6.6.",
+  "model_code_changed": false,
+  "analyser_changed": false,
+  "observed_serial_passes": [
+    "valid restart continuity: 25 history pairs and final restart",
+    "negative occupied FSD expected abort",
+    "nonfinite occupied FSD expected abort",
+    "zero-sum occupied FSD expected abort",
+    "zero-area inactive IC and one-day completion"
+  ],
+  "unverified": [
+    "MPI scientific comparisons not reached by original analyser",
+    "in-timestep invalid-state injection not performed"
+  ],
+  "retained_failure": {
+    "cases": [
+      "dt_b66_negligible_area_s1",
+      "dt_b66_negligible_area_m2"
+    ],
+    "trace_log": "cice.runlog.261007-080420",
+    "initial_area": 5e-13,
+    "total_area_at_failure": 1.496595697459838e-05,
+    "category_2_area": 1.496587278274634e-05,
+    "category_2_fsd_sum": 0.999999966590842,
+    "status": 6
+  },
+  "unchanged_box_checks": {
+    "active_area_threshold": 1e-12,
+    "category_sum_tolerance": 1e-10,
+    "finite_bins": true,
+    "nonnegative_bins": true
+  },
+  "global_policy_status": "not established; inspect existing/control FSD independently before strict live diagnostics and feedback",
+  "next_stages": [
+    "G0 control with normal forcing and thermodynamics",
+    "G1 FSD inventory and diagnostic-only physical comparisons",
+    "G2 supported global feedback and physical assessment"
+  ]
+}

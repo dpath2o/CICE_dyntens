@@ -4,7 +4,7 @@ Development of FSD-dependent dynamic tensile strength in standalone CICE6, deriv
 
 The aim is to test whether an evolving floe size distribution (FSD) can provide a physically interpretable control on effective tensile cohesion and Antarctic landfast sea-ice stability. We retain the inherited free-slip, grounded-iceberg and lateral-drag framework, and introduce a local tensile-strength coefficient that responds to floe fragmentation and subsequent FSD evolution.
 
-**Status (7 October 2026):** prescribed box controls, restart checks, diagnostic FSD tests and controlled B6.5-F mapped-feedback equivalence have passed their stated gates. B6.6 remains open: corrected negligible-area live continuations abort with status 6 and a diagnostic trace is pending. See [box01 test contents](docs/development/box01_dev_dynamic_tensile_strength.md) and the separate [global test contents](docs/development/global_dev_dynamic_tensile_strength.md). Box tests do not establish global mechanical or thermodynamic fidelity.
+**Status (8 October 2026):** the agreed box review is complete through B6.6. Controlled mapping and feedback comparisons have passed their documented tests. The artificial tiny-area continuation remains failed and is retained as a limitation; the strict FSD checks have not been approved for global evolving FSD. Next: G0 global control, then G1 diagnostics without momentum feedback, then G2 supported global feedback and mechanical/thermodynamic assessment. See [box01 contents](docs/development/box01_dev_dynamic_tensile_strength.md) and [global contents](docs/development/global_dev_dynamic_tensile_strength.md).
 
 ## Testing toolbox and figures
 
