@@ -39,6 +39,14 @@ def check_completion(run, namelist):
     print('PASS model completion', target)
 
 
+def required_history_fields(namelist):
+    fields = ['aice', 'hi', 'uvel', 'vvel']
+    for field in ('hs', 'Tsfc'):
+        if entry(namelist, 'f_'+field).strip("'\"").lower().startswith('d'):
+            fields.append(field)
+    return fields
+
+
 def configure(text, enabled):
     """Change run controls only; retain the inherited physical configuration."""
     for key, value in dict(npt='2', npt_unit="'d'", runtype="'initial'",
@@ -196,7 +204,8 @@ class GlobalControlWorkflow(EvidenceWorkflow):
             for file in (run/'history').glob('*.nc'):
                 with Dataset(file) as ds:
                     require(len(ds.dimensions['nj']) == 1080 and len(ds.dimensions['ni']) == 1440, 'output is not global '+name)
-                    require(all(k in ds.variables for k in ('aice', 'hi', 'hs', 'Tsfc', 'uvel', 'vvel')), 'missing physical history fields '+name)
+                    missing = [k for k in required_history_fields((run/'ice_in').read_text()) if k not in ds.variables]
+                    require(not missing, 'missing requested physical history fields '+name+': '+', '.join(missing))
             records.append(record)
         require(records[0]['input_sha256'] == records[1]['input_sha256'], 'different starting restarts')
         left, right = [self.spec.runs/n for n in NAMES]

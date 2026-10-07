@@ -8,7 +8,7 @@ import pytest
 from netCDF4 import Dataset
 
 from CICE_testing.core.types import WorkflowSpec
-from CICE_testing.workflows.global_control import GlobalControlWorkflow, NAMES, INPUT, check_completion, nonempty_path
+from CICE_testing.workflows.global_control import GlobalControlWorkflow, NAMES, INPUT, check_completion, nonempty_path, required_history_fields
 from CICE_testing.workflows.restart import set_entry, entry
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -50,7 +50,7 @@ def outputs(workflow):
             with Dataset(run/'history'/filename, 'w') as ds:
                 ds.createDimension('nj', 1080)
                 ds.createDimension('ni', 1440)
-                for key in ('aice', 'hi', 'hs', 'Tsfc', 'uvel', 'vvel'):
+                for key in ('aice', 'hi', 'uvel', 'vvel'):
                     ds.createVariable(key, 'f8', ())[:] = 1.
         for day in (2, 3):
             with Dataset(run/'restart'/f'iced.2000-09-{day:02d}-00000.nc', 'w') as ds:
@@ -113,3 +113,10 @@ def test_empty_run_argument_is_rejected():
     import argparse
     with pytest.raises(argparse.ArgumentTypeError, match='path is empty'):
         nonempty_path('')
+
+
+def test_thermal_history_requirements_follow_recorded_switches():
+    text = "f_hs = 'x'\nf_Tsfc = 'x'\n"
+    assert required_history_fields(text) == ['aice', 'hi', 'uvel', 'vvel']
+    text = set_entry(text, 'f_Tsfc', "'d'")
+    assert required_history_fields(text) == ['aice', 'hi', 'uvel', 'vvel', 'Tsfc']
