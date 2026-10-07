@@ -8,7 +8,7 @@ import pytest
 from netCDF4 import Dataset
 
 from CICE_testing.core.types import WorkflowSpec
-from CICE_testing.workflows.global_control import GlobalControlWorkflow, NAMES, INPUT
+from CICE_testing.workflows.global_control import GlobalControlWorkflow, NAMES, INPUT, check_completion, nonempty_path
 from CICE_testing.workflows.restart import set_entry, entry
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -44,7 +44,8 @@ def outputs(workflow):
         shutil.copy2(case/'ice_in', run/'ice_in')
         (run/'cice').write_bytes(b'identical executable')
         (run/'mpi_exit_status.txt').write_text('0\n')
-        (run/'cice.runlog.test').write_text('CICE COMPLETED SUCCESSFULLY\n')
+        (run/'cice.runlog.test').write_text('MPI launch log; diagnostics in ice_diag.d\n')
+        (run/'ice_diag.d').write_text('CICE COMPLETED SUCCESSFULLY\n')
         for filename in ['iceh_ic.2000-09-01-00000.nc', 'iceh.2000-09-01.nc', 'iceh.2000-09-02.nc']:
             with Dataset(run/'history'/filename, 'w') as ds:
                 ds.createDimension('nj', 1080)
@@ -92,3 +93,23 @@ def test_matching_wrong_clock_is_rejected(tmp_path):
             ds.istep1 = 100
     with pytest.raises(ValueError, match='incorrect restart clock'):
         workflow.analyse()
+
+
+def test_completion_uses_configured_destination_and_rejects_retries(tmp_path):
+    (tmp_path/'cice.runlog.one').write_text('CICE COMPLETED SUCCESSFULLY')
+    (tmp_path/'ice_diag.d').write_text('incomplete')
+    text = "diag_type = 'file'\ndiag_file = 'ice_diag.d'\n"
+    with pytest.raises(ValueError, match='model completion missing'):
+        check_completion(tmp_path, text)
+    (tmp_path/'ice_diag.d').write_text('CICE COMPLETED SUCCESSFULLY')
+    check_completion(tmp_path, text)
+    check_completion(tmp_path, "diag_type = 'stdout'\n")
+    (tmp_path/'cice.runlog.two').write_text('CICE COMPLETED SUCCESSFULLY')
+    with pytest.raises(ValueError, match='retries'):
+        check_completion(tmp_path, text)
+
+
+def test_empty_run_argument_is_rejected():
+    import argparse
+    with pytest.raises(argparse.ArgumentTypeError, match='path is empty'):
+        nonempty_path('')

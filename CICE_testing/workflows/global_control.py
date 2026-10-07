@@ -15,6 +15,30 @@ NAMES = ('dt_g0_off', 'dt_g0_unity')
 INPUT = 'iced.2000-09-01-00000.nc'
 
 
+def nonempty_path(value):
+    if not value.strip():
+        raise argparse.ArgumentTypeError('path is empty; set --runs explicitly in this shell')
+    return Path(value)
+
+
+def check_completion(run, namelist):
+    """Read CICE's configured diagnostic destination, retaining retry checks."""
+    logs = list(run.glob('cice.runlog.*'))
+    require(len(logs) == 1, 'expected one launch log; inspect missing logs or retries: '+str(run))
+    kind = entry(namelist, 'diag_type').strip("'\"").lower()
+    if kind == 'file':
+        target = (run/entry(namelist, 'diag_file').strip("'\"")).resolve()
+        require(target.is_relative_to(run.resolve()), 'diagnostic file must remain inside run directory')
+        require(target.is_file(), 'missing configured diagnostic file: '+str(target))
+    elif kind == 'stdout':
+        target = logs[0]
+    else:
+        raise ValueError('unsupported diagnostic destination '+kind)
+    require('CICE COMPLETED SUCCESSFULLY' in target.read_text(errors='replace'),
+            'model completion missing: '+str(target))
+    print('PASS model completion', target)
+
+
 def configure(text, enabled):
     """Change run controls only; retain the inherited physical configuration."""
     for key, value in dict(npt='2', npt_unit="'d'", runtype="'initial'",
@@ -160,8 +184,7 @@ class GlobalControlWorkflow(EvidenceWorkflow):
             require(sha256(run/'ice_in') == record['ice_in_sha256'], 'run namelist differs '+name)
             require(sha256(run/'input_restart'/INPUT) == record['input_sha256'], 'input changed '+name)
             require((run/'mpi_exit_status.txt').read_text().strip() == '0', 'MPI failed '+name)
-            logs = list(run.glob('cice.runlog.*'))
-            require(len(logs) == 1 and 'CICE COMPLETED SUCCESSFULLY' in logs[0].read_text(errors='replace'), 'completion missing or retries '+name)
+            check_completion(run, (run/'ice_in').read_text())
             want_h = {'iceh_ic.2000-09-01-00000.nc', 'iceh.2000-09-01.nc', 'iceh.2000-09-02.nc'}
             want_r = {'iced.2000-09-02-00000.nc', 'iced.2000-09-03-00000.nc'}
             require({p.name for p in (run/'history').glob('*.nc')} == want_h, 'history coverage '+name)
@@ -191,7 +214,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('action', choices=['prepare', 'analyse'])
     p.add_argument('--repo', type=Path, required=True)
-    p.add_argument('--runs', type=Path, required=True)
+    p.add_argument('--runs', type=nonempty_path, required=True)
     p.add_argument('--template', type=Path)
     p.add_argument('--restart', type=Path)
     p.add_argument('--evidence', type=Path)
