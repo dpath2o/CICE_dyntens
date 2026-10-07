@@ -141,7 +141,7 @@ notes remain the authoritative stage-by-stage record in the meantime.
 prepares isolated two-day global off/unity cases from the migrated global template.
 Build off once and copy its executable to unity. The [G0 instructions](../docs/development/G0.md)
 provide the Bash commands. Analysis checks output equality and restart clocks;
-global FSD sum policy belongs to G1. The inherited wave mode is constant, not WHACS.
+global FSD sum policy belongs to G1. The inherited wave mode is constant, not WHACS. The two-day comparison passed on 8 October 2026. `notebooks/G0.ipynb` now creates regional totals and field-statistics tables from the actual final daily files without importing plotting libraries.
 
 ## Verification
 

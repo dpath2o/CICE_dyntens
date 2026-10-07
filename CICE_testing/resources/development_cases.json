@@ -33,7 +33,7 @@
     "B6.5": "PASS: 14 diagnostic shadow-fixture cases, analytical, neutrality, decomposition and continuation.",
     "B6.5-F": "PASS: 21 controlled cases; nine exact map/reference pairs, three unity/off pairs and layout agreement.",
     "B6.6": "Complete final review; tiny-area continuation remains failed and global FSD checking is carried into G1.",
-    "G0": "PLANNED: inherited global evidence is context, not acceptance of this new gate.",
+    "G0": "Complete for the two-day global off/unity comparison; all three histories and both restarts match exactly.",
     "G1": "PLANNED: global diagnostics and the invalid-FSD policy remain to be established.",
     "G2": "PLANNED: live global feedback is not enabled by the box-only mapped mode."
   },
@@ -52,7 +52,7 @@
     "B6.5": "Exercise native bins, unequal category areas, open-water dilution invariance, inactive masks, spatial indexing and decompositions using controlled shadow inputs. Shadow inputs do not overwrite prognostic FSD.",
     "B6.5-F": "Show that mapped g actually reaches the rheology and reproduces independently prescribed coefficients. A diagnostic map alone cannot establish momentum feedback.",
     "B6.6": "Review the existing invalid-input and inactive-cell results, retain their limitations, and decide what must be checked before global feedback.",
-    "G0": "Re-establish the inherited global forcing and rheology before assigning any change to dynamic tensile strength. The idealised box excludes thermodynamics, active ocean forcing and waves.",
+    "G0": "After the box01 changes, check that the global model runs and that enabling g=1 leaves its output unchanged.",
     "G1": "Measure the evolving global FSD and candidate g without momentum feedback. The inherited global distributions have normalization departures that must be explained or given an explicit diagnostic policy.",
     "G2": "Only after G0/G1 establish a valid control and candidate policy should feedback be enabled globally. Mechanical changes may alter thermodynamic budgets indirectly through area, thickness and deformation, so both must be evaluated."
   }
