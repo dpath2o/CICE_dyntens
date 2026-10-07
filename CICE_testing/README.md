@@ -135,6 +135,14 @@ The [report handoff plan](docs/development_reports.md) maps evidence to the plan
 record. The active record is now split into [box01 case documents](../docs/development/box01_dev_dynamic_tensile_strength.md) and [global case documents](../docs/development/global_dev_dynamic_tensile_strength.md); B6.6 is complete as the agreed box review; the original restart-entry matrix remains failed on the tiny-area case. Historical development
 notes remain the authoritative stage-by-stage record in the meantime.
 
+## G0 short global control
+
+`python CICE_testing/scripts/g0_global_workflow.py prepare|analyse --repo ... --runs ...`
+prepares isolated two-day global off/unity cases from the migrated global template.
+Build off once and copy its executable to unity. The [G0 instructions](../docs/development/G0.md)
+provide the Bash commands. Analysis checks output equality and restart clocks;
+global FSD sum policy belongs to G1. The inherited wave mode is constant, not WHACS.
+
 ## Verification
 
 ```bash

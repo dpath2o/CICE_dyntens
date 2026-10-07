@@ -10,6 +10,20 @@
       "stage": "G0",
       "path": "global_tests/G0/dyntens01",
       "run_archive_id": "dyntens01"
+    },
+    {
+      "case_id": "dt_g0_off",
+      "canonical_name": "dt_g0_off",
+      "stage": "G0",
+      "path": "global_tests/G0/dt_g0_off",
+      "run_archive_id": "dt_g0_off"
+    },
+    {
+      "case_id": "dt_g0_unity",
+      "canonical_name": "dt_g0_unity",
+      "stage": "G0",
+      "path": "global_tests/G0/dt_g0_unity",
+      "run_archive_id": "dt_g0_unity"
     }
   ]
 }
