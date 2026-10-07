@@ -1,0 +1,2 @@
+/g/data/gv90/da1339/src/CICE_dyntens/dt_b63_diag
+/g/data/gv90/da1339/cice-dirs/runs/dt_b63_diag

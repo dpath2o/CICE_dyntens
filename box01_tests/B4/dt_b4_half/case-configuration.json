@@ -1,0 +1,11 @@
+{
+  "case_id": "dt_b4_half",
+  "stage": "B4",
+  "run": "/g/data/gv90/da1339/cice-dirs/runs/dt_b4_half",
+  "inputs": {
+    "cice.settings": "eebee0bea2a23e0836bb05526318a0483cacdc28dc72b8a5ae8f577527c5985f",
+    "ice_in": "84681a07ec5b01365a9d033b65cb27b0c89c5de5b331d06e9baaf50b84b9ccdd",
+    "cice.submit": "e35230b45c45597c1a4d99901a3733b1e907914647bd5c39f883c41e48451d59",
+    "cice.run": "b5753f86c8eac902dfda642a8be7c732469f7db1a7e474bbd6a660895e69de8d"
+  }
+}

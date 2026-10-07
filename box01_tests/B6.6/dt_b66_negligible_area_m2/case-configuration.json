@@ -1,0 +1,13 @@
+{
+  "case_id": "dt_b66_negligible_area_m2",
+  "stage": "B6.6",
+  "run": "/g/data/gv90/da1339/cice-dirs/runs/dt_b66_negligible_area_m2",
+  "inputs": {
+    "cice.settings": "0339a3b6a728999a227bef506c15ec61368b544b35d89e8b1aa8f2a7273ad611",
+    "Makefile": "24e461008d3c86f09b6c535cd70fd72da585d8f63650084807849c0abb7ea32e",
+    "ice_in": "f37747fba0b8fef4df3cc747ac5880db6146d9042c8259e884b4eefe7340b388",
+    "cice.build": "0dd7584e2416435f569fa4e773987f64b4b6661d5bda41c75dfde2712a315118",
+    "cice.submit": "ad97ce48096070b556851a3471411cd8dd6c1065adbc0b207acc47bbbd6b3184",
+    "cice.run": "9c5f942ec51d04937ee53401c832d7f49924b876e6d9354abefddd1603b296ff"
+  }
+}

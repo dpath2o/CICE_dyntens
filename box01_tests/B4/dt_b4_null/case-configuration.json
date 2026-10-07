@@ -1,0 +1,11 @@
+{
+  "case_id": "dt_b4_null",
+  "stage": "B4",
+  "run": "/g/data/gv90/da1339/cice-dirs/runs/dt_b4_null",
+  "inputs": {
+    "cice.settings": "87e64c7cab040adb125e1976e9f0e09257fbc633fb5ce383b95b8263d8d9b9ea",
+    "ice_in": "8504ac7b2895c5d62a1946e4ca5494cb9aa0ca23d6ec1e6f90283735bce78979",
+    "cice.submit": "d3dd8375ea9c9220ad91274ac62d25b37e5183a4133b8d38432f8456cade5088",
+    "cice.run": "86131fea47c2200d9d5056edf7c028b1f6471ec1d7cfdba0d0875bf3073ad4bf"
+  }
+}

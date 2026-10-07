@@ -1,0 +1,13 @@
+{
+  "case_id": "dt_b65f_small_map_s2",
+  "stage": "B6.5-F",
+  "run": "/g/data/gv90/da1339/cice-dirs/runs/dt_b65f_small_map_s2",
+  "inputs": {
+    "cice.settings": "db03656c65fc9490df53f196446fab7aa7a6074c6c5b56804c4018256bdc9515",
+    "Makefile": "24e461008d3c86f09b6c535cd70fd72da585d8f63650084807849c0abb7ea32e",
+    "ice_in": "e6f5876890ee17a6e5d67d48d05dfd5825e1c26b27bab438c6edc07e315c88af",
+    "cice.build": "0dd7584e2416435f569fa4e773987f64b4b6661d5bda41c75dfde2712a315118",
+    "cice.submit": "73e310dc09685ed824d077b61360dec86cf3a9bcd9454715135ab6d5e1ec2277",
+    "cice.run": "7f8e3dd5c4c3edab8f7cb7f9a5f0c14b87e60c5c865ea1214423cd88af90461e"
+  }
+}

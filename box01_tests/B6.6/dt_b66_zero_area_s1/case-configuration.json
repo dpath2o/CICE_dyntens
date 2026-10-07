@@ -1,0 +1,13 @@
+{
+  "case_id": "dt_b66_zero_area_s1",
+  "stage": "B6.6",
+  "run": "/g/data/gv90/da1339/cice-dirs/runs/dt_b66_zero_area_s1",
+  "inputs": {
+    "cice.settings": "4bb23db2905bc17e1ddffa7ac2a3927245b5cfb6fca3435025026243844a281d",
+    "Makefile": "24e461008d3c86f09b6c535cd70fd72da585d8f63650084807849c0abb7ea32e",
+    "ice_in": "f382195cb8dbc73defca14ab8050a190608c2806c2c560f301aee5d66863b7fa",
+    "cice.build": "0dd7584e2416435f569fa4e773987f64b4b6661d5bda41c75dfde2712a315118",
+    "cice.submit": "e60149c017c73c53a531b5e0d20832623026b7fbe3c42a9cd2aad4480c58dca7",
+    "cice.run": "a791a32488fbc05e3f46972593d0b0b87b21d80edb56f543f5d78508417c8cc8"
+  }
+}

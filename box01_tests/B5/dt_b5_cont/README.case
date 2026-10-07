@@ -1,0 +1,11 @@
+B5 case: dt_b5_cont
+Template: /g/data/gv90/da1339/src/CICE_dyntens/dt_b6_m2
+Input namelist copied from: /g/data/gv90/da1339/cice-dirs/runs/dt_b6_m2/ice_in
+Executable copied from: /g/data/gv90/da1339/cice-dirs/runs/dt_b6_m2/cice
+Executable SHA256: b49f1161c547b069734f64792fb7beb08c9456a4e5c048983f1b3616742ab7c1
+Duration: 5 days; continuation: False
+Two ranks; one-column g=0.5 band at global i=6.
+Background g=1; Ktens=0.2; box_tensile forcing.
+Executable reused without rebuilding.
+Mon Oct  5 14:20:23 AEDT 2026 /local/spool/pbs/mom_priv/jobs/180508706.gadi-pbs.SC: CICE output file is /g/data/gv90/da1339/src/CICE_dyntens/dt_b5_cont/logs/cice.runlog.261005-141957
+Mon Oct  5 14:20:23 AEDT 2026 /local/spool/pbs/mom_priv/jobs/180508706.gadi-pbs.SC: CICE run completed successfully

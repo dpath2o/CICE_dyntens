@@ -1,0 +1,13 @@
+{
+  "case_id": "dt_b65_sp_s1",
+  "stage": "B6.5",
+  "run": "/g/data/gv90/da1339/cice-dirs/runs/dt_b65_sp_s1",
+  "inputs": {
+    "cice.settings": "3b2161a299f660cb6cf817477d4f397084b20d44ab3f3c2a88eb7ba07ee51139",
+    "Makefile": "24e461008d3c86f09b6c535cd70fd72da585d8f63650084807849c0abb7ea32e",
+    "ice_in": "ba7358be1e9aa42cd2297da72e0665e62f22f2378b1143c1cd7ccad82b7ce778",
+    "cice.build": "0dd7584e2416435f569fa4e773987f64b4b6661d5bda41c75dfde2712a315118",
+    "cice.submit": "59893840ab3ea23250a8881d6d5dfc50fe7c2e99b425536f873a3bb875157a59",
+    "cice.run": "1a700ad68c32599010e56bc267981f4ae020b7f4d1de4a39c65fb663b6ac5264"
+  }
+}

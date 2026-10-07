@@ -1,0 +1,16 @@
+{
+  "case_id": "dyntens01",
+  "stage": "G0",
+  "run": "/g/data/gv90/da1339/cice-dirs/runs/dyntens01",
+  "inputs": {
+    "cice.settings": "1370b309f6712330a8ac0cbe4c00c722f1a7e56e070b1c4f815860d0c1d238f2",
+    "Makefile": "24e461008d3c86f09b6c535cd70fd72da585d8f63650084807849c0abb7ea32e",
+    "cice.run.continuous": "97d980438ac1ed29ec8fca3f775207bfd7d451f0cf681b2b85c7033e84f7e89c",
+    "ice_in": "1f07db314c533ab01d4c37bc8f99d90704ba0dab4efd8cb624ddb5039a8a090d",
+    "cice.continuous": "a3dae5bca79b23402465a1f50892fc80f92d44dada476b97bedbb685427a06ff",
+    "cice.baseline.run": "a0d162eeada8ce90d157f07254d80e3883d6394e93fbaeed5b2d67ea32f155a6",
+    "cice.build": "d60e15c3d91aa0396f2329c9f23ebffae4ddfdb9206687189844fa4988f8c1c5",
+    "cice.submit": "0db04cba0ec60ec74ddbf473d0c8913c363fb9e734e4656ee5c878cb7b0a060d",
+    "cice.run": "1d7234743bad24594a52a572a3100f14e008e59e9488c01ec5d9508c2adf8278"
+  }
+}

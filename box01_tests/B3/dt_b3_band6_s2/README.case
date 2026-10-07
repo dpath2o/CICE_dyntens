@@ -1,0 +1,9 @@
+Fri Oct  2 10:01:36 AEST 2026 ./cice.setup -c dt_b6_s2 -m gadi1 -e intel -g gbox12 -p 1x1x6x12x2 -s boxforcee,boxclosed,buildclean
+Fri Oct  2 10:01:37 AEST 2026 ./cice.setup adding namelist modes set_nml.gbox12
+Fri Oct  2 10:01:37 AEST 2026 ./cice.setup adding namelist modes set_nml.boxforcee
+Fri Oct  2 10:01:37 AEST 2026 ./cice.setup adding namelist modes set_nml.boxclosed
+Fri Oct  2 10:01:37 AEST 2026 ./cice.setup adding namelist modes set_env.buildclean
+Fri Oct  2 13:04:19 AEST 2026 ./cice.build:dt_b6_s2 build completed cice.bldlog.261002-130243
+Fri Oct  2 13:04:23 AEST 2026 ./cice.submit: dt_b6_s2 job submitted
+Fri Oct  2 13:16:45 AEST 2026 /local/spool/pbs/mom_priv/jobs/180327452.gadi-pbs.SC: CICE output file is /g/data/gv90/da1339/src/CICE_dyntens/dt_b6_s2/logs/cice.runlog.261002-131632
+Fri Oct  2 13:16:51 AEST 2026 /local/spool/pbs/mom_priv/jobs/180327452.gadi-pbs.SC: CICE run completed successfully

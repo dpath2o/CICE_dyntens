@@ -1,0 +1,5 @@
+#!/bin/csh -f 
+
+qsub  ./cice.run
+echo "`date` ${0}: dt_b65f_small_map_s2 job submitted"  >> /g/data/gv90/da1339/src/CICE_dyntens/dt_b65f_small_map_s2/README.case
+

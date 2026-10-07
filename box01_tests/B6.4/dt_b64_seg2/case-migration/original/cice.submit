@@ -1,0 +1,5 @@
+#!/bin/csh -f 
+
+qsub  ./cice.run
+echo "`date` ${0}: dt_b63_diag job submitted"  >> /g/data/gv90/da1339/src/CICE_dyntens/dt_b64_seg2/README.case
+

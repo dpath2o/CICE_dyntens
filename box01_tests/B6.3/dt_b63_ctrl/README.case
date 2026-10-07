@@ -1,0 +1,11 @@
+B6.3 matched FSD-enabled case cloned from dyntens_box01.
+Five days; candidate diagnostics disabled.
+Mon Oct  5 19:29:35 AEDT 2026 ./cice.build:dt_b63_ctrl build copied /g/data/gv90/da1339/cice-dirs/runs/dyntens_box01/cice
+Mon Oct  5 19:32:06 AEDT 2026 /local/spool/pbs/mom_priv/jobs/180528070.gadi-pbs.SC: CICE output file is /g/data/gv90/da1339/src/CICE_dyntens/dt_b63_ctrl/logs/cice.runlog.261005-193153
+Mon Oct  5 19:32:06 AEDT 2026 /local/spool/pbs/mom_priv/jobs/180528070.gadi-pbs.SC: CICE run completed successfully
+Mon Oct  5 20:32:46 AEDT 2026 ./cice.build:dt_b63_ctrl build completed cice.bldlog.261005-203129
+Mon Oct  5 20:34:01 AEDT 2026 /local/spool/pbs/mom_priv/jobs/180531264.gadi-pbs.SC: CICE output file is /g/data/gv90/da1339/src/CICE_dyntens/dt_b63_ctrl/logs/cice.runlog.261005-203355
+Mon Oct  5 20:34:01 AEDT 2026 /local/spool/pbs/mom_priv/jobs/180531264.gadi-pbs.SC: CICE run completed successfully
+Mon Oct  5 20:42:10 AEDT 2026 ./cice.build:dt_b63_ctrl build completed cice.bldlog.261005-204053
+Mon Oct  5 20:43:14 AEDT 2026 /local/spool/pbs/mom_priv/jobs/180531738.gadi-pbs.SC: CICE output file is /g/data/gv90/da1339/src/CICE_dyntens/dt_b63_ctrl/logs/cice.runlog.261005-204257
+Mon Oct  5 20:43:17 AEDT 2026 /local/spool/pbs/mom_priv/jobs/180531738.gadi-pbs.SC: CICE run completed successfully

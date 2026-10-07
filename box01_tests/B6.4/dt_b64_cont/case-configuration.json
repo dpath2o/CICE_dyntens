@@ -1,0 +1,13 @@
+{
+  "case_id": "dt_b64_cont",
+  "stage": "B6.4",
+  "run": "/g/data/gv90/da1339/cice-dirs/runs/dt_b64_cont",
+  "inputs": {
+    "cice.settings": "8d0dbc408d5be4bf73054499f78130fb38eff8c5e6dc79d984e31cc8734f146d",
+    "Makefile": "24e461008d3c86f09b6c535cd70fd72da585d8f63650084807849c0abb7ea32e",
+    "ice_in": "10cfc58e7cff800c0c3f8f495e4580a395bcf3e9cafeeb00c8957aa317b38c29",
+    "cice.build": "0dd7584e2416435f569fa4e773987f64b4b6661d5bda41c75dfde2712a315118",
+    "cice.submit": "cd986b7b3515e68ca5fe4a92597a0fec6352c31bd351887c291053ad98dfbc31",
+    "cice.run": "08016d978837f060279684978e867003536220726c57089ec2648b7ae0e986f4"
+  }
+}

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "/g/data/gv90/da1339/src/CICE_dyntens/dt_b5_seg2"
+if [[ ! -s "/g/data/gv90/da1339/cice-dirs/runs/dt_b5_seg2/input_restart/iced.2005-01-03-00000.nc" ]]; then
+    echo "Segment-1 restart has not been staged." >&2
+    exit 1
+fi
+qsub ./cice.run

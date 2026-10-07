@@ -1,0 +1,13 @@
+{
+  "case_id": "dt_b66_nonfinite_m2",
+  "stage": "B6.6",
+  "run": "/g/data/gv90/da1339/cice-dirs/runs/dt_b66_nonfinite_m2",
+  "inputs": {
+    "cice.settings": "362cf849e63ce1cfa59f32d4c23ebf473fe1e7e023fab6e64c8d0265ca692bd7",
+    "Makefile": "24e461008d3c86f09b6c535cd70fd72da585d8f63650084807849c0abb7ea32e",
+    "ice_in": "f37747fba0b8fef4df3cc747ac5880db6146d9042c8259e884b4eefe7340b388",
+    "cice.build": "0dd7584e2416435f569fa4e773987f64b4b6661d5bda41c75dfde2712a315118",
+    "cice.submit": "c9ecdf1351cebbbad990cbc857c641933e74aa76aed2394a44e8b30d1fbe5b14",
+    "cice.run": "2a66f4733b18db10a5ddb4abdd2dcf91c49fa231e4abb973713269aaa92f85df"
+  }
+}

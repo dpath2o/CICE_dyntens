@@ -1,0 +1,11 @@
+{
+  "case_id": "dt_b5_seg2",
+  "stage": "B5",
+  "run": "/g/data/gv90/da1339/cice-dirs/runs/dt_b5_seg2",
+  "inputs": {
+    "cice.settings": "b12faa6e3565aa4ff70afc9b8fc4fd856a196ba85f7c478ed74b2c55f47a4ea9",
+    "ice_in": "2a4bdbd951ffc6c1119a610c6433d7fdf90fa4c6fb1915235e81028fc76d26bd",
+    "cice.submit": "5f6beaa3edc3f72ace755984e06c771df5782f779aee88bff94a8e456be94a43",
+    "cice.run": "d261d89935cc529e87b48dd0779dbb46de26fa168d709b3b34ce34377cdc319c"
+  }
+}

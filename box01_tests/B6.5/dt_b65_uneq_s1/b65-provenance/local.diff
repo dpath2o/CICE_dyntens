@@ -1,0 +1,76 @@
+diff --git a/dyntens_box01/README.case b/dyntens_box01/README.case
+index a2e5e9e..eb73cc7 100644
+--- a/dyntens_box01/README.case
++++ b/dyntens_box01/README.case
+@@ -25,3 +25,23 @@ Fri Sep 25 13:18:15 AEST 2026 /local/spool/pbs/mom_priv/jobs/179846283.gadi-pbs.
+ Fri Sep 25 13:18:15 AEST 2026 /local/spool/pbs/mom_priv/jobs/179846283.gadi-pbs.SC: CICE run completed successfully
+ Fri Sep 25 16:02:56 AEST 2026 ./cice.build:dyntens_box01 build completed cice.bldlog.260925-160129
+ Fri Sep 25 16:35:38 AEST 2026 ./cice.build:dyntens_box01 build completed cice.bldlog.260925-163414
++Fri Sep 25 16:46:50 AEST 2026 ./cice.submit: dyntens_box01 job submitted
++Fri Sep 25 16:49:24 AEST 2026 /local/spool/pbs/mom_priv/jobs/179858463.gadi-pbs.SC: CICE output file is /g/data/gv90/da1339/src/CICE_dyntens/dyntens_box01/logs/cice.runlog.260925-164920
++Fri Sep 25 16:49:25 AEST 2026 /local/spool/pbs/mom_priv/jobs/179858463.gadi-pbs.SC: CICE run completed successfully
++Sun Sep 27 12:43:30 AEST 2026 ./cice.submit: dyntens_box01 job submitted
++Sun Sep 27 12:48:57 AEST 2026 /local/spool/pbs/mom_priv/jobs/179954590.gadi-pbs.SC: CICE output file is /g/data/gv90/da1339/src/CICE_dyntens/dyntens_box01/logs/cice.runlog.260927-124842
++Sun Sep 27 12:48:57 AEST 2026 /local/spool/pbs/mom_priv/jobs/179954590.gadi-pbs.SC: CICE run completed successfully
++Sun Sep 27 13:03:55 AEST 2026 ./cice.submit: dyntens_box01 job submitted
++Sun Sep 27 13:09:38 AEST 2026 /local/spool/pbs/mom_priv/jobs/179955154.gadi-pbs.SC: CICE output file is /g/data/gv90/da1339/src/CICE_dyntens/dyntens_box01/logs/cice.runlog.260927-130935
++Sun Sep 27 13:09:38 AEST 2026 /local/spool/pbs/mom_priv/jobs/179955154.gadi-pbs.SC: CICE run completed successfully
++Sun Sep 27 14:25:06 AEST 2026 ./cice.submit: dyntens_box01 job submitted
++Sun Sep 27 14:33:12 AEST 2026 /local/spool/pbs/mom_priv/jobs/179956780.gadi-pbs.SC: CICE output file is /g/data/gv90/da1339/src/CICE_dyntens/dyntens_box01/logs/cice.runlog.260927-143256
++Sun Sep 27 14:33:12 AEST 2026 /local/spool/pbs/mom_priv/jobs/179956780.gadi-pbs.SC: CICE run completed successfully
++Sun Sep 27 14:44:18 AEST 2026 ./cice.submit: dyntens_box01 job submitted
++Sun Sep 27 14:53:06 AEST 2026 /local/spool/pbs/mom_priv/jobs/179957511.gadi-pbs.SC: CICE output file is /g/data/gv90/da1339/src/CICE_dyntens/dyntens_box01/logs/cice.runlog.260927-145305
++Sun Sep 27 14:53:06 AEST 2026 /local/spool/pbs/mom_priv/jobs/179957511.gadi-pbs.SC: CICE run did NOT complete
++Sun Sep 27 15:26:47 AEST 2026 ./cice.build:dyntens_box01 build completed cice.bldlog.260927-152520
++Sun Sep 27 15:27:00 AEST 2026 ./cice.submit: dyntens_box01 job submitted
++Sun Sep 27 15:35:30 AEST 2026 /local/spool/pbs/mom_priv/jobs/179958825.gadi-pbs.SC: CICE output file is /g/data/gv90/da1339/src/CICE_dyntens/dyntens_box01/logs/cice.runlog.260927-153523
++Sun Sep 27 15:35:30 AEST 2026 /local/spool/pbs/mom_priv/jobs/179958825.gadi-pbs.SC: CICE run completed successfully
++Mon Oct  5 19:17:29 AEDT 2026 ./cice.build:dyntens_box01 build completed cice.bldlog.261005-191600
+diff --git a/dyntens_box01/ice_in b/dyntens_box01/ice_in
+index 4141ee8..1b017da 100644
+--- a/dyntens_box01/ice_in
++++ b/dyntens_box01/ice_in
+@@ -156,8 +156,12 @@
+ &dynamics_nml
+     boundary_condition = 'free_slip'
+     lateral_drag       = .false.
+-    use_dyntens        = .true.
+-    dyntens_g_const    = 0.5
++    use_dyntens        = .false.
++    dyntens_g_mode     = 'constant'
++    dyntens_g_const    = 1.0
++    dyntens_g_band     = 1.0
++    dyntens_band_ilo   = 6
++    dyntens_band_ihi   = 7
+     kdyn            = 1
+     ndte            = 1200
+     revised_evp     = .false.
+@@ -296,7 +300,7 @@
+     trestore        =  90
+     precip_units    = 'mm_per_month'
+     default_season  = 'winter'
+-    atm_data_type   = 'uniform_east'
++    atm_data_type   = 'box_tensile'
+     atm_data_version = '_undef'
+     ocn_data_type   = 'calm'
+     bgc_data_type   = 'default'
+@@ -517,6 +521,8 @@
+     f_VGRDb        = .false.
+     f_VGRDa        = .true.
+     f_bounds       = .false.
++    f_dyntens_g    = 'd1'
++    f_ktens_eff    = 'd1'
+     f_aice         = 'd1'
+     f_hi           = 'd1'
+     f_hs           = 'd'
+@@ -524,8 +530,8 @@
+     f_sice         = 'm' 
+     f_uvel         = 'd1'
+     f_vvel         = 'd1'
+-    f_uatm         = 'd'
+-    f_vatm         = 'd'
++    f_uatm         = 'd1'
++    f_vatm         = 'd1'
+     f_fswdn        = 'm' 
+     f_flwdn        = 'm'
+     f_snowfrac     = 'x'

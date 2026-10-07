@@ -1,0 +1,13 @@
+{
+  "case_id": "dt_b63_ctrl",
+  "stage": "B6.3",
+  "run": "/g/data/gv90/da1339/cice-dirs/runs/dt_b63_ctrl",
+  "inputs": {
+    "cice.settings": "d4fde4bac85eb4ee6fd08722676e5f8b304465b29aece86ff5350687d6e8ba7c",
+    "Makefile": "24e461008d3c86f09b6c535cd70fd72da585d8f63650084807849c0abb7ea32e",
+    "ice_in": "a4fd645dc5fe3237248d890511e73ae6a47c29d10edf7dd606660ac3bffa58e8",
+    "cice.build": "0dd7584e2416435f569fa4e773987f64b4b6661d5bda41c75dfde2712a315118",
+    "cice.submit": "5380d5bcad8efcd2db5b91d47e51d1929c8744e705041dbe0bfc4f1ab35dfe6a",
+    "cice.run": "458317abf5b5627dbffd4e9448c50b50c9fbd4562b435defd3a35105301cf5fe"
+  }
+}

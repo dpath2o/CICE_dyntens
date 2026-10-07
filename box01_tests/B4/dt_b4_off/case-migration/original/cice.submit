@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "/g/data/gv90/da1339/src/CICE_dyntens/dt_b4_off"
+qsub ./cice.run

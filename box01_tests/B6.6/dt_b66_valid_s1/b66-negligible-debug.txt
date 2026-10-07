@@ -1,0 +1,243 @@
+==> /g/data/gv90/da1339/cice-dirs/runs/dt_b66_negligible_area_s1/cice.runlog.261006-230134 <==
+ (ice_read_nc_xyz) min, max, sum =  1.797693134862316E+308
+ -1.797693134862316E+308  0.000000000000000E+000 fsd005
+ (ice_read_nc_xyz) min, max, sum =  4.988777659850360E-002
+  4.988777659850369E-002   3.14292992570573      fsd005
+ (ice_read_nc_xyz) min, max, sum =  4.988777659850359E-002
+  4.988777659850372E-002   3.14292992570573      fsd005
+ (ice_read_nc_xyz) min, max, sum =  4.988777659850362E-002
+  4.988777659850382E-002   3.14292992570573      fsd005
+ (ice_read_nc_xyz) min, max, sum =  4.988777659850356E-002
+  4.988777659850369E-002   3.14292992570573      fsd005
+(ice_read_nc_xyz) fid=    65536, lnrec =        1, varname = fsd006
+ (ice_read_nc_xyz) min, max, sum =  1.797693134862316E+308
+ -1.797693134862316E+308  0.000000000000000E+000 fsd006
+ (ice_read_nc_xyz) min, max, sum =  4.222475925881775E-002
+  4.222475925881788E-002   2.66015983330552      fsd006
+ (ice_read_nc_xyz) min, max, sum =  4.222475925881775E-002
+  4.222475925881787E-002   2.66015983330552      fsd006
+ (ice_read_nc_xyz) min, max, sum =  4.222475925881774E-002
+  4.222475925881790E-002   2.66015983330552      fsd006
+ (ice_read_nc_xyz) min, max, sum =  4.222475925881770E-002
+  4.222475925881788E-002   2.66015983330552      fsd006
+(ice_read_nc_xyz) fid=    65536, lnrec =        1, varname = fsd007
+ (ice_read_nc_xyz) min, max, sum =  1.797693134862316E+308
+ -1.797693134862316E+308  0.000000000000000E+000 fsd007
+ (ice_read_nc_xyz) min, max, sum =  3.622693692033463E-002
+  3.622693692033470E-002   2.28229702598109      fsd007
+ (ice_read_nc_xyz) min, max, sum =  3.622693692033464E-002
+  3.622693692033474E-002   2.28229702598109      fsd007
+ (ice_read_nc_xyz) min, max, sum =  3.622693692033464E-002
+  3.622693692033482E-002   2.28229702598109      fsd007
+ (ice_read_nc_xyz) min, max, sum =  3.622693692033459E-002
+  3.622693692033475E-002   2.28229702598109      fsd007
+(ice_read_nc_xyz) fid=    65536, lnrec =        1, varname = fsd008
+ (ice_read_nc_xyz) min, max, sum =  1.797693134862316E+308
+ -1.797693134862316E+308  0.000000000000000E+000 fsd008
+ (ice_read_nc_xyz) min, max, sum =  3.123001387838643E-002
+  3.123001387838650E-002   1.96749087433835      fsd008
+ (ice_read_nc_xyz) min, max, sum =  3.123001387838641E-002
+  3.123001387838649E-002   1.96749087433835      fsd008
+ (ice_read_nc_xyz) min, max, sum =  3.123001387838642E-002
+  3.123001387838653E-002   1.96749087433835      fsd008
+ (ice_read_nc_xyz) min, max, sum =  3.123001387838634E-002
+  3.123001387838650E-002   1.96749087433835      fsd008
+(ice_read_nc_xyz) fid=    65536, lnrec =        1, varname = fsd009
+ (ice_read_nc_xyz) min, max, sum =  1.797693134862316E+308
+ -1.797693134862316E+308  0.000000000000000E+000 fsd009
+ (ice_read_nc_xyz) min, max, sum =  2.690391247915522E-002
+  2.690391247915527E-002   1.69494648618678      fsd009
+ (ice_read_nc_xyz) min, max, sum =  2.690391247915521E-002
+  2.690391247915528E-002   1.69494648618678      fsd009
+ (ice_read_nc_xyz) min, max, sum =  2.690391247915520E-002
+  2.690391247915528E-002   1.69494648618678      fsd009
+ (ice_read_nc_xyz) min, max, sum =  2.690391247915519E-002
+  2.690391247915527E-002   1.69494648618678      fsd009
+(ice_read_nc_xyz) fid=    65536, lnrec =        1, varname = fsd010
+ (ice_read_nc_xyz) min, max, sum =  1.797693134862316E+308
+ -1.797693134862316E+308  0.000000000000000E+000 fsd010
+ (ice_read_nc_xyz) min, max, sum =  2.306306925621448E-002
+  2.306306925621452E-002   1.45297336314151      fsd010
+ (ice_read_nc_xyz) min, max, sum =  2.306306925621446E-002
+  2.306306925621453E-002   1.45297336314151      fsd010
+ (ice_read_nc_xyz) min, max, sum =  2.306306925621448E-002
+  2.306306925621463E-002   1.45297336314152      fsd010
+ (ice_read_nc_xyz) min, max, sum =  2.306306925621443E-002
+  2.306306925621452E-002   1.45297336314151      fsd010
+(ice_read_nc_xyz) fid=    65536, lnrec =        1, varname = fsd011
+ (ice_read_nc_xyz) min, max, sum =  1.797693134862316E+308
+ -1.797693134862316E+308  0.000000000000000E+000 fsd011
+ (ice_read_nc_xyz) min, max, sum =  1.959113937668724E-002
+  1.959113937668728E-002   1.23424178073130      fsd011
+ (ice_read_nc_xyz) min, max, sum =  1.959113937668723E-002
+  1.959113937668730E-002   1.23424178073130      fsd011
+ (ice_read_nc_xyz) min, max, sum =  1.959113937668724E-002
+  1.959113937668732E-002   1.23424178073130      fsd011
+ (ice_read_nc_xyz) min, max, sum =  1.959113937668721E-002
+  1.959113937668728E-002   1.23424178073130      fsd011
+(ice_read_nc_xyz) fid=    65536, lnrec =        1, varname = fsd012
+ (ice_read_nc_xyz) min, max, sum =  1.797693134862316E+308
+ -1.797693134862316E+308  0.000000000000000E+000 fsd012
+ (ice_read_nc_xyz) min, max, sum =  1.640763123586649E-002
+  1.640763123586653E-002   1.03368076785959      fsd012
+ (ice_read_nc_xyz) min, max, sum =  1.640763123586647E-002
+  1.640763123586653E-002   1.03368076785959      fsd012
+ (ice_read_nc_xyz) min, max, sum =  1.640763123586650E-002
+  1.640763123586657E-002   1.03368076785959      fsd012
+ (ice_read_nc_xyz) min, max, sum =  1.640763123586646E-002
+  1.640763123586652E-002   1.03368076785959      fsd012
+  
+  Find indices of diagnostic points 
+  
+ found point   1
+   lat    lon   TLAT   TLON     i     j   block  task
+  90.0    0.0   72.6 -155.3    11    11     1     0
+  
+ found point   2
+   lat    lon   TLAT   TLON     i     j   block  task
+ -65.0  -45.0   71.6 -155.3    11     4     1     0
+  
+ (calc_timesteps) modified npt from         1 d with dt=       3600.00
+ (calc_timesteps)                to        24 1 with dt=       3600.00
+ (calc_timesteps) start time is  2005-01-03:00000
+ (calc_timesteps)   end time is  2005-01-04:00000
+  
+  
+ Finished writing ./history/iceh_ic.2005-01-03-00000.nc
+ (init_forcing_atmo) fyear, fyear_init, fyear_final :         2005        2005
+        2005
+ (init_forcing_atmo) atm_data_type                  : box_tensile
+  Initial forcing data year =         2005
+  Final   forcing data year =         2005
+  Set current forcing data year =         2005
+  Set current forcing data year =         2005
+  
+ Finished writing ./history/iceh_inst.2005-01-03-03600.nc
+ dyntens invalid: rank, block, i, j, status=           0           1           8
+           4           6
+  
+ (abort_ice)ABORTED: 
+ (abort_ice) error = 
+ Invalid occupied FSD in dyntens candidate mapping; see status log
+
+==> /g/data/gv90/da1339/cice-dirs/runs/dt_b66_negligible_area_m2/cice.runlog.261006-230118 <==
+  3.123001387838650E-002   1.96749087433835      fsd008
+ (ice_read_nc_xyz) min, max, sum =  3.123001387838641E-002
+  3.123001387838649E-002   1.96749087433835      fsd008
+ (ice_read_nc_xyz) min, max, sum =  3.123001387838642E-002
+  3.123001387838653E-002   1.96749087433835      fsd008
+ (ice_read_nc_xyz) min, max, sum =  3.123001387838634E-002
+  3.123001387838650E-002   1.96749087433835      fsd008
+(ice_read_nc_xyz) fid=    65536, lnrec =        1, varname = fsd009
+ (ice_read_nc_xyz) min, max, sum =  1.797693134862316E+308
+ -1.797693134862316E+308  0.000000000000000E+000 fsd009
+ (ice_read_nc_xyz) min, max, sum =  2.690391247915522E-002
+  2.690391247915527E-002   1.69494648618678      fsd009
+ (ice_read_nc_xyz) min, max, sum =  2.690391247915521E-002
+  2.690391247915528E-002   1.69494648618678      fsd009
+ (ice_read_nc_xyz) min, max, sum =  2.690391247915520E-002
+  2.690391247915528E-002   1.69494648618678      fsd009
+ (ice_read_nc_xyz) min, max, sum =  2.690391247915519E-002
+  2.690391247915527E-002   1.69494648618678      fsd009
+(ice_read_nc_xyz) fid=    65536, lnrec =        1, varname = fsd010
+ (ice_read_nc_xyz) min, max, sum =  1.797693134862316E+308
+ -1.797693134862316E+308  0.000000000000000E+000 fsd010
+ (ice_read_nc_xyz) min, max, sum =  2.306306925621448E-002
+  2.306306925621452E-002   1.45297336314151      fsd010
+ (ice_read_nc_xyz) min, max, sum =  2.306306925621446E-002
+  2.306306925621453E-002   1.45297336314151      fsd010
+ (ice_read_nc_xyz) min, max, sum =  2.306306925621448E-002
+  2.306306925621463E-002   1.45297336314152      fsd010
+ (ice_read_nc_xyz) min, max, sum =  2.306306925621443E-002
+  2.306306925621452E-002   1.45297336314151      fsd010
+(ice_read_nc_xyz) fid=    65536, lnrec =        1, varname = fsd011
+ (ice_read_nc_xyz) min, max, sum =  1.797693134862316E+308
+ -1.797693134862316E+308  0.000000000000000E+000 fsd011
+ (ice_read_nc_xyz) min, max, sum =  1.959113937668724E-002
+  1.959113937668728E-002   1.23424178073130      fsd011
+ (ice_read_nc_xyz) min, max, sum =  1.959113937668723E-002
+  1.959113937668730E-002   1.23424178073130      fsd011
+ (ice_read_nc_xyz) min, max, sum =  1.959113937668724E-002
+  1.959113937668732E-002   1.23424178073130      fsd011
+ (ice_read_nc_xyz) min, max, sum =  1.959113937668721E-002
+  1.959113937668728E-002   1.23424178073130      fsd011
+(ice_read_nc_xyz) fid=    65536, lnrec =        1, varname = fsd012
+ (ice_read_nc_xyz) min, max, sum =  1.797693134862316E+308
+ -1.797693134862316E+308  0.000000000000000E+000 fsd012
+ (ice_read_nc_xyz) min, max, sum =  1.640763123586649E-002
+  1.640763123586653E-002   1.03368076785959      fsd012
+ (ice_read_nc_xyz) min, max, sum =  1.640763123586647E-002
+  1.640763123586653E-002   1.03368076785959      fsd012
+ (ice_read_nc_xyz) min, max, sum =  1.640763123586650E-002
+  1.640763123586657E-002   1.03368076785959      fsd012
+ (ice_read_nc_xyz) min, max, sum =  1.640763123586646E-002
+  1.640763123586652E-002   1.03368076785959      fsd012
+  
+  Find indices of diagnostic points 
+  
+ found point   1
+   lat    lon   TLAT   TLON     i     j   block  task
+  90.0    0.0   72.6 -155.3     5    11     1     1
+  
+ found point   2
+   lat    lon   TLAT   TLON     i     j   block  task
+ -65.0  -45.0   71.6 -155.3     5     4     1     1
+  
+ (calc_timesteps) modified npt from         1 d with dt=       3600.00
+ (calc_timesteps)                to        24 1 with dt=       3600.00
+ (calc_timesteps) start time is  2005-01-03:00000
+ (calc_timesteps)   end time is  2005-01-04:00000
+  
+  
+ Finished writing ./history/iceh_ic.2005-01-03-00000.nc
+ (init_forcing_atmo) fyear, fyear_init, fyear_final :         2005        2005
+        2005
+ (init_forcing_atmo) atm_data_type                  : box_tensile
+  Initial forcing data year =         2005
+  Final   forcing data year =         2005
+  Set current forcing data year =         2005
+  Set current forcing data year =         2005
+  
+ Finished writing ./history/iceh_inst.2005-01-03-03600.nc
+ dyntens invalid: rank, block, i, j, status=           1           2           2
+           4           6
+  
+  
+ (abort_ice)ABORTED: 
+ (abort_ice) error = 
+ Invalid occupied FSD in dyntens candidate mapping; see status log
+ (abort_ice)ABORTED: 
+ (abort_ice) error = 
+ Invalid occupied FSD in dyntens candidate mapping; see status log
+--------------------------------------------------------------------------
+MPI_ABORT was invoked on rank 1 in communicator MPI_COMM_WORLD
+with errorcode 128.
+
+NOTE: invoking MPI_ABORT causes Open MPI to kill all MPI processes.
+You may or may not see output from other processes, depending on
+exactly when Open MPI kills them.
+--------------------------------------------------------------------------
+[gadi-cpu-bdw-0051.gadi.nci.org.au:2785380] PMIX ERROR: UNREACHABLE in file /jobfs/129486601.gadi-pbs/0/openmpi/4.1.7/source/openmpi-4.1.7/opal/mca/pmix/pmix3x/pmix/src/server/pmix_server.c at line 2198
+forrtl: error (78): process killed (SIGTERM)
+Image              PC                Routine            Line        Source             
+libpthread-2.28.s  000014E85BA1D990  Unknown               Unknown  Unknown
+libpthread-2.28.s  000014E85BA1936F  pthread_cond_wait     Unknown  Unknown
+libopen-pal.so.40  000014E85673353D  PMIx_Abort            Unknown  Unknown
+libopen-pal.so.40  000014E8567A0780  pmix3x_abort          Unknown  Unknown
+libopen-rte.so.40  000014E856EC8ED7  Unknown               Unknown  Unknown
+libopen-rte.so.40  000014E856EE0C66  orte_errmgr_base_     Unknown  Unknown
+libopen-rte.so.40  000014E856ED0A1B  Unknown               Unknown  Unknown
+libmpi.so.40.30.7  000014E85C61219A  ompi_mpi_abort        Unknown  Unknown
+libmpi_mpifh.so    000014E85C9452AE  Unknown               Unknown  Unknown
+cice               0000000000701FBB  abort_ice                  73  ice_exit.F90
+cice               00000000006B1BDA  update_dyntens_ca         270  ice_dyn_evp.F90
+cice               00000000006B72B2  evp                       528  ice_dyn_evp.F90
+cice               0000000000841000  step_dyn_horiz           1319  ice_step_mod.F90
+cice               000000000064892A  ice_step                  291  CICE_RunMod.F90
+cice               0000000000417079  cice_run                   85  CICE_RunMod.F90
+cice               0000000000647A45  icemodel                   49  CICE.F90
+cice               00000000006479FD  Unknown               Unknown  Unknown
+libc-2.28.so       000014E85B66F865  __libc_start_main     Unknown  Unknown
+cice               000000000064791E  Unknown               Unknown  Unknown
+[gadi-cpu-bdw-0051.gadi.nci.org.au:2785380] 1 more process has sent help message help-mpi-api.txt / mpi-abort
+[gadi-cpu-bdw-0051.gadi.nci.org.au:2785380] Set MCA parameter "orte_base_help_aggregate" to 0 to see all help / error messages

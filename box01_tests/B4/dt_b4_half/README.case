@@ -1,0 +1,10 @@
+B4 case: dt_b4_half
+Template case: /g/data/gv90/da1339/src/CICE_dyntens/dt_b67_s1
+Template namelist: /g/data/gv90/da1339/cice-dirs/runs/dt_b67_s1/ice_in
+Executable copied from: /g/data/gv90/da1339/cice-dirs/runs/dt_b67_s1/cice
+Executable SHA256: 5076e1a04a0235ff1b09461c6b6ba235ae28bd9563187bf0b14232eaf7d092f2
+use_dyntens=.true.; mode=constant; background=0.5; band=1.0; Ktens=0.2
+Fresh internal initial conditions; five days; box_tensile.
+Executable reused without rebuilding.
+Sun Oct  4 18:29:36 AEDT 2026 /local/spool/pbs/mom_priv/jobs/180464584.gadi-pbs.SC: CICE output file is /g/data/gv90/da1339/src/CICE_dyntens/dt_b4_half/logs/cice.runlog.261004-182933
+Sun Oct  4 18:29:36 AEDT 2026 /local/spool/pbs/mom_priv/jobs/180464584.gadi-pbs.SC: CICE run completed successfully
