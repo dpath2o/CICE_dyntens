@@ -1,0 +1,9 @@
+region,metric,units,off,unity,unity_minus_off
+Circum-Arctic (NH),area,km2,4628638.378143428,4628638.378143428,0.0
+Circum-Arctic (NH),extent,km2,6046972.660660083,6046972.660660083,0.0
+Circum-Arctic (NH),volume,km3,12410.703499889982,12410.703499889982,0.0
+Circum-Arctic (NH),mean_ice_thickness,m,2.681286046992503,2.681286046992503,0.0
+Circum-Antarctic (SH),area,km2,17059539.269090638,17059539.269090638,0.0
+Circum-Antarctic (SH),extent,km2,19618957.96153243,19618957.96153243,0.0
+Circum-Antarctic (SH),volume,km3,15894.743667137098,15894.743667137098,0.0
+Circum-Antarctic (SH),mean_ice_thickness,m,0.9317217432674764,0.9317217432674764,0.0

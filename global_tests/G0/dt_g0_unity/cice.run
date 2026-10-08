@@ -1,0 +1,29 @@
+#!/bin/csh -f
+#PBS -N dt_g0_unity
+#PBS -P gv90
+#PBS -q normalbw
+#PBS -l walltime=10:00:00
+#PBS -l ncpus=1232
+#PBS -l mem=1200GB
+#PBS -l place=scatter
+#PBS -l jobfs=5GB
+#PBS -l wd
+#PBS -j oe
+#PBS -W umask=022
+#PBS -l storage=gdata/gv90+gdata/xp65+scratch/gv90
+source /etc/profile.d/modules.csh
+cd /g/data/gv90/da1339/src/CICE_dyntens/global_tests/G0/dt_g0_unity
+source ./cice.settings || exit 2
+source ./env.gadi1_intel || exit 2
+cd ${ICE_RUNDIR}
+cp -p ${ICE_CASEDIR}/ice_in ./ice_in
+cp -p ${ICE_CASEDIR}/cice.settings ./cice.settings
+setenv OMP_NUM_THREADS ${ICE_NTHRDS}
+setenv OMP_SCHEDULE "${ICE_OMPSCHED}"
+set stamp = `date +%y%m%d-%H%M%S`
+set log = "cice.runlog.${stamp}"
+mpirun -np 1232 ./cice >&! $log
+set result = $status
+echo $result >! mpi_exit_status.txt
+cp -p $log ${ICE_LOGDIR}/
+exit $result

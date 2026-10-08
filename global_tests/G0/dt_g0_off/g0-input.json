@@ -1,0 +1,17 @@
+{
+  "template": "/g/data/gv90/da1339/src/CICE_dyntens/global_tests/G0/dyntens01",
+  "source_restart": "/g/data/gv90/da1339/cice-dirs/runs/dyntens01/restart/iced.2000-09-01-00000.nc",
+  "input_sha256": "4982a6139ec27b8248e046aa02c3546c4bd7583ffed9ae9c9a6c047f6c9c078a",
+  "ice_in_sha256": "1f4ec3a508795b8229087fbf87c55295c9ebafc69ce2769b95a8fe72578cd087",
+  "settings_sha256": "5d152915a32727ed3573403c1a5341a608dd4244dc6e4ebf7848cf9387164024",
+  "launcher_sha256": "ee5251eb54d56e36291e8f2edf7a9e11adedf6c398d86acea078a78c0bbc09ee",
+  "source": {
+    "repo": "/g/data/gv90/da1339/src/CICE_dyntens",
+    "commit": "d6baff9273439ffff8d05645ff3b95a499394003",
+    "status": "?? box01_dt_cice_settings.txt\n?? \"e box01 and global test case configurations\\\"\"\n?? global_tests/G0/dt_g0_off/\n?? test_scripts/results/\n?? test_scripts/test_b6_mapping_contract.py",
+    "diff": ""
+  },
+  "first_step": 99360,
+  "wave_spec_type": "'constant'",
+  "tasks": 1232
+}

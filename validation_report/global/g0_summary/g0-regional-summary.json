@@ -1,0 +1,43 @@
+{
+  "time": {
+    "units": "days since 2000-09-01 00:00:00",
+    "calendar": "proleptic_gregorian",
+    "value": 2.0,
+    "date": "2000-09-03 00:00:00",
+    "bounds": [
+      1.0,
+      2.0
+    ],
+    "interval": [
+      "2000-09-02 00:00:00",
+      "2000-09-03 00:00:00"
+    ]
+  },
+  "latitude_cutoff": 0.0,
+  "extent_threshold": 0.15,
+  "inputs": [
+    {
+      "path": "/g/data/gv90/da1339/cice-dirs/runs/dt_g0_off/history/iceh.2000-09-02.nc",
+      "size": 2028011396,
+      "sha256": "1b057c2327694dafb85f3a974a3663954a1be1238e737cca6ba8eeaeaa62115a"
+    },
+    {
+      "path": "/g/data/gv90/da1339/cice-dirs/runs/dt_g0_unity/history/iceh.2000-09-02.nc",
+      "size": 2028011396,
+      "sha256": "4e9fe0bc90e0b4d2ac73436247df13d298d896ac12604e4f5baa46537480ced2"
+    }
+  ],
+  "skipped_fields": [
+    "hs: not written",
+    "Tsfc: not written"
+  ],
+  "rows_per_chunk": 32,
+  "interpretation": "Final daily mean, not instantaneous final state. Regional tables supplement full G0 exact comparison.",
+  "formulas": {
+    "area": "sum(tarea*aice)",
+    "extent": "sum(tarea where aice>=threshold)",
+    "volume": "sum(tarea*hi)",
+    "mean_ice_thickness": "total volume / total ice area",
+    "fields": "ice-area-weighted moments where aice>=threshold; extrema over valid selected cells"
+  }
+}

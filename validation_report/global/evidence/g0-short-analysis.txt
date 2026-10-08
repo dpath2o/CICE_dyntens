@@ -1,0 +1,10 @@
+PASS model completion /g/data/gv90/da1339/cice-dirs/runs/dt_g0_off/ice_diag.d
+PASS model completion /g/data/gv90/da1339/cice-dirs/runs/dt_g0_unity/ice_diag.d
+EXECUTABLE 33623aca2e1d897b4d073af491bbe6003ea230122e8d2d1af0917316bf75f6fa
+PASS exact history iceh.2000-09-01.nc
+PASS exact history iceh.2000-09-02.nc
+PASS exact history iceh_ic.2000-09-01-00000.nc
+PASS exact restart iced.2000-09-02-00000.nc
+PASS exact restart iced.2000-09-03-00000.nc
+PASS G0-short: off/unity output equality on the two-day inherited global configuration.
+FSD sum policy, inherited-build comparison and wider global physics assessment are not certified here.
