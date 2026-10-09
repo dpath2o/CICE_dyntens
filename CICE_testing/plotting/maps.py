@@ -1,5 +1,6 @@
 """General scalar maps of curvilinear cell centres; no interpolation or repair."""
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import numpy as np
 
@@ -35,10 +36,49 @@ def prepare_map_points(values, longitude, latitude, *, region, ocean_mask=None):
     return np.ascontiguousarray(np.column_stack((x[good], y[good], z[good])), dtype=np.float64)
 
 
+def plot_map_markers(fig, markers, *, region, projection, labels=True, trace=False):
+    """Annotate selected cells with table-based stars and file-based text.
+
+    ``trace`` prints before each GMT call to help locate native crashes.
+    Text uses an on-disk GMT table, avoiding the in-memory text input path.
+    """
+    rows, texts = [], []
+    west, east, south, north = region
+    for marker in markers:
+        mx = (float(marker['longitude']) + 180.) % 360. - 180.
+        my = float(marker['latitude'])
+        inside = west <= mx <= east if west <= east else mx >= west or mx <= east
+        if not (np.isfinite([mx, my]).all() and inside and south <= my <= north):
+            continue
+        rows.append((mx, my))
+        label = marker.get('label', marker.get('cell', ''))
+        if label:
+            label = str(label).replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
+            texts.append(f'{mx:.17g} {my:.17g} {label}\n')
+    if not rows:
+        return fig
+    coords = np.ascontiguousarray(rows, dtype=np.float64)
+    if trace:
+        print(f'Markers: plotting {len(rows)} stars', flush=True)
+    fig.plot(data=coords, region=list(region), projection=projection,
+             style='a0.3c', fill='yellow', pen='0.5p,black')
+    if labels and texts:
+        with TemporaryDirectory(prefix='cice-map-labels-') as directory:
+            path = Path(directory) / 'labels.txt'
+            path.write_text(''.join(texts), encoding='utf-8')
+            if trace:
+                print(f'Markers: plotting {len(texts)} labels', flush=True)
+            fig.text(textfiles=str(path), region=list(region), projection=projection,
+                     offset='0.15c/0.15c', font='9p,Helvetica,black', justify='BL')
+    if trace:
+        print('Markers: completed', flush=True)
+    return fig
+
+
 def plot_scalar_map(values, longitude, latitude, *, region, limits,
                     projection=None, cmap='cmocean/amp', ocean_mask=None,
                     title='', color_label='', markers=(), symbol='c0.025c',
-                    output_stem=None, show=False, dpi=180):
+                    output_stem=None, show=False, dpi=180, marker_labels=True, trace=False):
     """Plot a 2-D scalar field using GMT's three-column table input.
 
     Pass already transformed values (e.g. log10 error); this helper does not
@@ -63,17 +103,8 @@ def plot_scalar_map(values, longitude, latitude, *, region, limits,
     pygmt.makecpt(cmap=cmap, series=[lo, hi])
     if len(points):
         fig.plot(data=points, style=symbol, cmap=True)
-    for marker in markers:
-        mx = (float(marker['longitude']) + 180.) % 360. - 180.
-        my = float(marker['latitude'])
-        west, east, south, north = region
-        inside = (west <= mx <= east if west <= east else mx >= west or mx <= east)
-        if not (np.isfinite([mx, my]).all() and inside and south <= my <= north):
-            continue
-        fig.plot(x=[mx], y=[my], style='a0.3c', fill='yellow', pen='0.5p,black')
-        label = marker.get('label', marker.get('cell', ''))
-        if label:
-            fig.text(x=mx, y=my, text=str(label), offset='0.15c/0.15c', font='9p,Helvetica,black')
+    plot_map_markers(fig, markers, region=region, projection=projection,
+                     labels=marker_labels, trace=trace)
     fig.colorbar(frame=f'xaf+l{color_label}' if color_label else 'xaf')
     if output_stem is not None:
         stem = Path(output_stem)
